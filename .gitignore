@@ -10,3 +10,6 @@ Desktop.ini
 # 請放在 repo 根目錄或 Competition/data/survey/raw/，再用 convert_merged.py 產生去識別檔
 /*.csv
 Competition/data/survey/raw/
+
+# Word 開啟文件時的暫存鎖定檔
+~$*
