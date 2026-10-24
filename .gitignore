@@ -5,3 +5,8 @@ Lottery/_archive/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# 含學生姓名、學號的原始問卷資料不得上傳（repo 為公開）
+# 請放在 repo 根目錄或 Competition/data/survey/raw/，再用 convert_merged.py 產生去識別檔
+/*.csv
+Competition/data/survey/raw/

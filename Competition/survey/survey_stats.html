@@ -289,7 +289,8 @@ function render() {
     }
 
     // 依身分比較
-    const roles = [...ROLES, '未填'].filter(k => paired.some(x => x.role === k));
+    // 先列問卷內建的身分，再列匯入資料中的其他身分（例如本科／非本科）
+    const roles = [...new Set([...ROLES, ...paired.map(x => x.role).sort(), '未填'])].filter(k => paired.some(x => x.role === k));
     $('byRole').innerHTML = '<tr><th>身分</th><th>配對人數</th><th>前測平均</th><th>後測平均</th><th>進步</th><th>p</th></tr>' + roles.map(k => {
         const g = paired.filter(x => x.role === k), g0 = g.map(x => x.pre), g1 = g.map(x => x.post);
         const tt = g.length >= 2 ? (g.length < 30 ? wilcoxon(g0, g1) : pairedT(g0, g1)) : { p: NaN };
