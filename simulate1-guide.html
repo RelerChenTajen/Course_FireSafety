@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+<title>疏散計算器操作圖解</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: one column of numbered steps, each a big picture + a few words, styled like evacuation signage */
+:root {
+  --bg: #f3f6f2;
+  --panel: #ffffff;
+  --ink: #14211a;
+  --sub: #55625a;
+  --line: #d5ddd6;
+  --exit: #0b8a47;        /* 避難出口標誌綠 */
+  --exit-ink: #ffffff;
+  --warn: #c62828;
+  --ok: #2e7d32;
+  --c-F: #29a8e0;
+  --c-L: #43a047;
+  --c-M: #f4b400;
+  --c-U: #ef4444;
+  --font-body: "Noto Sans TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+  --font-num: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111814; --panel: #1a231e; --ink: #e9f0ea; --sub: #a3b1a8; --line: #2e3a33;
+    --exit: #19a95c; --warn: #ff6b6b; --ok: #66bb6a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111814; --panel: #1a231e; --ink: #e9f0ea; --sub: #a3b1a8; --line: #2e3a33;
+  --exit: #19a95c; --warn: #ff6b6b; --ok: #66bb6a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.6; padding-inline: 16px; padding-block: 0 48px; }
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+header.sign { background: var(--exit); color: var(--exit-ink); border-radius: 0 0 14px 14px; padding: 22px 24px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+header.sign .runner { width: 64px; height: 64px; flex: none; }
+header.sign h1 { margin: 0; font-size: clamp(1.5rem, 4.5vw, 2.3rem); font-weight: 900; line-height: 1.2; text-wrap: balance; }
+header.sign p { margin: 4px 0 0; opacity: .92; font-size: 1rem; }
+header.sign code { background: rgba(0,0,0,.18); padding: 1px 6px; border-radius: 4px; }
+
+.step { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; align-items: center; }
+.step.hero { grid-template-columns: 1.2fr 1fr; }
+.step > * { min-width: 0; }
+.step svg { width: 100%; height: auto; display: block; }
+.num { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--exit); color: var(--exit-ink); font-family: var(--font-num); font-weight: 700; font-size: 1.6rem; }
+.step h2 { margin: 10px 0 8px; font-size: 1.45rem; font-weight: 900; text-wrap: balance; }
+.say { font-size: 1.12rem; margin: 0 0 10px; }
+.tip { color: var(--sub); font-size: .95rem; margin: 0; }
+.where { display: inline-block; font-size: .8rem; letter-spacing: .06em; color: var(--sub); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; margin-bottom: 4px; }
+.goal { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.goal div { border: 2px solid var(--exit); border-radius: 10px; padding: 6px 14px; text-align: center; }
+.goal b { display: block; font-family: var(--font-num); font-size: 2.2rem; line-height: 1; color: var(--exit); }
+.goal span { font-size: .9rem; }
+
+.tx { fill: var(--ink); font-family: var(--font-body); }
+.tx-sub { fill: var(--sub); font-family: var(--font-body); }
+.tx-num { font-family: var(--font-num); font-weight: 700; }
+.bg-panel { fill: var(--panel); }
+.bg-soft { fill: var(--bg); }
+.stroke-line { stroke: var(--line); }
+.stroke-ink { stroke: var(--ink); }
+.fill-ink { fill: var(--ink); }
+.fill-exit { fill: var(--exit); }
+.fill-warn { fill: var(--warn); }
+.fill-ok { fill: var(--ok); }
+.flow { fill: none; stroke-width: 4; stroke-dasharray: 10 8; animation: flow 1s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -18; } }
+@media (prefers-reduced-motion: reduce) { .flow { animation: none; } }
+
+.exitbtn { cursor: pointer; }
+.exitbtn:focus { outline: none; }
+.exitbtn:focus-visible rect { stroke: var(--exit); stroke-width: 4; }
+#demoMsg { font-weight: 700; min-height: 3.2em; }
+#demoMsg.bad { color: var(--warn); }
+button.reset { font: inherit; font-size: .95rem; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 14px; cursor: pointer; }
+button.reset:focus-visible { outline: 3px solid var(--exit); outline-offset: 2px; }
+
+.challenge { background: var(--panel); border: 2px dashed var(--exit); border-radius: 14px; padding: 22px; }
+.challenge h2 { margin: 0 0 12px; font-size: 1.45rem; font-weight: 900; }
+.challenge ol { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; font-size: 1.08rem; }
+.challenge .ans { color: var(--sub); font-size: .95rem; margin: 12px 0 0; }
+
+.params { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+.params div { background: var(--bg); border-radius: 8px; padding: 6px 10px; font-size: .88rem; color: var(--sub); }
+.params b { display: block; color: var(--ink); font-family: var(--font-num); font-size: 1.3rem; line-height: 1.1; }
+
+footer { color: var(--sub); font-size: .85rem; text-align: center; }
+
+@media (max-width: 760px) {
+  .step, .step.hero { grid-template-columns: 1fr; padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="pbar" style="margin:0 -16px;">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g3">臺北大巨蛋公安</span>
+    <span class="pb-sep">›</span><span class="pb-page">疏散動線與避難時間・使用說明</span>
+    <span class="pb-right"><a class="pb-btn ghost" href="simulate1.html">▶ 開始模擬</a></span>
+</div>
+
+<!-- 共用圖示 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ppl" viewBox="0 0 20 40">
+      <circle cx="10" cy="6" r="5"/>
+      <path d="M5 13h10a3 3 0 0 1 3 3v10h-3.5v13h-3v-11h-3v11h-3V26H2V16a3 3 0 0 1 3-3z"/>
+    </symbol>
+    <marker id="arI" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" style="fill:var(--ink)"/></marker>
+    <marker id="arG" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" style="fill:var(--exit)"/></marker>
+    <marker id="arR" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" style="fill:var(--warn)"/></marker>
+  </defs>
+</svg>
+
+<header class="sign">
+  <svg class="runner" viewBox="0 0 64 64" aria-hidden="true">
+    <rect x="2" y="2" width="60" height="60" rx="8" fill="none" stroke="#fff" stroke-width="3"/>
+    <circle cx="36" cy="14" r="5" fill="#fff"/>
+    <path d="M30 22l10 2 6 8M30 22l-4 14 8 6-2 12M26 36l-8 10M30 22l-10 6-2 8" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </svg>
+  <div>
+    <h1>大巨蛋疏散計算器・怎麼玩？</h1>
+    <p>給 <code>simulate1.html</code> 的圖解說明</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 這頁在做什麼 -->
+  <section class="step hero">
+    <svg viewBox="0 0 520 340" role="img" aria-label="大巨蛋俯視圖：四層看台、四個方向的出口，箭頭指向外面的安全區">
+      <rect x="10" y="10" width="500" height="320" rx="40" fill="none" class="stroke-line" stroke-width="3" stroke-dasharray="8 7"/>
+      <text x="260" y="34" text-anchor="middle" class="tx-sub" font-size="15">外面 = 安全區</text>
+      <ellipse cx="260" cy="180" rx="150" ry="105" fill="none" stroke="var(--c-U)" stroke-width="26" opacity=".8"/>
+      <ellipse cx="260" cy="180" rx="118" ry="80" fill="none" stroke="var(--c-M)" stroke-width="26" opacity=".85"/>
+      <ellipse cx="260" cy="180" rx="86" ry="56" fill="none" stroke="var(--c-L)" stroke-width="26" opacity=".85"/>
+      <ellipse cx="260" cy="180" rx="60" ry="38" fill="var(--c-F)" opacity=".85"/>
+      <g style="fill:var(--ink)" opacity=".8">
+        <use href="#ppl" x="236" y="166" width="10" height="20"/><use href="#ppl" x="250" y="166" width="10" height="20"/><use href="#ppl" x="264" y="166" width="10" height="20"/><use href="#ppl" x="278" y="166" width="10" height="20"/>
+      </g>
+      <path class="flow" style="stroke:var(--exit)" d="M260 70 L260 46" marker-end="url(#arG)"/>
+      <path class="flow" style="stroke:var(--exit)" d="M260 290 L260 318" marker-end="url(#arG)"/>
+      <path class="flow" style="stroke:var(--exit)" d="M418 180 L490 180" marker-end="url(#arG)"/>
+      <path class="flow" style="stroke:var(--exit)" d="M102 180 L30 180" marker-end="url(#arG)"/>
+      <g class="fill-exit"><rect x="250" y="64" width="20" height="20" rx="3"/><rect x="250" y="276" width="20" height="20" rx="3"/><rect x="402" y="170" width="20" height="20" rx="3"/><rect x="98" y="170" width="20" height="20" rx="3"/></g>
+      <text x="290" y="80" class="tx" font-size="14" font-weight="700">出口</text>
+    </svg>
+    <div>
+      <p class="say" style="font-size:1.3rem;font-weight:700;margin:0">5 萬多人看表演，突然失火。<br>大家來得及逃到外面嗎？</p>
+      <p class="tip" style="margin-top:8px">這個網頁會幫你算時間。要通過兩個目標：</p>
+      <div class="goal">
+        <div><b>8 分</b><span>離開座位</span></div>
+        <div><b>15 分</b><span>走到戶外</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 1 選活動 -->
+  <section class="step">
+    <svg viewBox="0 0 520 250" role="img" aria-label="演唱會和棒球賽比較：演唱會的球場中間也站滿人">
+      <g transform="translate(20,20)">
+        <rect width="225" height="210" rx="14" class="bg-soft stroke-line" stroke-width="2"/>
+        <text x="112" y="34" text-anchor="middle" class="tx" font-size="20" font-weight="900">演唱會</text>
+        <ellipse cx="112" cy="110" rx="80" ry="52" fill="none" stroke="var(--c-M)" stroke-width="20" opacity=".8"/>
+        <ellipse cx="112" cy="110" rx="50" ry="30" fill="var(--c-F)"/>
+        <g style="fill:var(--ink)"><use href="#ppl" x="90" y="98" width="10" height="20"/><use href="#ppl" x="102" y="98" width="10" height="20"/><use href="#ppl" x="114" y="98" width="10" height="20"/><use href="#ppl" x="126" y="98" width="10" height="20"/></g>
+        <text x="112" y="190" text-anchor="middle" class="tx tx-num" font-size="30">55,000 人</text>
+      </g>
+      <g transform="translate(275,20)">
+        <rect width="225" height="210" rx="14" class="bg-soft stroke-line" stroke-width="2"/>
+        <text x="112" y="34" text-anchor="middle" class="tx" font-size="20" font-weight="900">棒球賽</text>
+        <ellipse cx="112" cy="110" rx="80" ry="52" fill="none" stroke="var(--c-M)" stroke-width="20" opacity=".8"/>
+        <ellipse cx="112" cy="110" rx="50" ry="30" fill="none" stroke="var(--c-F)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="112" y="116" text-anchor="middle" class="tx-sub" font-size="14">球場空著</text>
+        <text x="112" y="190" text-anchor="middle" class="tx tx-num" font-size="30">40,000 人</text>
+      </g>
+    </svg>
+    <div>
+      <span class="num">1</span>
+      <h2>先選活動</h2>
+      <span class="where">左上「活動型態」下拉選單</span>
+      <p class="say">演唱會多了 1.5 萬人站在球場上，而且球場在<b>地下</b>，比較難逃。</p>
+    </div>
+  </section>
+
+  <!-- 2 勾選樓層 -->
+  <section class="step">
+    <svg viewBox="0 0 520 230" role="img" aria-label="四個勾選框：場地、下層、中層、上層，每層一種顏色">
+      <g font-size="20">
+        <g transform="translate(30,20)">
+          <rect width="26" height="26" rx="5" class="fill-exit"/><path d="M6 13l5 5 9-10" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <rect x="40" y="3" width="20" height="20" rx="4" fill="var(--c-F)"/><text x="72" y="21" class="tx" font-weight="700">場地（搖滾區）</text>
+        </g>
+        <g transform="translate(30,70)">
+          <rect width="26" height="26" rx="5" class="fill-exit"/><path d="M6 13l5 5 9-10" stroke="#fff" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <rect x="40" y="3" width="20" height="20" rx="4" fill="var(--c-L)"/><text x="72" y="21" class="tx" font-weight="700">下層</text>
+        </g>
+        <g transform="translate(30,120)">
+          <rect width="26" height="26" rx="5" class="bg-panel stroke-ink" stroke-width="2"/>
+          <rect x="40" y="3" width="20" height="20" rx="4" fill="var(--c-M)" opacity=".35"/><text x="72" y="21" class="tx-sub">中層（藏起來）</text>
+        </g>
+        <g transform="translate(30,170)">
+          <rect width="26" height="26" rx="5" class="bg-panel stroke-ink" stroke-width="2"/>
+          <rect x="40" y="3" width="20" height="20" rx="4" fill="var(--c-U)" opacity=".35"/><text x="72" y="21" class="tx-sub">上層（藏起來）</text>
+        </g>
+      </g>
+      <g transform="translate(400,115)">
+        <ellipse rx="96" ry="66" fill="none" stroke="var(--c-U)" stroke-width="16" opacity=".12"/>
+        <ellipse rx="74" ry="50" fill="none" stroke="var(--c-M)" stroke-width="16" opacity=".15"/>
+        <ellipse rx="52" ry="34" fill="none" stroke="var(--c-L)" stroke-width="16"/>
+        <ellipse rx="34" ry="21" fill="var(--c-F)"/>
+      </g>
+    </svg>
+    <div>
+      <span class="num">2</span>
+      <h2>想看哪幾層？</h2>
+      <span class="where">選單旁邊的 4 個勾選框</span>
+      <p class="say">打勾 = 顯示，取消 = 藏起來。<br>只是讓圖比較乾淨，<b>不影響計算</b>。</p>
+      <p class="tip">記住顏色：藍 場地、綠 下層、黃 中層、紅 上層。</p>
+    </div>
+  </section>
+
+  <!-- 3 封鎖出口（可互動） -->
+  <section class="step">
+    <svg id="demo" viewBox="0 0 520 300" role="group" aria-label="試試看：點出口方塊來封鎖或打開">
+      <ellipse cx="260" cy="150" rx="120" ry="85" fill="none" stroke="var(--c-U)" stroke-width="34" opacity=".55"/>
+      <g id="demoFlows"></g>
+      <g id="demoExits"></g>
+      <text x="260" y="156" text-anchor="middle" class="tx-sub" font-size="15">上層看台</text>
+    </svg>
+    <div>
+      <span class="num">3</span>
+      <h2>點出口，假裝它被火堵住</h2>
+      <span class="where">左邊動線圖上的小方塊</span>
+      <p class="say">點一下 → 出口變黑、打 ✕。<br>再點一下 → 打開。</p>
+      <p id="demoMsg" class="say" aria-live="polite">在左圖點任一個出口試試看 👈</p>
+      <button class="reset" id="demoReset" type="button">解除所有封鎖</button>
+      <p class="tip" style="margin-top:8px">網頁上也有同名按鈕，一次全部打開。</p>
+    </div>
+  </section>
+
+  <!-- 4 看結果 -->
+  <section class="step">
+    <svg viewBox="0 0 520 330" role="img" aria-label="計算結果：紅色判定框、兩個數字、長條圖，超過虛線的長條變紅">
+      <rect x="10" y="10" width="500" height="40" rx="8" style="fill:var(--warn)" opacity=".15"/>
+      <text x="26" y="37" class="fill-warn" font-size="17" font-weight="700" font-family="Noto Sans TC, sans-serif">❌ 到達戶外超過 15 分鐘：上層北</text>
+      <g transform="translate(10,62)">
+        <rect width="242" height="62" rx="8" class="bg-soft"/>
+        <text x="121" y="32" text-anchor="middle" class="tx-num fill-ok" font-size="30">7:12</text>
+        <text x="121" y="52" text-anchor="middle" class="tx-sub" font-size="12">最慢離開觀眾席（目標 8 分）</text>
+        <rect x="258" width="242" height="62" rx="8" class="bg-soft"/>
+        <text x="379" y="32" text-anchor="middle" class="tx-num fill-warn" font-size="30">17:05</text>
+        <text x="379" y="52" text-anchor="middle" class="tx-sub" font-size="12">最慢到達戶外（目標 15 分）</text>
+      </g>
+      <!-- 長條圖：x = 90 + t/20*400 -->
+      <g font-size="14">
+        <line x1="250" x2="250" y1="146" y2="316" style="stroke:var(--c-M)" stroke-width="2" stroke-dasharray="5 4"/>
+        <line x1="390" x2="390" y1="146" y2="316" style="stroke:var(--c-M)" stroke-width="2" stroke-dasharray="5 4"/>
+        <text x="250" y="142" text-anchor="middle" class="tx" font-size="13" font-weight="700">8 分</text>
+        <text x="390" y="142" text-anchor="middle" class="tx" font-size="13" font-weight="700">15 分</text>
+        <g class="tx"><text x="82" y="170" text-anchor="end">場地北</text><text x="82" y="210" text-anchor="end">下層東</text><text x="82" y="250" text-anchor="end">中層南</text><text x="82" y="290" text-anchor="end">上層北✕</text></g>
+        <rect x="90" y="154" width="120" height="6" class="fill-ok"/><rect x="90" y="162" width="240" height="14" fill="var(--c-F)"/>
+        <rect x="90" y="194" width="100" height="6" class="fill-ok"/><rect x="90" y="202" width="200" height="14" fill="var(--c-L)"/>
+        <rect x="90" y="234" width="80"  height="6" class="fill-ok"/><rect x="90" y="242" width="180" height="14" fill="var(--c-M)"/>
+        <rect x="90" y="274" width="144" height="6" class="fill-ok"/><rect x="90" y="282" width="342" height="14" class="fill-warn"/>
+        <text x="438" y="295" class="fill-warn" font-size="13" font-weight="700" font-family="Noto Sans TC, sans-serif">太慢！</text>
+      </g>
+    </svg>
+    <div>
+      <span class="num">4</span>
+      <h2>看結果：綠色過關，紅色不及格</h2>
+      <span class="where">右邊「📊 計算結果」</span>
+      <p class="say">每一區一根長條。<br><b>細條</b> = 離開座位，<b>粗條</b> = 到戶外。</p>
+      <p class="say">長條<b>超過黃色虛線</b>就變紅 = 太慢。</p>
+      <p class="tip">最上面的框直接告訴你哪幾區沒過。</p>
+    </div>
+  </section>
+
+  <!-- 5 改寬度 -->
+  <section class="step">
+    <svg viewBox="0 0 520 330" role="img" aria-label="窄門要排很久，寬門很快；時間等於反應加走路加排隊">
+      <!-- 窄門 -->
+      <g transform="translate(10,10)">
+        <rect width="240" height="190" rx="12" class="bg-soft"/>
+        <rect x="200" y="20" width="12" height="60" class="fill-ink"/><rect x="200" y="110" width="12" height="60" class="fill-ink"/>
+        <rect x="200" y="80" width="12" height="30" class="fill-exit"/>
+        <g style="fill:var(--c-U)">
+          <use href="#ppl" x="176" y="82" width="13" height="26"/><use href="#ppl" x="156" y="82" width="13" height="26"/><use href="#ppl" x="136" y="82" width="13" height="26"/><use href="#ppl" x="116" y="82" width="13" height="26"/><use href="#ppl" x="96" y="82" width="13" height="26"/><use href="#ppl" x="76" y="82" width="13" height="26"/><use href="#ppl" x="56" y="82" width="13" height="26"/><use href="#ppl" x="36" y="82" width="13" height="26"/><use href="#ppl" x="16" y="82" width="13" height="26"/>
+        </g>
+        <text x="120" y="160" text-anchor="middle" class="tx" font-size="16" font-weight="700">窄門 → 排好久</text>
+      </g>
+      <!-- 寬門 -->
+      <g transform="translate(270,10)">
+        <rect width="240" height="190" rx="12" class="bg-soft"/>
+        <rect x="200" y="20" width="12" height="25" class="fill-ink"/><rect x="200" y="145" width="12" height="25" class="fill-ink"/>
+        <rect x="200" y="45" width="12" height="100" class="fill-exit"/>
+        <g style="fill:var(--c-L)">
+          <use href="#ppl" x="176" y="52" width="13" height="26"/><use href="#ppl" x="156" y="52" width="13" height="26"/><use href="#ppl" x="136" y="52" width="13" height="26"/>
+          <use href="#ppl" x="176" y="82" width="13" height="26"/><use href="#ppl" x="156" y="82" width="13" height="26"/><use href="#ppl" x="136" y="82" width="13" height="26"/>
+          <use href="#ppl" x="176" y="112" width="13" height="26"/><use href="#ppl" x="156" y="112" width="13" height="26"/><use href="#ppl" x="136" y="112" width="13" height="26"/>
+        </g>
+        <text x="100" y="175" text-anchor="middle" class="tx" font-size="16" font-weight="700">寬門 → 很快</text>
+      </g>
+      <!-- 時間 = 反應 + 走路 + 排隊 -->
+      <g transform="translate(10,220)" font-size="15" font-family="Noto Sans TC, sans-serif">
+        <text x="0" y="22" class="tx" font-weight="900">逃生時間 ＝</text>
+        <rect x="100" y="2" width="90" height="30" rx="6" fill="var(--c-F)"/><text x="145" y="23" text-anchor="middle" fill="#fff" font-weight="700">反應</text>
+        <rect x="196" y="2" width="120" height="30" rx="6" fill="var(--c-L)"/><text x="256" y="23" text-anchor="middle" fill="#fff" font-weight="700">走路</text>
+        <rect x="322" y="2" width="178" height="30" rx="6" class="fill-warn"/><text x="411" y="23" text-anchor="middle" fill="#fff" font-weight="700">排隊過門</text>
+        <text x="145" y="56" text-anchor="middle" class="tx-sub" font-size="13">聽到警報到起身</text>
+        <text x="256" y="56" text-anchor="middle" class="tx-sub" font-size="13">走到出口、爬樓梯</text>
+        <text x="411" y="56" text-anchor="middle" class="tx-sub" font-size="13">人數 ÷（門寬 × 每秒過幾人）</text>
+        <text x="411" y="80" text-anchor="middle" class="tx" font-size="13" font-weight="700">門越寬，這段越短</text>
+      </g>
+    </svg>
+    <div>
+      <span class="num">5</span>
+      <h2>把門變寬，看看會不會變綠</h2>
+      <span class="where">下方「🛠️ 各層參數」表格</span>
+      <p class="say">改「看台出口寬」和「疏散路線寬」的數字，結果馬上更新。</p>
+      <p class="say">最右欄「建議最小寬度」：<b style="color:var(--ok)">綠字</b> 夠寬，<b style="color:var(--warn)">紅字</b> 不夠寬。</p>
+      <p class="tip">進階：「🧮 計算方式」還能改反應時間、走路速度等，預設值如下。</p>
+      <div class="params">
+        <div><b>60 秒</b>開始避難</div>
+        <div><b>1.5 / 1.3</b>每公尺每秒過幾人（平面／樓梯）</div>
+        <div><b>1.0 / 0.5</b>走路速度 m/s（平地／看台）</div>
+        <div><b>0.45 / 0.6</b>樓梯速度 m/s（上／下）</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 時間軸 -->
+  <section class="step">
+    <svg viewBox="0 0 520 320" role="img" aria-label="時間軸：按播放後看台顏色變淡，紅圈越大代表排隊越多">
+      <g transform="translate(260,125)">
+        <ellipse rx="150" ry="95" fill="none" stroke="var(--c-U)" stroke-width="26" opacity=".7"/>
+        <ellipse rx="118" ry="70" fill="none" stroke="var(--c-M)" stroke-width="26" opacity=".2"/>
+        <ellipse rx="86" ry="46" fill="none" stroke="var(--c-L)" stroke-width="26" opacity=".15"/>
+        <ellipse rx="58" ry="28" fill="var(--c-F)" opacity=".12"/>
+        <circle cx="0" cy="-118" r="22" style="fill:var(--warn)" opacity=".4" stroke="var(--warn)" stroke-width="2"/>
+        <rect x="-9" y="-127" width="18" height="18" rx="3" fill="var(--c-U)" stroke="#fff" stroke-width="1.5"/>
+        <circle cx="170" cy="0" r="9" style="fill:var(--warn)" opacity=".4" stroke="var(--warn)" stroke-width="2"/>
+        <path d="M60 -118 L28 -118" class="stroke-ink" stroke-width="2" marker-end="url(#arI)"/>
+        <text x="66" y="-112" class="tx" font-size="15" font-weight="900">大紅圈 = 瓶頸</text>
+        <text x="0" y="5" text-anchor="middle" class="tx-sub" font-size="13">顏色變淡 = 人走了</text>
+      </g>
+      <g transform="translate(20,262)">
+        <rect width="58" height="40" rx="8" class="fill-exit"/>
+        <path d="M22 10 L40 20 L22 30z" fill="#fff"/>
+        <rect x="80" y="17" width="330" height="6" rx="3" class="bg-soft stroke-line"/>
+        <rect x="80" y="17" width="190" height="6" rx="3" class="fill-exit"/>
+        <circle cx="270" cy="20" r="11" class="bg-panel" stroke="var(--exit)" stroke-width="4"/>
+        <text x="420" y="27" class="tx tx-num" font-size="24">9:30</text>
+      </g>
+    </svg>
+    <div>
+      <span class="num">6</span>
+      <h2>按播放，看人慢慢離開</h2>
+      <span class="where">「⏱️ 疏散進度與瓶頸」</span>
+      <p class="say">按 ▶ 或拖拉時間條（0 到 20 分鐘）。<br>上面的動線圖跟著動。</p>
+      <p class="say">出口旁的<b style="color:var(--warn)">紅圈越大</b> = 排隊的人越多。</p>
+      <p class="tip">下方三個數字：還在座位幾人、最擠的地方排幾人、已到戶外幾人。</p>
+    </div>
+  </section>
+
+  <!-- 7 剖面 -->
+  <section class="step">
+    <svg viewBox="0 0 520 280" role="img" aria-label="剖面圖：球場在地下 10.5 公尺，場地和下層往上逃，中層水平，上層往下">
+      <rect x="0" y="150" width="520" height="130" fill="#8d6e63" opacity=".25"/>
+      <line x1="0" x2="520" y1="150" y2="150" stroke="#8d6e63" stroke-width="3"/>
+      <text x="10" y="142" class="tx-sub" font-size="14">地面 0 m</text>
+      <path d="M40 70 Q260 -10 480 70" fill="none" class="stroke-line" stroke-width="4"/>
+      <rect x="200" y="235" width="120" height="10" fill="var(--c-F)"/>
+      <text x="260" y="268" text-anchor="middle" class="tx" font-size="14" font-weight="700">球場在地下 10.5 m</text>
+      <path d="M200 235 L150 160" stroke="var(--c-L)" stroke-width="8"/>
+      <path d="M150 150 L110 110" stroke="var(--c-M)" stroke-width="8"/>
+      <path d="M110 110 L70 60" stroke="var(--c-U)" stroke-width="8"/>
+      <path d="M320 235 L370 160" stroke="var(--c-L)" stroke-width="8"/>
+      <path d="M370 150 L410 110" stroke="var(--c-M)" stroke-width="8"/>
+      <path d="M410 110 L450 60" stroke="var(--c-U)" stroke-width="8"/>
+      <g font-size="15" font-weight="900" font-family="Noto Sans TC, sans-serif">
+        <path class="flow" style="stroke:var(--c-F)" d="M230 228 L230 160" marker-end="url(#arI)"/>
+        <text x="238" y="200" fill="var(--c-F)">↑ 往上爬</text>
+        <path class="flow" style="stroke:var(--c-M)" d="M100 130 L20 130" marker-end="url(#arI)"/>
+        <text x="20" y="122" fill="var(--c-M)">→ 平平走</text>
+        <path class="flow" style="stroke:var(--c-U)" d="M455 70 L495 140" marker-end="url(#arI)"/>
+        <text x="420" y="50" fill="var(--c-U)">↓ 往下走</text>
+      </g>
+    </svg>
+    <div>
+      <span class="num">7</span>
+      <h2>為什麼有人要「往上」逃？</h2>
+      <span class="where">「📐 剖面：向上避難」</span>
+      <p class="say">球場挖在地下，所以場地和下層的人要<b>爬樓梯往上</b>。</p>
+      <p class="say">往上爬比往下走慢，也更累。</p>
+      <p class="tip">這一區只看不用操作。</p>
+    </div>
+  </section>
+
+  <!-- 小挑戰 -->
+  <section class="challenge">
+    <h2>動手小挑戰（3 分鐘）</h2>
+    <ol>
+      <li>選「演唱會」，看看是不是全部綠色。</li>
+      <li>在地圖上點<b style="color:var(--c-U)">紅色（上層）北邊</b>的出口，把它封鎖。</li>
+      <li>看結果哪一條變紅？</li>
+      <li>到「各層參數」表，把上層的「疏散路線寬」從 5 慢慢加大，直到「建議最小寬度」變綠字。</li>
+      <li>最後按 ▶ 播放，找出最大的紅圈在哪裡。</li>
+    </ol>
+    <p class="ans">做完再去頁面最下面的「💡 思考題」，點題目就會展開提示。</p>
+  </section>
+
+  <footer>圖中數字為示意，實際數值以 simulate1.html 計算為準。頁面頂端的連結可前往 VR 防災導覽、人群動態模擬。</footer>
+</main>
+
+<script>
+(() => {
+  const NS = 'http://www.w3.org/2000/svg';
+  const exits = { N: { x: 260, y: 30, c: [260, 70], name: '北' }, E: { x: 435, y: 150, c: [375, 150], name: '東' },
+                  S: { x: 260, y: 270, c: [260, 230], name: '南' }, W: { x: 85, y: 150, c: [145, 150], name: '西' } };
+  const order = ['N', 'E', 'S', 'W'];
+  const blocked = new Set();
+  const flows = document.getElementById('demoFlows'), exG = document.getElementById('demoExits'), msg = document.getElementById('demoMsg');
+  const mk = (tag, a, p) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+  const corner = (a, b) => { const h = (a === 'E' || a === 'W') ? a : b, v = (a === 'N' || a === 'S') ? a : b; return [exits[h].x, exits[v].y]; };
+
+  order.forEach(k => {
+    const E = exits[k];
+    const g = mk('g', { class: 'exitbtn', tabindex: 0, role: 'button', 'aria-label': E.name + '側出口，按一下封鎖或打開' }, exG);
+    mk('rect', { x: E.x - 16, y: E.y - 16, width: 32, height: 32, rx: 5, stroke: '#fff', 'stroke-width': 2 }, g);
+    mk('text', { x: E.x, y: E.y + 8, 'text-anchor': 'middle', 'font-size': 24, 'font-weight': 900, fill: '#ff5252' }, g);
+    const toggle = () => { blocked.has(k) ? blocked.delete(k) : blocked.add(k); draw(); };
+    g.addEventListener('click', toggle);
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    E.g = g;
+  });
+  document.getElementById('demoReset').addEventListener('click', () => { blocked.clear(); draw(); });
+
+  function draw() {
+    flows.innerHTML = '';
+    order.forEach((k, i) => {
+      const E = exits[k], [r, t] = E.g.children;
+      r.setAttribute('style', blocked.has(k) ? 'fill:#000' : 'fill:var(--exit)');
+      t.textContent = blocked.has(k) ? '✕' : '';
+      const [cx, cy] = E.c;
+      if (!blocked.has(k)) {
+        mk('path', { d: `M ${cx} ${cy} L ${E.x} ${E.y}`, class: 'flow', style: 'stroke:var(--exit)' }, flows);
+        return;
+      }
+      [order[(i + 1) % 4], order[(i + 3) % 4]].filter(n => !blocked.has(n)).forEach(n => {
+        const [qx, qy] = corner(k, n);
+        mk('path', { d: `M ${cx} ${cy} Q ${qx} ${qy} ${exits[n].x} ${exits[n].y}`, class: 'flow', style: 'stroke:var(--warn)', 'marker-end': 'url(#arR)' }, flows);
+      });
+    });
+    if (!blocked.size) { msg.className = 'say'; msg.textContent = '在左圖點任一個出口試試看 👈'; return; }
+    if (blocked.size === 4) { msg.className = 'say bad'; msg.textContent = '全部堵住了！網頁會顯示「無法疏散」。'; return; }
+    msg.className = 'say bad';
+    msg.textContent = '紅色虛線：被堵住那區的人改走旁邊的出口 → 要多走一段路，旁邊的出口也更擠。';
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

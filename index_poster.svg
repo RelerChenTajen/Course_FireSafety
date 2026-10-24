@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1120" viewBox="0 0 1000 1120" font-family="'Microsoft JhengHei','Segoe UI',sans-serif">
+  <defs>
+    <linearGradient id="headerGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1e3a5f"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <style>
+      .gTitle  { font-size: 24px; font-weight: bold; fill: #f1f5f9; }
+      .gDesc   { font-size: 13px; fill: #94a3b8; }
+      .cTitle  { font-size: 17px; font-weight: bold; fill: #f1f5f9; }
+      .cText   { font-size: 12.5px; fill: #94a3b8; }
+      .cLink   { font-size: 11.5px; fill: #38bdf8; font-family: monospace; }
+      .icon    { font-size: 26px; }
+      .tag     { font-size: 10.5px; fill: #b6c2d4; }
+    </style>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1000" height="1120" fill="#0f172a"/>
+
+  <!-- 頁首 -->
+  <rect width="1000" height="172" fill="url(#headerGrad)"/>
+  <rect y="169" width="1000" height="3" fill="#38bdf8"/>
+  <text x="500" y="78" text-anchor="middle" font-size="34" font-weight="bold" fill="#f1f5f9">🚒 消防與公共安全模擬教學平台</text>
+  <text x="500" y="120" text-anchor="middle" font-size="16" fill="#94a3b8">互動式教學 ・ AIoT 偵測模擬 ・ 大型場館公安演示</text>
+
+  <!-- ===== 類群 1：教育互動推廣 ===== -->
+  <rect x="60" y="200" width="8" height="34" rx="4" fill="#f97316"/>
+  <text x="82" y="219" class="gTitle">🎓 消防與職業安全教育互動推廣</text>
+  <text x="82" y="240" class="gDesc">以互動遊戲化方式推廣職業安全與消防防災觀念</text>
+
+  <!-- 卡片：職業安全問答轉盤 -->
+  <g>
+    <rect x="60" y="258" width="580" height="178" rx="12" fill="#243349" stroke="#334155"/>
+    <rect x="72" y="270" width="6" height="154" rx="3" fill="#f97316"/>
+    <text x="92" y="312" class="icon">🎡</text>
+    <text x="92" y="348" class="cTitle">職業安全問答轉盤</text>
+    <text x="92" y="376" class="cText">點擊指針旋轉抽選產業別（營造、餐飲、堆高機、航空、物流、</text>
+    <text x="92" y="396" class="cText">工廠、醫療、螺絲產業），帶出對應職安問答情境，寓教於樂。</text>
+    <rect x="92"  y="408" width="74" height="20" rx="10" fill="#ffffff14"/><text x="129" y="422" class="tag" text-anchor="middle">互動抽獎</text>
+    <rect x="174" y="408" width="74" height="20" rx="10" fill="#ffffff14"/><text x="211" y="422" class="tag" text-anchor="middle">職安教育</text>
+    <text x="540" y="423" class="cLink" text-anchor="end">▶ Lottery/lottery.html</text>
+  </g>
+
+  <!-- ===== 類群 2：AIoT 消防偵測系列 ===== -->
+  <rect x="60" y="472" width="8" height="34" rx="4" fill="#e74c3c"/>
+  <text x="82" y="491" class="gTitle">🔥 AIoT 消防偵測系列</text>
+  <text x="82" y="512" class="gDesc">感測數據 × AI 判斷 × 即時警報的智慧防災情境模擬</text>
+
+  <!-- 三張卡片 -->
+  <g>
+    <!-- aiot -->
+    <rect x="60" y="530" width="280" height="228" rx="12" fill="#243349" stroke="#334155"/>
+    <rect x="72" y="542" width="6" height="204" rx="3" fill="#e74c3c"/>
+    <text x="92" y="584" class="icon">📊</text>
+    <text x="92" y="620" class="cTitle">AIoT 消防安全教學網</text>
+    <text x="92" y="648" class="cText">Arduino×Node-RED 教學專題，</text>
+    <text x="92" y="668" class="cText">滑桿模擬溫度/煙霧/CO，即時</text>
+    <text x="92" y="688" class="cText">觸發火災警報與趨勢圖。</text>
+    <rect x="92"  y="704" width="58" height="20" rx="10" fill="#ffffff14"/><text x="121" y="718" class="tag" text-anchor="middle">教學</text>
+    <rect x="158" y="704" width="68" height="20" rx="10" fill="#ffffff14"/><text x="192" y="718" class="tag" text-anchor="middle">Chart.js</text>
+    <text x="92" y="744" class="cLink">▶ aiot.html</text>
+
+    <!-- warehouse -->
+    <rect x="360" y="530" width="280" height="228" rx="12" fill="#243349" stroke="#334155"/>
+    <rect x="372" y="542" width="6" height="204" rx="3" fill="#e74c3c"/>
+    <text x="392" y="584" class="icon">📦</text>
+    <text x="392" y="620" class="cTitle">智慧倉儲火警偵測</text>
+    <text x="392" y="648" class="cText">大空間倉儲戰情室：熱影像</text>
+    <text x="392" y="668" class="cText">＋AI 升溫速率核心，模擬貨架</text>
+    <text x="392" y="688" class="cText">急速升溫的警報與閃爍。</text>
+    <rect x="392" y="704" width="58" height="20" rx="10" fill="#ffffff14"/><text x="421" y="718" class="tag" text-anchor="middle">熱影像</text>
+    <rect x="458" y="704" width="80" height="20" rx="10" fill="#ffffff14"/><text x="498" y="718" class="tag" text-anchor="middle">升溫 AI</text>
+    <text x="392" y="744" class="cLink">▶ warehouse_aiot.html</text>
+
+    <!-- hospital -->
+    <rect x="660" y="530" width="280" height="228" rx="12" fill="#243349" stroke="#334155"/>
+    <rect x="672" y="542" width="6" height="204" rx="3" fill="#e74c3c"/>
+    <text x="692" y="584" class="icon">🏥</text>
+    <text x="692" y="620" class="cTitle">醫院智慧消防監測</text>
+    <text x="692" y="648" class="cText">同步監測病房陰燃、氧氣室</text>
+    <text x="692" y="668" class="cText">高溫、ICU 設備過熱，提供</text>
+    <text x="692" y="688" class="cText">三種危險情境與即時日誌。</text>
+    <rect x="692" y="704" width="68" height="20" rx="10" fill="#ffffff14"/><text x="726" y="718" class="tag" text-anchor="middle">多區監測</text>
+    <rect x="768" y="704" width="68" height="20" rx="10" fill="#ffffff14"/><text x="802" y="718" class="tag" text-anchor="middle">純前端</text>
+    <text x="692" y="744" class="cLink">▶ hospital-aiot.html</text>
+  </g>
+
+  <!-- ===== 類群 3：臺北大巨蛋公安模擬系列 ===== -->
+  <rect x="60" y="794" width="8" height="34" rx="4" fill="#06b6d4"/>
+  <text x="82" y="813" class="gTitle">🏟️ 臺北大巨蛋公安模擬系列</text>
+  <text x="82" y="834" class="gDesc">以三種視覺技術呈現大型場館的防災、避難與群眾安全</text>
+
+  <g>
+    <!-- simulate0 -->
+    <rect x="60" y="852" width="280" height="228" rx="12" fill="#243349" stroke="#334155"/>
+    <rect x="72" y="864" width="6" height="204" rx="3" fill="#06b6d4"/>
+    <text x="92" y="906" class="icon">🥽</text>
+    <text x="92" y="942" class="cTitle">360° VR 防災導覽</text>
+    <text x="92" y="970" class="cText">A-Frame 全景導覽，可切換</text>
+    <text x="92" y="990" class="cText">球場/通道/停車場，點擊熱點</text>
+    <text x="92" y="1010" class="cText">查看排煙、防火捲門等說明。</text>
+    <rect x="92"  y="1026" width="84" height="20" rx="10" fill="#ffffff14"/><text x="134" y="1040" class="tag" text-anchor="middle">VR/A-Frame</text>
+    <rect x="184" y="1026" width="68" height="20" rx="10" fill="#ffffff14"/><text x="218" y="1040" class="tag" text-anchor="middle">熱點互動</text>
+    <text x="92" y="1066" class="cLink">▶ simulate0.html</text>
+
+    <!-- simulate1 -->
+    <rect x="360" y="852" width="280" height="228" rx="12" fill="#243349" stroke="#334155"/>
+    <rect x="372" y="864" width="6" height="204" rx="3" fill="#06b6d4"/>
+    <text x="392" y="906" class="icon">🗺️</text>
+    <text x="392" y="942" class="cTitle">疏散動線示意圖</text>
+    <text x="392" y="970" class="cText">SVG 俯視圖呈現看台分層、</text>
+    <text x="392" y="990" class="cText">樓梯核與出口，搭配低/中/高</text>
+    <text x="392" y="1010" class="cText">層三種疏散策略說明。</text>
+    <rect x="392" y="1026" width="68" height="20" rx="10" fill="#ffffff14"/><text x="426" y="1040" class="tag" text-anchor="middle">SVG 動畫</text>
+    <rect x="468" y="1026" width="68" height="20" rx="10" fill="#ffffff14"/><text x="502" y="1040" class="tag" text-anchor="middle">疏散策略</text>
+    <text x="392" y="1066" class="cLink">▶ simulate1.html</text>
+
+    <!-- simulate2 -->
+    <rect x="660" y="852" width="280" height="228" rx="12" fill="#243349" stroke="#334155"/>
+    <rect x="672" y="864" width="6" height="204" rx="3" fill="#06b6d4"/>
+    <text x="692" y="906" class="icon">👥</text>
+    <text x="692" y="942" class="cTitle">大規模集客模擬</text>
+    <text x="692" y="970" class="cText">Canvas 粒子模擬 4 萬人入座</text>
+    <text x="692" y="990" class="cText">與疏散，即時顯示場內人數、</text>
+    <text x="692" y="1010" class="cText">密度與流率。</text>
+    <rect x="692" y="1026" width="84" height="20" rx="10" fill="#ffffff14"/><text x="734" y="1040" class="tag" text-anchor="middle">Canvas 粒子</text>
+    <rect x="784" y="1026" width="68" height="20" rx="10" fill="#ffffff14"/><text x="818" y="1040" class="tag" text-anchor="middle">群眾密度</text>
+    <text x="692" y="1066" class="cLink">▶ simulate2.html</text>
+  </g>
+
+  <!-- 頁尾 -->
+  <line x1="60" y1="1096" x2="940" y2="1096" stroke="#1e293b"/>
+  <text x="500" y="1112" text-anchor="middle" font-size="12" fill="#64748b">消防與公共安全模擬教學平台 ｜ 教學示範用途 ｜ Designed for Educational Purpose</text>
+</svg>

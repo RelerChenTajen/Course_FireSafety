@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+<title>醫院消防戰情中心使用說明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<style>
+/* Layout: one narrow column of big picture cards, like a safety-instruction placard read top to bottom */
+:root {
+  --bg: #eef2f0;
+  --card: #ffffff;
+  --ink: #18231f;
+  --muted: #5a6964;
+  --line: #d3ddd9;
+  --exit: #1e8449;      /* 出口標示綠 */
+  --exit-ink: #ffffff;
+  --warn: #f2b705;      /* 公安黃 */
+  --warn-ink: #1d1a0a;
+  --fire: #d9432b;
+  --smoke: #4a4f55;
+  --screen: #1b2735;
+  --screen-ink: #e8eef2;
+  --f-display: "Huninn", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --f-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+    --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+  --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 22px; }
+
+header { display: grid; gap: 10px; }
+.sign { display: inline-flex; align-items: center; gap: 10px; background: var(--exit); color: var(--exit-ink); font-family: var(--f-display); font-size: 15px; padding: 6px 14px; border-radius: 4px; width: fit-content; letter-spacing: .08em; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(32px, 7vw, 48px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); font-size: 18px; }
+.lead a { color: var(--exit); font-weight: 700; }
+
+section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--f-display); font-weight: 400; font-size: 28px; margin: 0; display: flex; align-items: center; gap: 12px; text-wrap: balance; }
+.step { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--warn); color: var(--warn-ink); display: grid; place-items: center; font-family: var(--f-body); font-weight: 900; font-size: 20px; }
+p { margin: 0; }
+.say { font-size: 19px; }
+.small { font-size: 14px; color: var(--muted); }
+
+svg { display: block; width: 100%; height: auto; max-width: 100%; }
+svg text { font-family: var(--f-body); }
+
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 12px 6px; border-radius: 10px; background: var(--bg); min-width: 0; }
+.tile b { font-family: var(--f-display); font-weight: 400; font-size: 21px; }
+.tile span { font-size: 14px; color: var(--muted); line-height: 1.4; }
+.tile svg { width: 100%; max-width: 140px; }
+
+.keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.keycol { display: grid; gap: 10px; justify-items: center; text-align: center; min-width: 0; }
+.keycol h3 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 20px; }
+.kbd-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+kbd { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 8px; border: 2px solid var(--ink); border-bottom-width: 5px; border-radius: 8px; font-family: var(--f-body); font-weight: 900; font-size: 18px; background: var(--card); color: var(--ink); }
+kbd.hot { background: var(--warn); color: var(--warn-ink); border-color: var(--warn-ink); }
+.legend { display: grid; gap: 4px; font-size: 15px; }
+
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rule { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px; border-radius: 10px; background: var(--bg); }
+.rule b { display: block; font-size: 17px; }
+.rule span { font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+.look { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 2px dashed var(--warn); font-weight: 700; font-size: 16px; }
+
+.flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; text-align: center; }
+.flow div { display: grid; gap: 4px; justify-items: center; }
+.flow span { font-size: 15px; }
+
+footer { font-size: 13px; color: var(--muted); text-align: center; }
+
+@media (max-width: 560px) {
+  .rules, .keys { grid-template-columns: 1fr; }
+  .tile b { font-size: 18px; }
+  .tile span { font-size: 12.5px; }
+  h2 { font-size: 24px; }
+}
+</style>
+<style>
+.lv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: center; }
+.lv div { padding: 10px 6px; border-radius: 10px; display: grid; gap: 2px; min-width: 0; }
+.lv b { font-size: 18px; }
+.lv span { font-size: 13px; }
+.lv .g { background: #e8f5e9; color: #1b5e20; }
+.lv .y { background: #fff8e1; color: #8a6100; }
+.lv .r { background: #ffebee; color: #b71c1c; }
+table.scn { width: 100%; border-collapse: collapse; font-size: 15px; }
+table.scn th, table.scn td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.scn th { font-size: 13px; color: var(--muted); }
+.pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.pill.fire { background: var(--fire); color: #fff; }
+.pill.fake { background: var(--line); color: var(--ink); }
+.scroll { overflow-x: auto; }
+.race { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.race div { display: grid; gap: 4px; justify-items: center; text-align: center; padding: 12px 6px; border-radius: 10px; background: var(--bg); min-width: 0; }
+.race .L { width: 48px; height: 48px; border-radius: 50%; background: var(--fire); color: #fff; display: grid; place-items: center; font: 900 24px var(--f-body); }
+.race b { font-size: 16px; }
+.race span { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.cmp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cmp div { padding: 14px; border-radius: 10px; display: grid; gap: 6px; }
+.cmp .bad { background: #ffebee; }
+.cmp .good { background: #e8f5e9; }
+.cmp b { font-size: 18px; color: #263238; }
+.cmp ul { margin: 0; padding-left: 20px; font-size: 14px; color: #37474f; }
+@media (max-width: 560px) { .race { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cmp { grid-template-columns: 1fr; } }
+</style>
+
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g2">AIoT 消防偵測</span>
+    <span class="pb-sep">›</span><span class="pb-page">醫院智慧消防戰情中心・使用說明</span>
+    <span class="pb-right"><a class="pb-btn ghost" href="hospital-aiot.html">▶ 開始模擬</a></span>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="sign">🏥 使用說明</div>
+  <h1>醫院 AIoT 消防戰情中心，這樣玩</h1>
+  <p class="lead">看醫院三個地方的感測器、處理警報、練習把病人移到安全的地方，再回顧一場真實的火災。開啟：<a href="hospital-aiot.html">hospital-aiot.html</a></p>
+</header>
+
+<!-- 1 -->
+<section>
+  <h2><span class="step">1</span>網頁有三個部分</h2>
+  <div class="trio">
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="8" y="14" width="32" height="56" rx="5" fill="var(--exit)"/>
+        <rect x="44" y="14" width="32" height="56" rx="5" fill="var(--warn)"/>
+        <rect x="80" y="14" width="32" height="56" rx="5" fill="var(--fire)"/>
+        <rect x="14" y="24" width="20" height="8" rx="2" fill="#fff"/><rect x="50" y="24" width="20" height="8" rx="2" fill="#fff"/><rect x="86" y="24" width="20" height="8" rx="2" fill="#fff"/>
+      </svg>
+      <b>📡 監控總覽</b><span>三個區域的感測器與警報</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="6" y="18" width="50" height="56" fill="var(--fire)" opacity=".3"/>
+        <rect x="64" y="18" width="50" height="56" fill="var(--exit)" opacity=".3"/>
+        <rect x="56" y="18" width="8" height="56" fill="#a1887f"/>
+        <path d="M26 46 h44" stroke="var(--ink)" stroke-width="5"/><path d="M68 38 l12 8 l-12 8 z" fill="var(--ink)"/>
+      </svg>
+      <b>🗺️ 避難演練</b><span>把病人移到隔壁安全區</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <line x1="20" y1="10" x2="20" y2="82" stroke="var(--muted)" stroke-width="4"/>
+        <circle cx="20" cy="22" r="7" fill="var(--fire)"/><rect x="34" y="17" width="70" height="10" rx="5" fill="var(--line)"/>
+        <circle cx="20" cy="46" r="7" fill="var(--warn)"/><rect x="34" y="41" width="56" height="10" rx="5" fill="var(--line)"/>
+        <circle cx="20" cy="70" r="7" fill="var(--exit)"/><rect x="34" y="65" width="64" height="10" rx="5" fill="var(--line)"/>
+      </svg>
+      <b>📼 案例回顧</b><span>2018 臺北醫院護理之家火災</span>
+    </div>
+  </div>
+  <p class="small">頁面上方的連結可以直接跳到這三個部分。</p>
+</section>
+
+<!-- 2 -->
+<section>
+  <h2><span class="step">2</span>監控總覽：三個地方，各看各的</h2>
+  <div class="trio">
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="14" y="44" width="92" height="22" rx="6" fill="#90caf9"/><rect x="14" y="34" width="26" height="14" rx="4" fill="#fff" stroke="var(--line)"/>
+        <rect x="18" y="66" width="6" height="14" fill="var(--muted)"/><rect x="96" y="66" width="6" height="14" fill="var(--muted)"/>
+        <circle cx="70" cy="22" r="10" fill="var(--smoke)" opacity=".6"/><circle cx="84" cy="16" r="8" fill="var(--smoke)" opacity=".5"/>
+      </svg>
+      <b>🛏️ 普通病房</b><span>PM2.5（煙）＋ CO</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="28" y="20" width="24" height="60" rx="10" fill="#4fc3f7"/><rect x="34" y="12" width="12" height="10" fill="var(--muted)"/>
+        <rect x="64" y="20" width="24" height="60" rx="10" fill="#4fc3f7"/><rect x="70" y="12" width="12" height="10" fill="var(--muted)"/>
+        <text x="40" y="56" font-size="14" font-weight="900" text-anchor="middle" fill="#fff">O₂</text><text x="76" y="56" font-size="14" font-weight="900" text-anchor="middle" fill="#fff">O₂</text>
+      </svg>
+      <b>🧪 氧氣室</b><span>氧氣濃度＋溫度</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="10" y="10" width="100" height="70" rx="6" fill="#1a237e"/>
+        <circle cx="46" cy="44" r="18" fill="#ff9800" opacity=".8"/><circle cx="80" cy="56" r="14" fill="#f44336"/><circle cx="80" cy="56" r="7" fill="#ffeb3b"/>
+      </svg>
+      <b>🌡️ ICU 熱影像</b><span>畫面最高溫，看哪裡發燙</span>
+    </div>
+  </div>
+  <div class="lv">
+    <div class="g"><b>● 正常</b><span>綠色</span></div>
+    <div class="y"><b>● 注意</b><span>快到門檻了</span></div>
+    <div class="r"><b>● 警報</b><span>卡片閃紅燈</span></div>
+  </div>
+  <p class="small">每張卡片下方的「AI 規則」寫著它的判斷門檻，例如氧氣 ≥ 23.5% 就是「富氧」，任何火源都會燒得更猛。</p>
+</section>
+
+<!-- 3 -->
+<section>
+  <h2><span class="step">3</span>警報響了，按這三個鈕</h2>
+  <svg viewBox="0 0 640 160" role="img" aria-label="警報處理流程：確認、復歸，或標記誤報">
+    <rect x="0" y="0" width="640" height="160" rx="12" fill="var(--bg)"/>
+    <g font-weight="700" text-anchor="middle">
+      <rect x="20" y="50" width="120" height="56" rx="10" fill="var(--fire)"/>
+      <text x="80" y="84" font-size="17" fill="#fff">🚨 警報閃爍</text>
+      <path d="M150 78 h40" stroke="var(--muted)" stroke-width="4"/><path d="M188 68 l14 10 l-14 10 z" fill="var(--muted)"/>
+      <rect x="210" y="50" width="120" height="56" rx="10" fill="var(--card)" stroke="var(--fire)" stroke-width="3"/>
+      <text x="270" y="76" font-size="17" fill="var(--fire)">確認</text>
+      <text x="270" y="96" font-size="12" fill="var(--muted)">我知道了，停止閃爍</text>
+      <path d="M340 78 h40" stroke="var(--muted)" stroke-width="4"/><path d="M378 68 l14 10 l-14 10 z" fill="var(--muted)"/>
+      <rect x="400" y="20" width="220" height="52" rx="10" fill="var(--card)" stroke="var(--exit)" stroke-width="3"/>
+      <text x="510" y="44" font-size="16" fill="var(--exit)">復歸</text>
+      <text x="510" y="62" font-size="12" fill="var(--muted)">數值恢復正常後，回到監控</text>
+      <rect x="400" y="86" width="220" height="52" rx="10" fill="var(--card)" stroke="var(--muted)" stroke-width="3"/>
+      <text x="510" y="110" font-size="16" fill="var(--ink)">標記誤報</text>
+      <text x="510" y="128" font-size="12" fill="var(--muted)">查明不是火災時按這個</text>
+    </g>
+  </svg>
+  <p class="small">右上角勾「警報音」會有聲音。每個動作都會寫進「📝 事件日誌」，可以按「匯出 CSV」存成表格交作業。</p>
+</section>
+
+<!-- 4 -->
+<section>
+  <h2><span class="step">4</span>播放情境，看 AI 怎麼判斷</h2>
+  <div class="scroll">
+    <table class="scn">
+      <tr><th>情境</th><th>該不該響</th><th>看什麼</th></tr>
+      <tr><td>🛏️ 1 病房陰燃</td><td><span class="pill fire">要警報</span></td><td>煙和 CO 慢慢升，「注意」比「警報」早多久？</td></tr>
+      <tr><td>🧴 2 病房噴霧清潔</td><td><span class="pill fake">不該響</span></td><td>煙一下很多，但 CO 沒動，所以只到「注意」</td></tr>
+      <tr><td>🫁 3 氧氣管線洩漏</td><td><span class="pill fire">要警報</span></td><td>不是火，但富氧非常危險，一樣要響</td></tr>
+      <tr><td>🔌 4 ICU 延長線過熱</td><td><span class="pill fire">要警報</span></td><td>熱影像上的熱點在哪、怎麼擴大</td></tr>
+    </table>
+  </div>
+  <p class="small">播放速度可選 1×、5×、10×（預設 5×）。「結束情境」讓數值恢復，「全部重置」清空所有狀態。ICU 卡片勾「顯示原始像素」可以看到感測器只有 16×12 格。</p>
+</section>
+
+<!-- 5 -->
+<section>
+  <h2><span class="step">5</span>避難演練：先往旁邊，不是先下樓</h2>
+  <svg viewBox="0 0 640 230" role="img" aria-label="水平避難：從起火的區劃 A，穿過防火門，移到同一層的區劃 B">
+    <rect x="0" y="0" width="640" height="230" rx="12" fill="var(--bg)"/>
+    <rect x="20" y="30" width="280" height="170" rx="6" fill="var(--fire)" opacity=".18"/>
+    <rect x="340" y="30" width="280" height="170" rx="6" fill="var(--exit)" opacity=".18"/>
+    <rect x="300" y="30" width="40" height="170" fill="var(--line)"/>
+    <rect x="304" y="96" width="32" height="56" fill="#a1887f"/>
+    <text x="320" y="88" font-size="12" text-anchor="middle" fill="var(--muted)" font-weight="700">防火門</text>
+    <rect x="20" y="30" width="280" height="44" fill="var(--smoke)" opacity=".55"/>
+    <text x="160" y="58" font-size="16" text-anchor="middle" fill="#fff" font-weight="700">🔥 區劃 A（起火）</text>
+    <text x="480" y="58" font-size="16" text-anchor="middle" fill="var(--exit)" font-weight="700">✅ 區劃 B（安全）</text>
+    <g font-size="13" font-weight="900" text-anchor="middle" fill="#fff">
+      <circle cx="70" cy="120" r="18" fill="#27ae60"/><text x="70" y="125">步</text>
+      <circle cx="130" cy="150" r="18" fill="#2980b9"/><text x="130" y="155">輪</text>
+      <rect x="170" y="108" width="70" height="30" rx="8" fill="#e67e22"/><text x="205" y="128">床</text>
+    </g>
+    <path d="M250 124 h120" stroke="var(--ink)" stroke-width="5" stroke-dasharray="10 6"/>
+    <path d="M368 112 l18 12 l-18 12 z" fill="var(--ink)"/>
+    <text x="480" y="130" font-size="14" text-anchor="middle" fill="var(--ink)">病人移到這裡</text>
+    <g font-size="13" fill="var(--ink)">
+      <text x="40" y="190">🟢 步：自己走 40 秒</text>
+      <text x="40" y="212">🔵 輪：1 人推 60 秒　🟠 床：2 人抬 90 秒</text>
+    </g>
+  </svg>
+  <p class="say">醫院的病人大多不能自己逃，所以先把病人<b>水平</b>移到同一層、有防火門隔開的安全區。</p>
+</section>
+
+<!-- 6 -->
+<section>
+  <h2><span class="step">6</span>照 R.A.C.E. 順序按</h2>
+  <div class="race">
+    <div><span class="L">R</span><b>救援</b><span>先把起火病房的病人移出</span></div>
+    <div><span class="L">A</span><b>通報</b><span>打 119、院內廣播</span></div>
+    <div><span class="L">C</span><b>侷限</b><span>關上房門和防火門</span></div>
+    <div><span class="L">E</span><b>疏散</b><span>區劃 A 全員移到區劃 B</span></div>
+  </div>
+  <p class="small">開始前先在「⚙️ 演練條件」選起火病房、班別人力、隔間牆、防火門、119 通報裝置、設備連動。操作方式選「學生操作」就自己按；也可以選「自動演示」看示範。氧氣區域閥要先確認病人改用備用氧氣才能關。</p>
+</section>
+
+<!-- 7 -->
+<section>
+  <h2><span class="step">7</span>跑兩次，比一比</h2>
+  <div class="cmp">
+    <div class="bad">
+      <b>第 1 次：📼 案例條件</b>
+      <ul><li>自動演示「依案例時序」</li><li>夜班 3 人、隔間牆沒到頂</li><li>沒有 119 自動通報、設備沒有連動</li></ul>
+    </div>
+    <div class="good">
+      <b>第 2 次：✅ 改善後條件</b>
+      <ul><li>自動演示「理想應變」</li><li>隔間牆到頂</li><li>119 自動通報、設備自動連動</li></ul>
+    </div>
+  </div>
+  <p class="say">兩次的結果都會列在「📋 演練結果比較」，看<b>受濃煙威脅</b>的人數差多少。</p>
+  <p class="small">按「📼 案例條件」「✅ 改善後條件」會一次套好所有設定。演練的時間和煙流是教學用的簡化模型，不是工程計算。</p>
+</section>
+
+<!-- 8 -->
+<section>
+  <h2><span class="step">8</span>案例回顧：真實發生過的事</h2>
+  <svg viewBox="0 0 640 170" role="img" aria-label="時間軸：火警總機作動到消防局接獲報案延遲超過 7 分鐘">
+    <rect x="0" y="0" width="640" height="170" rx="12" fill="var(--bg)"/>
+    <line x1="60" y1="80" x2="580" y2="80" stroke="var(--muted)" stroke-width="4"/>
+    <circle cx="100" cy="80" r="12" fill="var(--fire)"/>
+    <text x="100" y="50" font-size="15" font-weight="900" text-anchor="middle" fill="var(--ink)">4:28:59</text>
+    <text x="100" y="114" font-size="13" text-anchor="middle" fill="var(--muted)">火警總機響</text>
+    <circle cx="520" cy="80" r="12" fill="var(--warn)"/>
+    <text x="520" y="50" font-size="15" font-weight="900" text-anchor="middle" fill="var(--ink)">4:36:03</text>
+    <text x="520" y="114" font-size="13" text-anchor="middle" fill="var(--muted)">消防局才接到報案</text>
+    <rect x="200" y="62" width="220" height="36" rx="18" fill="var(--fire)"/>
+    <text x="310" y="86" font-size="16" font-weight="900" text-anchor="middle" fill="#fff">延遲超過 7 分鐘</text>
+    <text x="320" y="152" font-size="14" text-anchor="middle" fill="var(--ink)">後來規定：護理之家都要裝「自動連線消防局」的 119 通報裝置</text>
+  </svg>
+  <p class="say">按「▶ 重播時間軸」看事情一步一步發生，右邊有關鍵事實和後來修正的法規。</p>
+  <p class="small">案例內容依監察院糾正案文與衛福部新聞稿整理，網頁上附有原始資料連結。</p>
+</section>
+
+<footer>本網頁為教學示範，不能取代經認證的火警自動警報設備。演練數值皆為示意。</footer>
+
+</div>

@@ -1,0 +1,132 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+    background-color: #E0E0E0;
+    font-family: 'Barlow Condensed', "Microsoft JhengHei", sans-serif;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid #005AB5; outline-offset: 2px; }
+
+/* 上下工具列 */
+.bar { display: flex; flex-direction: column; align-items: center; z-index: 2; }
+nav, #itemBox { background: #fff; width: 100%; }
+nav {
+    display: flex; flex-wrap: wrap; justify-content: space-around; padding: 8px 10%;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+nav button { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 28px; padding: 2px 8px; }
+nav button span { font-size: 18px; }
+nav button:hover:not(:disabled), .tool:hover { color: grey; }
+nav button:disabled { cursor: not-allowed; opacity: .4; }
+#keyAnswer.on { color: #e6a700; }
+
+.toggle {
+    background: #fff; font-weight: bold; width: 70px; height: 30px; font-size: 18px;
+}
+.top .toggle { border-radius: 0 0 35px 35px; box-shadow: 0 3px 4px rgba(0,0,0,.12); }
+.bottom .toggle { border-radius: 35px 35px 0 0; }
+.collapsed nav, .collapsed #itemBox { display: none; }
+
+/* 中間舞台：board 由 JS 依可用空間設定為 4:3 */
+.stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 6px; }
+.board { position: relative; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+.board img, .board canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+.board .answer { opacity: 0; transition: opacity .3s; pointer-events: none; }
+.board .answer.show { opacity: 1; }
+canvas { touch-action: none; cursor: crosshair; }
+
+/* 下方工具 */
+#itemBox {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px 32px;
+    padding: 12px 16px; font-size: 22px;
+    border-radius: 100px; width: min(80%, 760px); margin-bottom: 16px;
+}
+.tools, .colors { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; }
+.tool { font-size: 24px; opacity: .4; }
+.tool.on { opacity: 1; }
+#penSize { width: 70px; height: 38px; text-align: center; font: inherit; background: #E0E0E0; border: none; margin: 0 6px; }
+.colorItem {
+    width: 38px; height: 38px; border-radius: 50%; color: #fff; font-size: 20px; font-weight: bold;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.1);
+}
+.colorItem.on { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #555; }
+
+@media (max-width: 960px) {
+    nav { padding: 8px 4%; }
+    nav button span { display: none; }
+    nav button { font-size: 22px; }
+    .toggle { width: 50px; height: 25px; font-size: 15px; }
+    #itemBox { width: 100%; border-radius: 0; margin-bottom: 0; font-size: 18px; gap: 10px 20px; }
+    .colorLabel { display: none; }
+    .colorItem { width: 32px; height: 32px; }
+}
+
+/* ---------- 作答資訊列 ---------- */
+.hud {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 22px;
+    width: 100%; padding: 6px 12px; background: #263238; color: #fff;
+    font-family: "Microsoft JhengHei", sans-serif; font-size: 1.25rem;
+}
+.hud[hidden], .hud [hidden] { display: none; }
+.hud-topic { font-weight: bold; color: #ffd54f; }
+.hud-team { background: #ffc107; color: #000; padding: 2px 12px; border-radius: 999px; font-weight: bold; }
+.hud-timer { font: bold 1.7rem 'Barlow Condensed', monospace; font-variant-numeric: tabular-nums; min-width: 4ch; text-align: center; }
+.hud-timer.warn { color: #ff5252; animation: blink 1s steps(2) infinite; }
+.hud-found b { font-size: 1.5rem; color: #69f0ae; font-variant-numeric: tabular-nums; }
+.btn.small { padding: 4px 14px; font-size: .95rem; background: #fff; }
+.collapsed .hud { display: flex; }
+@keyframes blink { 50% { opacity: .35; } }
+
+/* ---------- 判定標記與開始遮罩 ---------- */
+#marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#marks .found circle { fill: none; stroke: #00c853; stroke-width: 6; }
+#marks .missed circle { fill: none; stroke: #ff1744; stroke-width: 6; stroke-dasharray: 16 10; }
+#marks .current circle { animation: pulse 1s ease-in-out infinite; }
+#marks .badge circle { stroke: #fff; stroke-width: 3; }
+#marks .found .badge circle { fill: #00c853; }
+#marks .missed .badge circle { fill: #ff1744; }
+#marks text { fill: #fff; font: bold 22px "Microsoft JhengHei", sans-serif; text-anchor: middle; dominant-baseline: central; }
+#marks .wrong { fill: none; stroke: #ff1744; stroke-width: 7; stroke-linecap: round; animation: fade 1.4s forwards; }
+@keyframes pulse { 50% { stroke-width: 12; } }
+@keyframes fade { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
+
+.cover {
+    position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px;
+    background: rgba(38, 50, 56, .82); backdrop-filter: blur(14px); color: #fff; text-align: center; padding: 16px;
+    font-family: "Microsoft JhengHei", sans-serif; z-index: 3;
+}
+.cover[hidden] { display: none; }
+.cover p { font-size: 1.2rem; max-width: 32em; }
+.btn.big { font-size: 1.6rem; padding: 14px 36px; }
+nav button:disabled .svg-inline--fa { opacity: .8; }
+
+/* ---------- 逐一揭曉答案 ---------- */
+.reveal {
+    flex: none; align-self: center; margin: 0 12px 12px; z-index: 5;
+    width: min(900px, calc(100% - 24px)); max-height: 40vh; overflow-y: auto;
+    background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    padding: 14px 20px; font-family: "Microsoft JhengHei", sans-serif; color: #263238;
+}
+.reveal[hidden] { display: none; }
+.rv-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.rv-idx { font-weight: bold; color: #607d8b; font-variant-numeric: tabular-nums; }
+.rv-status { font-weight: bold; padding: 2px 12px; border-radius: 999px; }
+.rv-status.ok { background: #e8f5e9; color: #1b5e20; }
+.rv-status.miss { background: #ffebee; color: #b71c1c; }
+.reveal h3 { margin: 6px 0; font-size: 1.5rem; }
+.reveal p { margin: 4px 0; font-size: 1.1rem; line-height: 1.55; }
+.rv-law { color: #455a64; font-size: 1rem !important; }
+.rv-law::before { content: "📖 相關法規："; font-weight: bold; }
+.rv-link a { color: #1565c0; font-weight: bold; }
+.rv-nav { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+.rv-nav .btn { font-size: .95rem; padding: 6px 14px; }
+body.revealing #bottomBar { display: none; }
+
+@media (max-width: 960px) {
+    .hud { font-size: 1rem; gap: 4px 12px; }
+    .hud-timer { font-size: 1.35rem; }
+    .reveal h3 { font-size: 1.2rem; }
+    .reveal p { font-size: 1rem; }
+}

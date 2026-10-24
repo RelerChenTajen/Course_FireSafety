@@ -1,0 +1,7 @@
+# 重構前的舊版檔案與原始大圖，只保留在本機
+Lottery/_archive/
+
+# 系統暫存檔
+Thumbs.db
+Desktop.ini
+.DS_Store

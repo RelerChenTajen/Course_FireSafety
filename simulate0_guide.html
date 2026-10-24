@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+<title>大巨蛋 VR 操作說明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<style>
+/* Layout: one narrow column of big picture cards, like a safety-instruction placard read top to bottom */
+:root {
+  --bg: #eef2f0;
+  --card: #ffffff;
+  --ink: #18231f;
+  --muted: #5a6964;
+  --line: #d3ddd9;
+  --exit: #1e8449;      /* 出口標示綠 */
+  --exit-ink: #ffffff;
+  --warn: #f2b705;      /* 公安黃 */
+  --warn-ink: #1d1a0a;
+  --fire: #d9432b;
+  --smoke: #4a4f55;
+  --screen: #1b2735;
+  --screen-ink: #e8eef2;
+  --f-display: "Huninn", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --f-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+    --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+  --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 22px; }
+
+header { display: grid; gap: 10px; }
+.sign { display: inline-flex; align-items: center; gap: 10px; background: var(--exit); color: var(--exit-ink); font-family: var(--f-display); font-size: 15px; padding: 6px 14px; border-radius: 4px; width: fit-content; letter-spacing: .08em; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(32px, 7vw, 48px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); font-size: 18px; }
+.lead a { color: var(--exit); font-weight: 700; }
+
+section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--f-display); font-weight: 400; font-size: 28px; margin: 0; display: flex; align-items: center; gap: 12px; text-wrap: balance; }
+.step { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--warn); color: var(--warn-ink); display: grid; place-items: center; font-family: var(--f-body); font-weight: 900; font-size: 20px; }
+p { margin: 0; }
+.say { font-size: 19px; }
+.small { font-size: 14px; color: var(--muted); }
+
+svg { display: block; width: 100%; height: auto; max-width: 100%; }
+svg text { font-family: var(--f-body); }
+
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 12px 6px; border-radius: 10px; background: var(--bg); min-width: 0; }
+.tile b { font-family: var(--f-display); font-weight: 400; font-size: 21px; }
+.tile span { font-size: 14px; color: var(--muted); line-height: 1.4; }
+.tile svg { width: 100%; max-width: 140px; }
+
+.keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.keycol { display: grid; gap: 10px; justify-items: center; text-align: center; min-width: 0; }
+.keycol h3 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 20px; }
+.kbd-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+kbd { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 8px; border: 2px solid var(--ink); border-bottom-width: 5px; border-radius: 8px; font-family: var(--f-body); font-weight: 900; font-size: 18px; background: var(--card); color: var(--ink); }
+kbd.hot { background: var(--warn); color: var(--warn-ink); border-color: var(--warn-ink); }
+.legend { display: grid; gap: 4px; font-size: 15px; }
+
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rule { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px; border-radius: 10px; background: var(--bg); }
+.rule b { display: block; font-size: 17px; }
+.rule span { font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+.look { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 2px dashed var(--warn); font-weight: 700; font-size: 16px; }
+
+.flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; text-align: center; }
+.flow div { display: grid; gap: 4px; justify-items: center; }
+.flow span { font-size: 15px; }
+
+footer { font-size: 13px; color: var(--muted); text-align: center; }
+
+@media (max-width: 560px) {
+  .rules, .keys { grid-template-columns: 1fr; }
+  .tile b { font-size: 18px; }
+  .tile span { font-size: 12.5px; }
+  h2 { font-size: 24px; }
+}
+</style>
+
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g3">臺北大巨蛋公安</span>
+    <span class="pb-sep">›</span><span class="pb-page">VR 防災安全導覽・使用說明</span>
+    <span class="pb-right"><a class="pb-btn ghost" href="simulate0.html">▶ 開始模擬</a></span>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="sign">🏃 EXIT · 操作說明</div>
+  <h1>臺北大巨蛋 VR 公安導覽，這樣玩</h1>
+  <p class="lead">在電腦或手機上走進大巨蛋，認識消防設備、當檢查員、練習逃生。開啟檔案：<a href="simulate0.html">simulate0.html</a></p>
+</header>
+
+<!-- 1. 畫面長怎樣 -->
+<section>
+  <h2><span class="step">1</span>先認識畫面</h2>
+  <svg viewBox="0 0 640 380" role="img" aria-label="畫面配置示意">
+    <rect x="0" y="0" width="640" height="380" rx="12" fill="var(--screen)"/>
+    <!-- 地板透視 -->
+    <path d="M0 380 L230 200 L410 200 L640 380 Z" fill="#3b4a5a"/>
+    <path d="M230 200 L230 90 L410 90 L410 200 Z" fill="#2a3746"/>
+    <rect x="295" y="120" width="50" height="18" rx="2" fill="#1e8449"/>
+    <text x="320" y="133" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">EXIT 出口</text>
+    <!-- 黃色熱點 -->
+    <circle cx="180" cy="230" r="15" fill="none" stroke="#ffc107" stroke-width="5"/>
+    <text x="180" y="236" text-anchor="middle" font-size="16" font-weight="900" fill="#ffc107">i</text>
+    <circle cx="470" cy="250" r="15" fill="none" stroke="#ffc107" stroke-width="5"/>
+    <text x="470" y="256" text-anchor="middle" font-size="16" font-weight="900" fill="#ffc107">i</text>
+    <!-- 上方工具列 -->
+    <rect x="0" y="0" width="640" height="44" rx="12" fill="#000" opacity=".7"/>
+    <rect x="0" y="42" width="640" height="3" fill="#ffc107"/>
+    <g font-size="12" fill="#ddd">
+      <rect x="150" y="11" width="62" height="22" rx="4" fill="#ffc107"/><text x="181" y="26" text-anchor="middle" fill="#000" font-weight="700">L1</text>
+      <rect x="218" y="11" width="44" height="22" rx="4" fill="none" stroke="#666"/><text x="240" y="26" text-anchor="middle">B2</text>
+      <rect x="268" y="11" width="44" height="22" rx="4" fill="none" stroke="#666"/><text x="290" y="26" text-anchor="middle">B4</text>
+      <rect x="330" y="11" width="52" height="22" rx="4" fill="#ffc107"/><text x="356" y="26" text-anchor="middle" fill="#000" font-weight="700">導覽</text>
+      <rect x="388" y="11" width="52" height="22" rx="4" fill="none" stroke="#666"/><text x="414" y="26" text-anchor="middle">檢查</text>
+      <rect x="446" y="11" width="52" height="22" rx="4" fill="none" stroke="#666"/><text x="472" y="26" text-anchor="middle">避難</text>
+    </g>
+    <!-- 右側面板 -->
+    <rect x="500" y="58" width="128" height="78" rx="6" fill="#14141e" stroke="#444"/>
+    <rect x="512" y="70" width="104" height="54" fill="#5c6b7a" opacity=".35"/>
+    <path d="M560 102 l8 -16 l8 16 z" fill="#4fc3f7"/>
+    <rect x="600" y="76" width="7" height="7" fill="#2ecc71"/>
+    <rect x="500" y="144" width="128" height="70" rx="6" fill="#000" opacity=".7" stroke="#444"/>
+    <rect x="510" y="158" width="80" height="6" rx="3" fill="#ffc107"/>
+    <rect x="510" y="172" width="108" height="5" rx="2" fill="#666"/>
+    <rect x="510" y="184" width="90" height="5" rx="2" fill="#666"/>
+    <rect x="500" y="222" width="128" height="50" rx="6" fill="#000" opacity=".7" stroke="#444"/>
+    <rect x="510" y="236" width="70" height="6" rx="3" fill="#ffc107"/>
+    <rect x="510" y="250" width="100" height="5" rx="2" fill="#666"/>
+    <!-- 左下方向鍵 -->
+    <g fill="#000" opacity=".75" stroke="#888">
+      <rect x="54" y="272" width="30" height="30" rx="5"/>
+      <rect x="20" y="306" width="30" height="30" rx="5"/><rect x="54" y="306" width="30" height="30" rx="5"/><rect x="88" y="306" width="30" height="30" rx="5"/>
+      <rect x="20" y="340" width="30" height="30" rx="5"/><rect x="54" y="340" width="30" height="30" rx="5"/><rect x="88" y="340" width="30" height="30" rx="5"/>
+    </g>
+    <g fill="#fff" font-size="13" text-anchor="middle">
+      <text x="69" y="292">▲</text><text x="35" y="326">⟲</text><text x="69" y="326">▼</text><text x="103" y="326">⟳</text>
+      <text x="35" y="360">◀</text><text x="69" y="359" font-size="10">蹲低</text><text x="103" y="360">▶</text>
+    </g>
+    <!-- 標號 -->
+    <g font-size="15" font-weight="900" text-anchor="middle">
+      <circle cx="181" cy="62" r="14" fill="var(--warn)"/><text x="181" y="67" fill="var(--warn-ink)">A</text>
+      <circle cx="414" cy="62" r="14" fill="var(--warn)"/><text x="414" y="67" fill="var(--warn-ink)">B</text>
+      <circle cx="485" cy="96" r="14" fill="var(--warn)"/><text x="485" y="101" fill="var(--warn-ink)">C</text>
+      <circle cx="485" cy="178" r="14" fill="var(--warn)"/><text x="485" y="183" fill="var(--warn-ink)">D</text>
+      <circle cx="485" cy="246" r="14" fill="var(--warn)"/><text x="485" y="251" fill="var(--warn-ink)">E</text>
+      <circle cx="140" cy="288" r="14" fill="var(--warn)"/><text x="140" y="293" fill="var(--warn-ink)">F</text>
+      <circle cx="212" cy="230" r="14" fill="var(--warn)"/><text x="212" y="235" fill="var(--warn-ink)">G</text>
+    </g>
+  </svg>
+  <div class="legend">
+    <div><b>A</b> 選地方　<b>B</b> 選玩法　<b>C</b> 小地圖（藍三角＝你，綠方塊＝出口）</div>
+    <div><b>D</b> 任務說明／煙量表　<b>E</b> 學習紀錄　<b>F</b> 手機用的方向鍵　<b>G</b> 黃色 ⓘ 可以點</div>
+  </div>
+</section>
+
+<!-- 2. 選地方 -->
+<section>
+  <h2><span class="step">2</span>選一個地方</h2>
+  <div class="trio">
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <ellipse cx="60" cy="58" rx="54" ry="26" fill="var(--exit)" opacity=".25"/>
+        <ellipse cx="60" cy="58" rx="36" ry="15" fill="var(--exit)"/>
+        <path d="M14 46 Q60 -6 106 46" fill="none" stroke="var(--muted)" stroke-width="5"/>
+        <rect x="48" y="40" width="24" height="8" fill="var(--ink)"/>
+      </svg>
+      <b>B2 球場</b><span>演唱會、看台、四個大通道</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="8" y="22" width="104" height="52" fill="var(--line)"/>
+        <rect x="14" y="30" width="26" height="22" fill="#81d4fa" opacity=".7"/><rect x="47" y="30" width="26" height="22" fill="#81d4fa" opacity=".7"/><rect x="80" y="30" width="26" height="22" fill="#81d4fa" opacity=".7"/>
+        <rect x="14" y="24" width="26" height="6" fill="#8d6e63"/><rect x="47" y="24" width="26" height="6" fill="#5c6bc0"/><rect x="80" y="24" width="26" height="6" fill="#ef6c00"/>
+        <rect x="8" y="66" width="104" height="8" fill="var(--muted)"/>
+      </svg>
+      <b>L1 商場</b><span>通道、商店、安全梯</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="8" y="14" width="104" height="8" fill="var(--muted)"/>
+        <rect x="56" y="22" width="8" height="52" fill="var(--line)"/>
+        <rect x="14" y="50" width="34" height="18" rx="5" fill="#2980b9"/><rect x="20" y="40" width="22" height="12" rx="3" fill="#34495e"/>
+        <rect x="72" y="50" width="34" height="18" rx="5" fill="var(--fire)"/><rect x="78" y="40" width="22" height="12" rx="3" fill="#34495e"/>
+        <circle cx="22" cy="70" r="5" fill="var(--ink)"/><circle cx="40" cy="70" r="5" fill="var(--ink)"/><circle cx="80" cy="70" r="5" fill="var(--ink)"/><circle cx="98" cy="70" r="5" fill="var(--ink)"/>
+      </svg>
+      <b>B4 停車場</b><span>車子、柱子、防煙垂壁</span>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 選玩法 -->
+<section>
+  <h2><span class="step">3</span>選一種玩法</h2>
+  <div class="trio">
+    <div class="tile">
+      <svg viewBox="0 0 120 100" aria-hidden="true">
+        <circle cx="60" cy="46" r="32" fill="none" stroke="var(--warn)" stroke-width="9"/>
+        <text x="60" y="62" text-anchor="middle" font-size="44" font-weight="900" fill="var(--warn)">i</text>
+        <path d="M78 66 l22 22 l-9 2 l5 9 l-6 3 l-5 -9 l-7 6 z" fill="var(--ink)"/>
+      </svg>
+      <b>🧭 導覽</b><span>點黃色 ⓘ，看說明、答小測驗</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 100" aria-hidden="true">
+        <rect x="18" y="56" width="40" height="34" fill="#c8a165"/><rect x="38" y="30" width="34" height="28" fill="#c8a165"/>
+        <rect x="76" y="14" width="34" height="76" fill="var(--exit)"/><rect x="82" y="20" width="22" height="10" fill="#fff"/>
+        <circle cx="44" cy="40" r="24" fill="none" stroke="var(--fire)" stroke-width="6"/>
+        <line x1="61" y1="57" x2="74" y2="70" stroke="var(--fire)" stroke-width="8" stroke-linecap="round"/>
+      </svg>
+      <b>🔍 公安檢查</b><span>當檢查員，找出藏起來的錯誤</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 100" aria-hidden="true">
+        <rect x="0" y="0" width="120" height="38" fill="var(--smoke)" opacity=".75"/>
+        <path d="M86 92 Q70 70 84 52 Q88 66 96 60 Q100 74 104 64 Q114 80 100 92 Z" fill="var(--fire)"/>
+        <path d="M92 92 Q86 80 92 72 Q96 82 100 78 Q104 86 98 92 Z" fill="var(--warn)"/>
+        <rect x="8" y="44" width="34" height="14" fill="var(--exit)"/><text x="25" y="55" text-anchor="middle" font-size="10" font-weight="900" fill="#fff">EXIT</text>
+        <circle cx="52" cy="66" r="6" fill="var(--ink)"/><path d="M50 72 l-12 8 l4 4 l10 -6 l6 10 l5 -3 l-6 -12 z" fill="var(--ink)"/>
+      </svg>
+      <b>🔥 避難體驗</b><span>失火了！在煙變低前找到出口</span>
+    </div>
+  </div>
+  <p class="small">換地方或換玩法，場景都會從頭開始。</p>
+</section>
+
+<!-- 4. 怎麼走路 -->
+<section>
+  <h2><span class="step">4</span>怎麼走、怎麼看</h2>
+  <div class="keys">
+    <div class="keycol">
+      <h3>💻 電腦</h3>
+      <div class="kbd-row"><kbd>W</kbd></div>
+      <div class="kbd-row"><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+      <p class="small">走路（方向鍵也可以）</p>
+      <div class="kbd-row"><kbd>Q</kbd><kbd>E</kbd><span style="align-self:center">轉身</span></div>
+      <div class="kbd-row"><kbd class="hot">C</kbd><span style="align-self:center">蹲低／站起</span></div>
+      <div class="kbd-row"><kbd>Esc</kbd><span style="align-self:center">關閉視窗</span></div>
+      <p class="small">🖱️ 按住滑鼠拖曳＝看四周；點一下＝選東西</p>
+    </div>
+    <div class="keycol">
+      <h3>📱 手機／VR</h3>
+      <svg viewBox="0 0 160 220" aria-hidden="true" style="max-width:170px">
+        <rect x="20" y="4" width="120" height="212" rx="18" fill="var(--screen)" stroke="var(--ink)" stroke-width="4"/>
+        <g fill="#000" stroke="#999" opacity=".85">
+          <rect x="54" y="120" width="26" height="26" rx="5"/>
+          <rect x="26" y="150" width="26" height="26" rx="5"/><rect x="54" y="150" width="26" height="26" rx="5"/><rect x="82" y="150" width="26" height="26" rx="5"/>
+          <rect x="26" y="180" width="26" height="26" rx="5"/><rect x="54" y="180" width="26" height="26" rx="5" fill="#ffc107"/><rect x="82" y="180" width="26" height="26" rx="5"/>
+        </g>
+        <g fill="#fff" font-size="12" text-anchor="middle"><text x="67" y="138">▲</text><text x="39" y="168">⟲</text><text x="67" y="168">▼</text><text x="95" y="168">⟳</text><text x="39" y="198">◀</text><text x="95" y="198">▶</text></g>
+        <text x="67" y="197" font-size="9" text-anchor="middle" fill="#000" font-weight="700">蹲低</text>
+        <rect x="108" y="190" width="24" height="16" rx="3" fill="none" stroke="#ddd" stroke-width="2"/>
+        <text x="120" y="202" font-size="8" text-anchor="middle" fill="#ddd">VR</text>
+        <path d="M60 40 a30 30 0 0 1 40 0" fill="none" stroke="var(--warn)" stroke-width="4"/>
+        <path d="M98 34 l4 8 l-9 0 z" fill="var(--warn)"/>
+        <text x="80" y="72" text-anchor="middle" font-size="12" fill="#ddd">轉動手機</text>
+        <text x="80" y="88" text-anchor="middle" font-size="12" fill="#ddd">看四周</text>
+      </svg>
+      <p class="small">按住左下角按鈕走路；右下角 VR 鈕可戴眼鏡玩</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5. 避難祕訣 -->
+<section>
+  <h2><span class="step">5</span>逃生小祕訣</h2>
+  <svg viewBox="0 0 640 210" role="img" aria-label="煙往上，蹲低能讓頭離開煙層">
+    <rect x="0" y="0" width="640" height="210" rx="10" fill="var(--bg)"/>
+    <rect x="0" y="0" width="640" height="82" rx="10" fill="var(--smoke)" opacity=".8"/>
+    <text x="20" y="34" font-size="20" font-weight="900" fill="#fff">煙會往上跑，越來越低 ↓</text>
+    <line x1="0" y1="82" x2="640" y2="82" stroke="var(--fire)" stroke-width="3" stroke-dasharray="10 8"/>
+    <text x="630" y="102" text-anchor="end" font-size="14" fill="var(--fire)" font-weight="700">煙層高度</text>
+    <!-- 站著：頭在煙裡 -->
+    <circle cx="150" cy="74" r="16" fill="var(--ink)"/>
+    <rect x="138" y="92" width="24" height="70" rx="10" fill="var(--ink)"/>
+    <rect x="140" y="160" width="9" height="40" fill="var(--ink)"/><rect x="151" y="160" width="9" height="40" fill="var(--ink)"/>
+    <text x="150" y="58" text-anchor="middle" font-size="26">😵</text>
+    <text x="200" y="150" font-size="20" font-weight="900" fill="var(--fire)">✘ 站著</text>
+    <!-- 蹲低 -->
+    <circle cx="410" cy="128" r="16" fill="var(--exit)"/>
+    <path d="M396 144 h30 l12 30 h-14 l-8 -16 h-6 l-4 26 h-12 z" fill="var(--exit)"/>
+    <text x="460" y="150" font-size="20" font-weight="900" fill="var(--exit)">✔ 按 C 蹲低</text>
+    <rect x="530" y="160" width="90" height="30" rx="3" fill="var(--exit)"/>
+    <text x="575" y="181" text-anchor="middle" font-size="15" font-weight="900" fill="#fff">🏃 EXIT</text>
+  </svg>
+  <div class="rules">
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><rect x="4" y="10" width="68" height="40" rx="4" fill="var(--exit)"/><text x="38" y="37" text-anchor="middle" font-size="16" font-weight="900" fill="#fff">EXIT</text></svg>
+      <div><b>跟著綠色牌子走</b><span>牆上低處的箭頭指向出口</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><rect x="6" y="6" width="64" height="48" fill="var(--exit)" opacity=".35"/><rect x="10" y="22" width="22" height="16" fill="#c8a165"/><rect x="26" y="30" width="22" height="16" fill="#c8a165"/><line x1="8" y1="8" x2="68" y2="52" stroke="var(--fire)" stroke-width="6"/></svg>
+      <div><b>最近的門不一定能走</b><span>被堵住或在火旁邊，就換一個</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><rect x="4" y="4" width="46" height="52" fill="var(--muted)"/><g stroke="var(--bg)" stroke-width="2"><line x1="4" y1="16" x2="50" y2="16"/><line x1="4" y1="28" x2="50" y2="28"/><line x1="4" y1="40" x2="50" y2="40"/></g><rect x="54" y="14" width="18" height="42" fill="#a1887f"/><circle cx="58" cy="36" r="2" fill="var(--ink)"/></svg>
+      <div><b>捲門放下來了？</b><span>不要鑽！走旁邊的小防火門</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><path d="M4 56 L72 14 L72 56 Z" fill="var(--muted)"/><line x1="10" y1="10" x2="66" y2="54" stroke="var(--fire)" stroke-width="6"/><line x1="66" y1="10" x2="10" y2="54" stroke="var(--fire)" stroke-width="6"/></svg>
+      <div><b>停車場：車道不是出口</b><span>要走安全梯</span></div>
+    </div>
+  </div>
+  <div class="flow">
+    <div>
+      <svg viewBox="0 0 120 30" aria-hidden="true"><rect x="2" y="8" width="116" height="14" rx="7" fill="var(--line)"/><rect x="2" y="8" width="24" height="14" rx="7" fill="var(--fire)"/></svg>
+      <span>煙量表在右邊</span>
+    </div>
+    <div>
+      <svg viewBox="0 0 120 30" aria-hidden="true"><rect x="2" y="8" width="116" height="14" rx="7" fill="var(--fire)"/></svg>
+      <span>滿 100% ＝ 失敗</span>
+    </div>
+    <div>
+      <svg viewBox="0 0 120 30" aria-hidden="true"><rect x="30" y="2" width="60" height="26" rx="3" fill="var(--exit)"/><text x="60" y="20" text-anchor="middle" font-size="12" font-weight="900" fill="#fff">EXIT</text></svg>
+      <span>走進出口 ＝ 成功 🏅</span>
+    </div>
+  </div>
+</section>
+
+<!-- 6. 檢查員 -->
+<section>
+  <h2><span class="step">6</span>當檢查員，看這些地方</h2>
+  <p class="say">走一走，看到怪怪的東西就<b>點它</b>。點對了會跳出「發現缺失」，點到正常設備會顯示「檢查正常」。</p>
+  <div class="look">
+    <span class="chip">🚪 防火門</span>
+    <span class="chip">🪜 安全梯門口</span>
+    <span class="chip">⬇️ 捲門下方</span>
+    <span class="chip">💧 撒水頭</span>
+    <span class="chip">🧯 滅火器</span>
+    <span class="chip">🟩 出口標示燈</span>
+    <span class="chip">🚒 消防栓箱</span>
+  </div>
+  <p class="small">每個地方藏了 3～5 個錯誤。找完按右邊的「📝 完成檢查」，會出現檢查紀錄表，告訴你漏了哪些。</p>
+</section>
+
+<!-- 7. 紀錄 -->
+<section>
+  <h2><span class="step">7</span>看成績、交作業</h2>
+  <svg viewBox="0 0 640 120" role="img" aria-label="學習紀錄到 CSV 的流程">
+    <g font-size="15" font-weight="700" text-anchor="middle">
+      <rect x="10" y="20" width="170" height="80" rx="10" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/>
+      <text x="95" y="55" fill="var(--ink)">📋 學習紀錄</text>
+      <text x="95" y="80" font-size="13" font-weight="400" fill="var(--muted)">右下方面板</text>
+      <path d="M190 60 h50" stroke="var(--muted)" stroke-width="4"/><path d="M240 50 l14 10 l-14 10 z" fill="var(--muted)"/>
+      <rect x="262" y="34" width="120" height="52" rx="8" fill="var(--screen)"/>
+      <text x="322" y="66" fill="var(--screen-ink)">查看／匯出</text>
+      <path d="M392 60 h50" stroke="var(--muted)" stroke-width="4"/><path d="M442 50 l14 10 l-14 10 z" fill="var(--muted)"/>
+      <rect x="464" y="34" width="120" height="52" rx="8" fill="var(--warn)"/>
+      <text x="524" y="66" fill="var(--warn-ink)">下載 CSV</text>
+    </g>
+  </svg>
+  <p class="say">導覽看了幾個、測驗答對幾題、找到幾個錯、逃生成功沒，全部都在裡面。CSV 可以用 Excel 打開。</p>
+  <p class="small">⚠️ 紀錄只存在這次開著的網頁裡，重新整理就會清空，記得先下載。</p>
+</section>
+
+<footer>場景是依一般大型場館畫的教學示意，不是大巨蛋實際平面圖。標有「📌 查證資料」的內容附有資料來源。</footer>
+
+</div>

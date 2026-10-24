@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+    <title>臺北大巨蛋 - 360度 VR 防災安全導覽</title>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: "Microsoft JhengHei", sans-serif; background: #000; }
+        a-scene { position: fixed; inset: 0; }
+
+        #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; color: white; }
+        /* 平台頂部列固定在最上方，操作介面從它下面開始 */
+        .pbar { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; }
+        #ui { top: 56px; }
+        #ui > * { pointer-events: auto; }
+
+        .topbar {
+            position: absolute; top: 0; left: 0; right: 0;
+            display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+            padding: 8px 14px; background: rgba(0,0,0,0.72); border-bottom: 2px solid #ffc107;
+        }
+        .topbar h1 { margin: 0; font-size: 1.05rem; white-space: nowrap; }
+        .group { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+        .group span { font-size: 0.78rem; color: #aaa; }
+        .tb {
+            background: transparent; border: 1px solid #555; color: #ddd; padding: 5px 10px;
+            border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 0.85rem;
+        }
+        .tb:hover { border-color: #ffc107; }
+        .tb.active { background: #ffc107; color: #000; font-weight: bold; border-color: #ffc107; }
+        .links { margin-left: auto; display: flex; gap: 10px; font-size: 0.82rem; }
+        .links a { color: #4fc3f7; text-decoration: none; }
+
+        .side {
+            position: absolute; top: 64px; right: 12px; width: 230px;
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        .box { background: rgba(0,0,0,0.72); border: 1px solid #444; border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; }
+        .box h4 { margin: 0 0 6px; font-size: 0.88rem; color: #ffc107; }
+        #minimap { width: 100%; height: auto; display: block; background: rgba(20,20,30,0.9); border-radius: 4px; }
+        .bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin: 3px 0 6px; }
+        .bar > div { height: 100%; width: 0; background: #e74c3c; transition: width 0.2s; }
+        .hud-row { display: flex; justify-content: space-between; }
+        .btn {
+            background: #ffc107; color: #000; border: none; padding: 6px 10px; border-radius: 5px;
+            cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.82rem;
+        }
+        .btn.secondary { background: #444; color: #eee; }
+        .btn.red { background: #e74c3c; color: #fff; }
+        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+
+        #hint {
+            position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.65); padding: 6px 16px; border-radius: 20px; font-size: 0.82rem;
+            max-width: 90vw; text-align: center;
+        }
+        #toast {
+            position: absolute; top: 90px; left: 50%; transform: translateX(-50%);
+            background: rgba(231,76,60,0.92); padding: 8px 18px; border-radius: 8px; font-weight: bold;
+            display: none; max-width: 80vw; text-align: center;
+        }
+        #toast.ok { background: rgba(39,174,96,0.92); }
+
+        .pad { position: absolute; left: 14px; bottom: 60px; display: grid; grid-template-columns: repeat(3, 46px); gap: 4px; }
+        .pad button {
+            width: 46px; height: 46px; border-radius: 8px; border: 1px solid #666; background: rgba(0,0,0,0.6);
+            color: #fff; font-size: 1.2rem; touch-action: none; user-select: none;
+        }
+        .pad button.crouch { font-size: 0.75rem; }
+        .pad button.on { background: #ffc107; color: #000; }
+
+        #modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; z-index: 20; pointer-events: auto; }
+        #modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(20,20,30,0.97); border: 1px solid #ffc107; padding: 20px 22px;
+            width: min(520px, 92vw); max-height: 85vh; overflow-y: auto; color: #eee; border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255,193,7,0.3);
+        }
+        #modal h3 { margin-top: 0; color: #ffc107; }
+        #modal p { font-size: 0.92rem; line-height: 1.6; color: #ddd; }
+        #modal .tag { display: inline-block; font-size: 0.75rem; padding: 1px 8px; border-radius: 10px; background: #34495e; margin-bottom: 6px; }
+        #modal .src { font-size: 0.78rem; color: #aaa; }
+        #modal .src a { color: #4fc3f7; }
+        .quiz-opt { display: block; width: 100%; text-align: left; margin: 5px 0; padding: 8px 10px; background: #2c3e50; color: #fff; border: 1px solid #555; border-radius: 6px; cursor: pointer; font-family: inherit; }
+        .quiz-opt:hover { border-color: #ffc107; }
+        .quiz-opt.right { background: #1e8449; }
+        .quiz-opt.wrong { background: #922b21; }
+        #modal table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        #modal th, #modal td { border-bottom: 1px solid #444; padding: 5px; text-align: left; vertical-align: top; }
+        .ok { color: #2ecc71; } .ng { color: #e74c3c; font-weight: bold; }
+
+        @media (max-width: 700px) {
+            .side { width: 170px; top: auto; bottom: 60px; }
+            .topbar h1 { font-size: 0.9rem; }
+            .links { margin-left: 0; }
+            #progressBox { display: none; }
+        }
+    </style>
+
+    <script>
+        // ===== 自訂元件（需在場景解析前註冊） =====
+        AFRAME.registerComponent('billboard', {
+            tick: function () {
+                const cam = this.el.sceneEl.camera;
+                if (!cam) return;
+                const v = new THREE.Vector3();
+                cam.getWorldPosition(v);
+                this.el.object3D.lookAt(v);
+            }
+        });
+        AFRAME.registerComponent('game', {
+            tick: function (time, dt) { if (window.gameTick) window.gameTick(Math.min(dt / 1000, 0.1)); }
+        });
+    </script>
+</head>
+<body>
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g3">臺北大巨蛋公安</span>
+    <span class="pb-sep">›</span><span class="pb-page">VR 防災安全導覽</span>
+    <span class="pb-right"><a class="pb-btn" href="simulate0_guide.html" target="_blank" rel="noopener">📖 使用說明</a></span>
+</div>
+
+<div id="ui">
+    <div class="topbar">
+        <h1>🏛️ 臺北大巨蛋 VR 公安導覽</h1>
+        <div class="group"><span>區域</span>
+            <button class="tb" data-zone="B2">🏟️ B2 球場層</button>
+            <button class="tb" data-zone="L1">🚶 L1 通道商場</button>
+            <button class="tb" data-zone="B4">🚗 B4 停車場</button>
+        </div>
+        <div class="group"><span>模式</span>
+            <button class="tb" data-mode="tour">🧭 導覽</button>
+            <button class="tb" data-mode="inspect">🔍 公安檢查</button>
+            <button class="tb" data-mode="evac">🔥 避難體驗</button>
+        </div>
+        <div class="links">
+            <a href="simulate1.html">疏散動線圖</a>
+            <a href="simulate2.html">人群模擬</a>
+        </div>
+    </div>
+
+    <div class="side">
+        <div class="box">
+            <canvas id="minimap" width="220" height="150"></canvas>
+        </div>
+        <div class="box" id="modeBox"></div>
+        <div class="box" id="progressBox">
+            <h4>📋 學習紀錄</h4>
+            <div id="progress"></div>
+            <div class="btn-row">
+                <button class="btn secondary" id="btnReport">查看／匯出</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="pad" id="pad">
+        <span></span><button data-key="KeyW">▲</button><span></span>
+        <button data-key="KeyQ">⟲</button><button data-key="KeyS">▼</button><button data-key="KeyE">⟳</button>
+        <button data-key="KeyA">◀</button><button class="crouch" id="btnCrouch">蹲低<br>(C)</button><button data-key="KeyD">▶</button>
+    </div>
+
+    <div id="toast"></div>
+    <div id="hint"></div>
+</div>
+
+<div id="modal-bg"><div id="modal"></div></div>
+
+<a-scene game renderer="antialias: true" cursor="rayOrigin: mouse" raycaster="objects: .clickable" fog="type: exponential; color: #222; density: 0" vr-mode-ui="enabled: true" loading-screen="dotsColor: #ffc107; backgroundColor: #111">
+    <a-entity id="amb" light="type: ambient; intensity: 0.75; color: #fff"></a-entity>
+    <a-entity id="sun" light="type: directional; intensity: 0.6" position="-10 30 20"></a-entity>
+    <a-sky id="sky" color="#1b2735"></a-sky>
+    <a-entity id="world"></a-entity>
+    <a-entity id="rig" position="0 0 0">
+        <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0"></a-entity>
+    </a-entity>
+</a-scene>
+
+<script>
+// ================= 工具 =================
+const $ = id => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const smooth = (t, a, b) => { const x = clamp((t - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); };
+const world = $('world'), rigEl = $('rig'), camEl = $('cam'), sceneEl = document.querySelector('a-scene');
+let solids = [];   // {x0,x1,z0,z1,yb,yt}
+
+function ent(tag, attrs = {}, parent = world) {
+    const e = document.createElement(tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    parent.appendChild(e);
+    return e;
+}
+function box(x, y, z, w, h, d, color, o = {}) {
+    const e = ent('a-box', { position: `${x} ${y + h / 2} ${z}`, width: w, height: h, depth: d }, o.parent || world);
+    const mat = { color, opacity: o.opacity ?? 1, transparent: (o.opacity ?? 1) < 1 };
+    if (o.flat) mat.shader = 'flat';
+    if (o.side) mat.side = o.side;
+    e.setAttribute('material', mat);
+    if (o.cls) e.setAttribute('class', o.cls);
+    if (o.data) Object.entries(o.data).forEach(([k, v]) => e.setAttribute('data-' + k, v));
+    if (o.solid !== false) solids.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, yb: y, yt: y + h });
+    return e;
+}
+function labelCanvas(text, o = {}) {
+    const W = o.w || 512, H = o.h || 128;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    if (o.bg) { g.fillStyle = o.bg; g.fillRect(0, 0, W, H); }
+    if (o.border) { g.strokeStyle = o.border; g.lineWidth = 8; g.strokeRect(4, 4, W - 8, H - 8); }
+    g.fillStyle = o.fg || '#fff';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    const lines = String(text).split('\n');
+    const fs = o.font || Math.min(64, H / lines.length * 0.7);
+    g.font = `bold ${fs}px "Microsoft JhengHei", "PingFang TC", sans-serif`;
+    lines.forEach((ln, i) => g.fillText(ln, W / 2, H / 2 + (i - (lines.length - 1) / 2) * fs * 1.15));
+    return c;
+}
+function label(text, x, y, z, w, h, o = {}) {
+    const e = ent('a-plane', { position: `${x} ${y} ${z}`, rotation: `0 ${o.rot || 0} 0`, width: w, height: h }, o.parent || world);
+    e.setAttribute('material', { shader: 'flat', src: labelCanvas(text, { w: o.cw || 512, h: o.ch || Math.round(512 * h / w), bg: o.bg, fg: o.fg, font: o.font, border: o.border }), transparent: !o.bg, side: 'double' });
+    if (o.billboard) e.setAttribute('billboard', '');
+    if (o.cls) e.setAttribute('class', o.cls);
+    if (o.data) Object.entries(o.data).forEach(([k, v]) => e.setAttribute('data-' + k, v));
+    return e;
+}
+// 牆：沿 x 方向（位於 z）／沿 z 方向（位於 x），gaps 為開口區間
+function wallX(z, x0, x1, h, color, gaps = []) {
+    let cur = x0;
+    gaps.slice().sort((a, b) => a[0] - b[0]).forEach(([a, b]) => {
+        if (a > cur) box((cur + a) / 2, 0, z, a - cur, h, 0.3, color);
+        if (h > 2.3) box((a + b) / 2, 2.3, z, b - a, h - 2.3, 0.3, color);
+        cur = b;
+    });
+    if (x1 > cur) box((cur + x1) / 2, 0, z, x1 - cur, h, 0.3, color);
+}
+function wallZ(x, z0, z1, h, color, gaps = []) {
+    let cur = z0;
+    gaps.slice().sort((a, b) => a[0] - b[0]).forEach(([a, b]) => {
+        if (a > cur) box(x, 0, (cur + a) / 2, 0.3, h, a - cur, color);
+        if (h > 2.3) box(x, 2.3, (a + b) / 2, 0.3, h - 2.3, b - a, color);
+        cur = b;
+    });
+    if (z1 > cur) box(x, 0, (cur + z1) / 2, 0.3, h, z1 - cur, color);
+}
+function floor(x, z, w, d, color, y = 0) { return box(x, y - 0.05, z, w, 0.05, d, color, { solid: false }); }
+function exitSign(x, y, z, rot, dark = false, o = {}) {
+    return label(dark ? '🏃 EXIT 出口' : '🏃 EXIT 出口', x, y, z, 1.1, 0.38, { rot, bg: dark ? '#3d4a3d' : '#1e8449', fg: dark ? '#6b776b' : '#fff', ...o });
+}
+function dirSign(text, x, y, z, rot, o = {}) {
+    return label(text, x, y, z, 0.8, 0.28, { rot, bg: '#1e8449', fg: '#fff', ...o });
+}
+function stairRoom(cx, cz, axis, name) {
+    // 安全梯間：門外的小房間（axis: 'z+' 表示往 +z 延伸）
+    const d = 3;
+    if (axis === 'z+') { floor(cx, cz + d / 2, 3, d, '#8d8d8d'); wallZ(cx - 1.5, cz, cz + d, 3, '#9aa'); wallZ(cx + 1.5, cz, cz + d, 3, '#9aa'); wallX(cz + d, cx - 1.5, cx + 1.5, 3, '#9aa'); label(name, cx, 2.2, cz + d - 0.2, 1.6, 0.5, { rot: 180, bg: '#1e8449' }); }
+    if (axis === 'x-') { floor(cx - d / 2, cz, d, 3, '#8d8d8d'); wallX(cz - 1.5, cx - d, cx, 3, '#9aa'); wallX(cz + 1.5, cx - d, cx, 3, '#9aa'); wallZ(cx - d, cz - 1.5, cz + 1.5, 3, '#9aa'); label(name, cx - d + 0.2, 2.2, cz, 1.6, 0.5, { rot: 90, bg: '#1e8449' }); }
+    if (axis === 'x+') { floor(cx + d / 2, cz, d, 3, '#8d8d8d'); wallX(cz - 1.5, cx, cx + d, 3, '#9aa'); wallX(cz + 1.5, cx, cx + d, 3, '#9aa'); wallZ(cx + d, cz - 1.5, cz + 1.5, 3, '#9aa'); label(name, cx + d - 0.2, 2.2, cz, 1.6, 0.5, { rot: -90, bg: '#1e8449' }); }
+}
+
+// ================= 設備外觀 =================
+function equipVisual(eq) {
+    const [x, y, z] = eq.p, r = eq.rot || 0;
+    const o = { cls: 'clickable', data: { eq: eq.id }, solid: false };
+    const lo = { cls: 'clickable', data: { eq: eq.id } };
+    switch (eq.kind) {
+        case 'smoke': ent('a-cylinder', { position: `${x} ${y - 0.04} ${z}`, radius: 0.15, height: 0.08, color: '#f5f5f5', class: 'clickable', 'data-eq': eq.id }); break;
+        case 'sprinkler':
+            ent('a-cone', { position: `${x} ${y - 0.08} ${z}`, 'radius-bottom': 0.09, 'radius-top': 0.02, height: 0.14, color: '#bdc3c7', class: 'clickable', 'data-eq': eq.id });
+            ent('a-sphere', { position: `${x} ${y - 0.17} ${z}`, radius: 0.03, color: '#e74c3c', class: 'clickable', 'data-eq': eq.id }); break;
+        case 'hydrant':
+            box(x, y, z, r % 180 === 0 ? 0.8 : 0.25, 1.1, r % 180 === 0 ? 0.25 : 0.8, '#c0392b', o);
+            label('消防栓', x + (r === 90 ? 0.14 : r === -90 ? -0.14 : 0), y + 0.8, z + (r === 0 ? 0.14 : r === 180 ? -0.14 : 0), 0.6, 0.2, { rot: r, bg: '#c0392b', ...lo }); break;
+        case 'extinguisher':
+            ent('a-cylinder', { position: `${x} ${y + 0.3} ${z}`, radius: 0.1, height: 0.55, color: '#e74c3c', class: 'clickable', 'data-eq': eq.id });
+            ent('a-cylinder', { position: `${x} ${y + 0.62} ${z}`, radius: 0.04, height: 0.1, color: '#222', class: 'clickable', 'data-eq': eq.id }); break;
+        case 'exit': exitSign(x, y, z, r, false, lo); break;
+        case 'dir': dirSign(eq.text, x, y, z, r, lo); break;
+        case 'emlight':
+            box(x, y - 0.12, z, 0.45, 0.12, 0.15, '#fafafa', o);
+            ent('a-sphere', { position: `${x - 0.12} ${y - 0.16} ${z + 0.08}`, radius: 0.05, color: '#fff59d', class: 'clickable', 'data-eq': eq.id });
+            ent('a-sphere', { position: `${x + 0.12} ${y - 0.16} ${z + 0.08}`, radius: 0.05, color: '#fff59d', class: 'clickable', 'data-eq': eq.id }); break;
+        case 'vent': box(x, y - 0.12, z, eq.size || 1.2, 0.12, eq.size ? eq.size * 0.7 : 0.8, '#455a64', o); break;
+        case 'foam':
+            ent('a-cone', { position: `${x} ${y - 0.1} ${z}`, 'radius-bottom': 0.14, 'radius-top': 0.04, height: 0.18, color: '#f1c40f', class: 'clickable', 'data-eq': eq.id }); break;
+        case 'speaker':
+            box(x, 0, z, 0.12, y, 0.12, '#7f8c8d', { solid: false });
+            ent('a-cylinder', { position: `${x} ${y + 0.2} ${z}`, radius: 0.25, height: 0.4, color: '#34495e', class: 'clickable', 'data-eq': eq.id }); break;
+        case 'beam':
+            box(x - 30, y, z, 0.6, 0.4, 0.4, '#ecf0f1', o); box(x + 30, y, z, 0.6, 0.4, 0.4, '#ecf0f1', o);
+            box(x, y + 0.18, z, 60, 0.04, 0.04, '#e74c3c', { ...o, opacity: 0.6, flat: true }); break;
+        case 'info':
+            box(x, 0, z, 0.1, 1.4, 0.1, '#7f8c8d', { solid: false });
+            label('ℹ️ 疏散時間目標', x, 1.7, z, 1.6, 0.5, { bg: '#2c3e50', billboard: true, ...lo }); break;
+        case 'panel': break;   // 由幾何本身（防火捲門、防煙垂壁）提供點擊
+    }
+}
+
+// ================= 區域資料 =================
+const ZONES = {};
+
+// ---------- L1 通道商場 ----------
+ZONES.L1 = {
+    name: 'L1 避難通道與商場', sky: '#1b2735', ext: [-26, 24, -8, 8],
+    start: { tour: [16, 0, 90], inspect: [16, 0, 90], evac: [16, 1.2, 90] },
+    build(mode) {
+        floor(0, 0, 40.6, 8.6, '#cfcfcf');
+        floor(-23, 0, 6, 10, '#9e9d89');
+        label('戶外廣場', -24, 2.5, 0, 2, 0.6, { rot: 90, bg: '#2c3e50' });
+        box(0, 4.5, 0, 40, 0.1, 8, '#ececec', { solid: false });
+        wallX(-4, -20, 20, 4.5, '#b9b9b9');
+        wallX(4, -20, 20, 4.5, '#c8c8c8', [[-12.6, -11.4], [13.4, 14.6]]);
+        wallZ(-20, -4, 4, 4.5, '#b0bec5', [[-1.5, 1.5]]);
+        wallZ(20, -4, 4, 4.5, '#b0bec5');
+        label('往巨蛋本體 →（門已關閉）', 19.8, 2.4, 0, 3, 0.5, { rot: -90, bg: '#34495e' });
+        // 商店
+        [[-15, '咖啡館', '#8d6e63'], [-8, '服飾店', '#5c6bc0'], [3, '書店', '#26a69a'], [10, '餐廳', '#ef6c00'], [16, '運動用品', '#c62828']].forEach(([sx, n, c]) => {
+            box(sx, 0, -3.83, 5, 3, 0.04, '#81d4fa', { opacity: 0.45, solid: false });
+            box(sx, 3, -3.8, 5, 0.6, 0.1, c, { solid: false });
+            label(n, sx, 3.3, -3.73, 2.2, 0.5, { bg: c });
+        });
+        stairRoom(-12, 4, 'z+', '安全梯 S1');
+        stairRoom(14, 4, 'z+', '安全梯 S2');
+        // 防火捲門（捲門箱 + 動態門體）與旁邊的防火門
+        box(-2, 3.9, -0.6, 0.4, 0.6, 6.8, '#7f8c8d', { solid: false, cls: 'clickable', data: { eq: 'L1-shutter' } });
+        box(-2, 0, 2.78, 0.3, 4.5, 0.12, '#95a5a6');
+        label('防火門', -2, 2.5, 3.4, 1.0, 0.3, { rot: 90, bg: '#7f8c8d' });
+        const sh = box(-2, 0, -0.6, 0.12, 1, 6.8, '#90a4ae', { solid: false });
+        sh.object3D.visible = false;
+        this.shutter = { el: sh, bottom: 3.9, solid: { x0: -2.06, x1: -1.94, z0: -4, z1: 2.8, yb: 3.9, yt: 4.5 } };
+        solids.push(this.shutter.solid);
+        // 防火門門扇（平時關閉但可推開通行；檢查模式顯示被門檔撐開的 S1）
+        if (mode !== 'inspect') box(-12, 0, 3.9, 1.2, 2.2, 0.05, '#a1887f', { solid: false, opacity: 0.85 });
+        box(14, 0, 3.9, 1.2, 2.2, 0.05, '#a1887f', { solid: false, opacity: 0.85 });
+    },
+    equipment: [
+        { id: 'L1-smoke', kind: 'smoke', name: '偵煙式探測器', p: [6, 4.5, 0], desc: '偵測空氣中的煙粒子。動作後由火警受信總機發出警報，並可連動關閉防火捲門、啟動排煙設備。', quiz: { q: '偵煙式探測器動作後，通常會連動下列哪一項？', opts: ['防火捲門降下', '電梯加速運轉', '空調送風加大'], a: 0 } },
+        { id: 'L1-spr', kind: 'sprinkler', name: '自動撒水頭', p: [9, 4.5, -1], desc: '撒水頭內的玻璃球受熱（常見約 68°C）破裂後自動放水。撒水頭下方與周圍需保持淨空，不可被裝潢或吊掛物遮蔽，否則水無法均勻灑到火源。', quiz: { q: '撒水頭附近最不應該出現什麼？', opts: ['吊掛的廣告布條', '天花板燈具', '偵煙式探測器'], a: 0 } },
+        { id: 'L1-shutter', kind: 'panel', name: '防火捲門', p: [-2, 3.9, -0.6], desc: '火災時自動降下，把通道分成不同的防火區劃，阻止火與煙蔓延到另一側。捲門下方不可放置任何物品；人員應從旁邊的「防火門」通過。', quiz: { q: '防火捲門降下後，人員應從哪裡通過？', opts: ['旁邊的防火門', '趁捲門還沒關完從下方鑽過', '等捲門再升起'], a: 0 } },
+        { id: 'L1-exit', kind: 'exit', name: '出口標示燈', p: [-19.82, 2.7, 0], rot: 90, desc: '綠底白色跑人圖案，標示通往戶外或安全梯的出口，需常時點亮；停電時由內建電池持續供電。', quiz: { q: '停電時出口標示燈應該如何？', opts: ['由內建電池持續點亮', '自動熄滅以節省電力', '改為閃爍紅燈'], a: 0 } },
+        { id: 'L1-dir1', kind: 'dir', text: '← 出口', name: '避難方向指示燈', p: [-6, 0.6, 3.83], rot: 180, desc: '設在走廊、通道的牆面低處，箭頭指向最近的出口。裝在低處是因為煙會先在天花板累積，低處在濃煙下降時仍看得到。', quiz: { q: '避難方向指示燈為什麼常裝在牆面低處？', opts: ['煙往上累積，低處較看得到', '方便兒童閱讀', '可以節省電線'], a: 0 } },
+        { id: 'L1-dir2', kind: 'dir', text: '出口 →', name: '避難方向指示燈', p: [8, 0.6, 3.83], rot: 180, desc: '指向最近的安全梯 S2。指示燈平時就要保持點亮，並且不能被貨物或看板遮住。' },
+        { id: 'L1-hyd', kind: 'hydrant', name: '室內消防栓箱', p: [4, 0.3, 3.7], rot: 180, desc: '內有水帶與瞄子，供自衛消防編組或消防人員使用。箱體前方必須保持淨空，方便隨時開啟。', quiz: { q: '消防栓箱前面可以擺放什麼？', opts: ['什麼都不能擺，需保持淨空', '小型展示架', '垃圾桶'], a: 0 } },
+        { id: 'L1-ext', kind: 'extinguisher', name: '滅火器', p: [-8, 0, 3.7], desc: '使用口訣：拉（插銷）、瞄（火源底部）、壓（握把）、掃（左右掃射）。平時要檢查壓力錶指針是否在綠色範圍。', quiz: { q: '使用滅火器時應該對準哪裡？', opts: ['火源底部', '火焰頂端', '煙最濃的地方'], a: 0 } },
+        { id: 'L1-em', kind: 'emlight', name: '緊急照明燈', p: [-10, 4.5, 0], desc: '停電時自動點亮，提供避難所需的最低照度，讓人員看得見通道與出口。' }
+    ],
+    violations: [
+        { id: 'L1-v1', name: '防火捲門下方擺放展示架', cat: '防火避難設施', fix: '移除展示架，捲門下方及動作範圍保持淨空，避免捲門無法完全降下。',
+            build() { box(-2, 0, -1.6, 0.7, 1.3, 1.4, '#6d4c41', { cls: 'clickable', data: { vid: 'L1-v1' } }); [0.3, 0.7, 1.1].forEach(h => box(-2, h, -1.6, 0.6, 0.18, 1.2, '#ffb74d', { cls: 'clickable', data: { vid: 'L1-v1' }, solid: false })); } },
+        { id: 'L1-v2', name: '安全梯 S1 防火門以門檔撐開', cat: '防火避難設施', fix: '移除門檔，防火門應保持關閉或設置火災時能自動關閉的裝置，以免煙進入安全梯。',
+            build() { box(-12.6, 0, 4.6, 0.05, 2.2, 1.2, '#a1887f', { cls: 'clickable', data: { vid: 'L1-v2' }, solid: false }); box(-12.5, 0, 4.0, 0.25, 0.08, 0.15, '#fdd835', { cls: 'clickable', data: { vid: 'L1-v2' }, solid: false }); } },
+        { id: 'L1-v3', name: '安全梯 S2 門口堆放紙箱', cat: '防火避難設施', fix: '清除堆放物，安全梯出入口與避難通道必須保持暢通。', evac: true,
+            build() { [[13.6, 0], [14.4, 0], [14, 0.6], [13.6, 1.2]].forEach(([bx, by]) => box(bx, by, 3.35, 0.8, 0.6, 0.8, '#c8a165', { cls: 'clickable', data: { vid: 'L1-v3' } })); } },
+        { id: 'L1-v4', name: '撒水頭被吊掛廣告布條遮蔽', cat: '消防安全設備', fix: '移除布條，或調整吊掛位置，撒水頭周圍不得有遮蔽物。',
+            build() { box(12, 4.5, -1, 0.05, 0.05, 0.05, '#bdc3c7', { solid: false }); ent('a-cone', { position: '12 4.42 -1', 'radius-bottom': 0.09, 'radius-top': 0.02, height: 0.14, color: '#bdc3c7', class: 'clickable', 'data-vid': 'L1-v4' }); label('週年慶 全館 5 折', 12, 3.9, -1.05, 2.4, 0.9, { bg: '#e91e63', cls: 'clickable', data: { vid: 'L1-v4' } }); } },
+        { id: 'L1-v5', name: '滅火器壓力錶指針在紅色區', cat: '消防安全設備', fix: '送廠重新充填或更換，並建立定期檢查紀錄。', replaces: 'L1-ext',
+            build() { ent('a-cylinder', { position: '-8 0.3 3.7', radius: 0.1, height: 0.55, color: '#e74c3c', class: 'clickable', 'data-vid': 'L1-v5' }); ent('a-cylinder', { position: '-8 0.5 3.58', rotation: '90 0 0', radius: 0.05, height: 0.02, color: '#ff1744', class: 'clickable', 'data-vid': 'L1-v5' }); } }
+    ],
+    exits: [
+        { name: '戶外出口（西側）', test: (x, z) => x < -20.5 && Math.abs(z) < 1.5, mm: [-21, 0] },
+        { name: '安全梯 S1', test: (x, z) => z > 4.4 && Math.abs(x + 12) < 1.4, mm: [-12, 5] },
+        { name: '安全梯 S2', test: (x, z) => z > 4.4 && Math.abs(x - 14) < 1.4, mm: [14, 5] }
+    ],
+    fire: {
+        p: [10, 0, -3.2], heatR: 3,
+        sections: [
+            { x0: -2, x1: 20, z0: -4, z1: 4, top: 4.5, layer: t => Math.max(0.5, 4.5 - 4.0 * smooth(t + 25, 0, 60)) },
+            { x0: -20, x1: -2, z0: -4, z1: 4, top: 4.5, layer: t => 4.5 - 0.8 * smooth(t, 0, 40) }
+        ],
+        shutter: { start: 3, dur: 25 },
+        sprinklers: [[9, -1], [6, 0]],
+        intro: '你在 L1 通道東側，附近的餐廳起火了！廣播：「請依避難方向指示燈疏散。」——提示：最近的安全梯 S2 可能出不去；防火捲門降下後要從旁邊的防火門通過；煙層低於頭部時按 C 蹲低前進。'
+    }
+};
+
+// ---------- B4 停車場 ----------
+const CAR_COLORS = ['#c0392b', '#2980b9', '#ecf0f1', '#7f8c8d', '#2c3e50', '#f1c40f', '#16a085'];
+ZONES.B4 = {
+    name: 'B4 地下停車場', sky: '#111', ext: [-24, 28, -16, 16],
+    start: { tour: [-15, 0, -90], inspect: [-15, 0, -90], evac: [10, 0, 90] },
+    build(mode) {
+        floor(0, 0, 40.6, 30.6, '#5d6d7e');
+        box(0, 3.0, 0, 40, 0.1, 30, '#9aa5ad', { solid: false });
+        [-8, 0, 8].forEach(z => box(0, 0.01, z, 40, 0.01, 0.12, '#ecf0f1', { solid: false }));
+        wallX(-15, -20, 20, 3, '#95a5a6');
+        wallX(15, -20, 20, 3, '#95a5a6');
+        wallZ(-20, -15, 15, 3, '#a3b1bd', [[7.4, 8.6]]);
+        wallZ(20, -15, 15, 3, '#a3b1bd', [[-8.6, -7.4], [2, 6]]);
+        stairRoom(-20, 8, 'x-', '安全梯 S1');
+        stairRoom(20, -8, 'x+', '安全梯 S2');
+        // 車道（非避難路線）
+        box(24, 0, 4, 8, 0.05, 4, '#7f8c8d', { solid: false });
+        box(21.2, 0, 4, 0.2, 2, 4, '#000', { solid: true, opacity: 0.01 });
+        label('車道（往地面）\n不是避難路線', 20.6, 1.8, 4, 2.4, 0.9, { rot: -90, bg: '#d35400' });
+        // 柱與車
+        const slots = []; for (let k = 0; k < 14; k++) slots.push(-16.9 + 2.6 * k);
+        [-12, -4, 4, 12].forEach((rz, ri) => {
+            slots.forEach((sx, k) => {
+                if (Math.abs(Math.abs(sx) - 9.1) < 0.1) { box(sx, 0, rz, 0.8, 3, 0.8, '#bdc3c7'); return; }
+                if ((k * 7 + ri * 3) % 5 === 0) return;               // 空車位
+                if (rz === 4 && sx > 15) return;                      // 車道入口
+                const c = CAR_COLORS[(k + ri * 2) % CAR_COLORS.length];
+                box(sx, 0.15, rz, 1.8, 0.9, 4.2, c);
+                box(sx, 1.05, rz + 0.2, 1.6, 0.5, 2.2, '#34495e', { solid: false });
+            });
+        });
+        // 防煙垂壁（x = 0，自天花板下垂 60 cm）
+        box(0, 2.4, 0, 0.06, 0.6, 30, '#b3e5fc', { opacity: 0.45, solid: false, cls: 'clickable', data: { eq: 'B4-curtain' } });
+        label('防煙垂壁', 0.05, 2.7, -6, 1.2, 0.35, { rot: 90, bg: '#0277bd' });
+        if (mode !== 'inspect') box(20, 0, -8, 0.05, 2.2, 1.2, '#a1887f', { solid: false, opacity: 0.85 });
+        box(-20, 0, 8, 0.05, 2.2, 1.2, '#a1887f', { solid: false, opacity: 0.85 });
+    },
+    equipment: [
+        { id: 'B4-foam', kind: 'foam', name: '泡沫噴頭（示意）', p: [5, 3.0, 0], desc: '停車空間常見的自動滅火設備之一：放射泡沫覆蓋燃燒物表面、隔絕氧氣，適合汽油等油類火災。實際採用的滅火設備依各場所設計而定。', quiz: { q: '泡沫滅火主要是靠什麼原理？', opts: ['覆蓋燃燒物表面、隔絕氧氣', '把火吹熄', '降低空氣濕度'], a: 0 } },
+        { id: 'B4-curtain', kind: 'panel', name: '防煙垂壁', p: [0, 2.7, 0], desc: '以不燃材料製成、自天花板向下突出（一般要求 50 cm 以上）的垂壁，能把熱煙「擋」在一側蓄積，延緩煙往其他區域擴散，再由排煙設備排出。', quiz: { q: '防煙垂壁的主要功能是？', opts: ['蓄積煙霧、延緩擴散', '承重結構', '隔音'], a: 0 } },
+        { id: 'B4-vent', kind: 'vent', name: '排煙／排風口', p: [-12, 3.0, 0], desc: '平時排除汽車廢氣，火災時協助排出濃煙。排煙口附近不可堆放物品。' },
+        { id: 'B4-exit1', kind: 'exit', name: '出口標示燈', p: [-19.82, 2.5, 8], rot: 90, desc: '標示安全梯 S1 的出口。地下停車場沒有窗戶，停電又有煙時，出口標示燈是最重要的方向線索。' },
+        { id: 'B4-exit2', kind: 'exit', name: '出口標示燈', p: [19.82, 2.5, -8], rot: -90, desc: '標示安全梯 S2 的出口，需常時點亮。' },
+        { id: 'B4-dir', kind: 'dir', text: '← 出口 S1', name: '避難方向指示燈', p: [-9.1, 0.6, 3.58], rot: 180, desc: '裝在柱子或牆面低處，指向最近的安全梯。在大面積的停車場中，沿著指示燈走能避免迷路。', quiz: { q: '在停車場遇到火災，應該往哪裡逃？', opts: ['依指示燈前往安全梯', '沿車道往地面跑', '躲回自己的車內'], a: 0 } },
+        { id: 'B4-hyd', kind: 'hydrant', name: '室內消防栓箱', p: [-19.7, 0.3, 0], rot: 90, desc: '箱前不可停車或堆放物品，以免消防人員無法使用。' },
+        { id: 'B4-ext', kind: 'extinguisher', name: '滅火器', p: [9.1, 0, 3.45], desc: '掛在柱子上的滅火器，適合處理初期的小火。車輛起火已擴大時，應立即撤離並通報。' },
+        { id: 'B4-ramp', kind: 'dir', text: '⚠ 車道', name: '車道不是避難路線', p: [19.0, 0.8, 4], rot: -90, desc: '車道坡度大、與車輛動線重疊，又可能成為熱煙往上竄流的通道，不是避難路線。地下停車場避難應走安全梯。' }
+    ],
+    violations: [
+        { id: 'B4-v1', name: '安全梯 S1 門口停放機車', cat: '防火避難設施', fix: '移走機車，避難出入口前方不得停放車輛或堆放物品。',
+            build() { box(-18.6, 0, 8, 1.8, 0.9, 0.5, '#424242', { cls: 'clickable', data: { vid: 'B4-v1' } }); ent('a-torus', { position: '-17.9 0.3 8', radius: 0.28, 'radius-tubular': 0.05, color: '#111', class: 'clickable', 'data-vid': 'B4-v1' }); ent('a-torus', { position: '-19.3 0.3 8', radius: 0.28, 'radius-tubular': 0.05, color: '#111', class: 'clickable', 'data-vid': 'B4-v1' }); } },
+        { id: 'B4-v2', name: '安全梯 S2 防火門以門檔撐開', cat: '防火避難設施', fix: '移除門檔，防火門應保持關閉，避免煙進入安全梯。',
+            build() { box(20.6, 0, -8.6, 1.2, 2.2, 0.05, '#a1887f', { cls: 'clickable', data: { vid: 'B4-v2' }, solid: false }); box(20.1, 0, -8.5, 0.15, 0.08, 0.25, '#fdd835', { cls: 'clickable', data: { vid: 'B4-v2' }, solid: false }); } },
+        { id: 'B4-v3', name: '出口標示燈故障不亮', cat: '消防安全設備', fix: '更換燈具或電池，並定期測試停電時能否持續點亮。', replaces: 'B4-exit2',
+            build() { exitSign(19.82, 2.5, -8, -90, true, { cls: 'clickable', data: { vid: 'B4-v3' } }); } },
+        { id: 'B4-v4', name: '柱上滅火器遺失（只剩掛架）', cat: '消防安全設備', fix: '補足滅火器，並定期點檢數量與壓力。', replaces: 'B4-ext',
+            build() { box(9.1, 0.4, 3.5, 0.3, 0.05, 0.12, '#424242', { cls: 'clickable', data: { vid: 'B4-v4' }, solid: false }); box(9.1, 0.4, 3.57, 0.06, 0.3, 0.05, '#424242', { cls: 'clickable', data: { vid: 'B4-v4' }, solid: false }); } }
+    ],
+    exits: [
+        { name: '安全梯 S1', test: (x, z) => x < -20.4 && Math.abs(z - 8) < 1.4, mm: [-21, 8] },
+        { name: '安全梯 S2', test: (x, z) => x > 20.4 && Math.abs(z + 8) < 1.4, mm: [21, -8] }
+    ],
+    fire: {
+        p: [14.3, 0.2, -4], heatR: 4.5,
+        sections: [
+            { x0: 0, x1: 20, z0: -15, z1: 15, top: 3, layer: t => Math.max(0.6, 3.0 - 2.4 * smooth(t + 20, 0, 70)) },
+            { x0: -20, x1: 0, z0: -15, z1: 15, top: 3, layer: t => Math.max(0.9, 3.0 - 2.1 * smooth(t, 25, 150)) }
+        ],
+        intro: '你在 B4 停車場，前方右側一輛車起火！——提示：安全梯 S2 雖然比較近，但路線會經過起火車輛；防煙垂壁另一側的煙比較少；車道不是避難路線。'
+    }
+};
+
+// ---------- B2 球場層 ----------
+ZONES.B2 = {
+    name: 'B2 球場層（演唱會配置）', sky: '#0d1b2a', ext: [-33, 33, -26, 26],
+    start: { tour: [0, 8, 0], inspect: [0, 8, 0], evac: [0, 0, 0] },
+    build() {
+        floor(0, 0, 49, 35, '#8d5b4c');
+        floor(0, 0, 40, 26, '#2e7d32', 0.01);
+        // 看台階梯（四邊，中央留疏散通道）
+        for (let i = 0; i < 8; i++) {
+            const h = 0.5 * (i + 1), c = i % 2 ? '#1f4e79' : '#2e6da4', ext = 25 + i;
+            box(-(ext + 2) / 2, 0, -17.5 - i, ext - 2, h, 1, c); box((ext + 2) / 2, 0, -17.5 - i, ext - 2, h, 1, c);
+            box(-(ext + 2) / 2, 0, 17.5 + i, ext - 2, h, 1, c); box((ext + 2) / 2, 0, 17.5 + i, ext - 2, h, 1, c);
+            const ez = 18 + i;
+            box(-24.5 - i, 0, -(ez + 2) / 2, 1, h, ez - 2, c); box(-24.5 - i, 0, (ez + 2) / 2, 1, h, ez - 2, c);
+            box(24.5 + i, 0, -(ez + 2) / 2, 1, h, ez - 2, c); box(24.5 + i, 0, (ez + 2) / 2, 1, h, ez - 2, c);
+        }
+        // 通道頂板與端牆
+        box(0, 3, -21, 4, 2, 8, '#37474f', { solid: false }); box(0, 3, 21, 4, 2, 8, '#37474f', { solid: false });
+        box(-28, 3, 0, 8, 2, 4, '#37474f', { solid: false }); box(28, 3, 0, 8, 2, 4, '#37474f', { solid: false });
+        box(0, 0, -25.2, 4, 3, 0.3, '#263238'); box(0, 0, 25.2, 4, 3, 0.3, '#263238');
+        box(-32.2, 0, 0, 0.3, 3, 4, '#263238'); box(32.2, 0, 0, 0.3, 3, 4, '#263238');
+        // 上層看台與屋頂
+        ent('a-cylinder', { position: '0 13 0', radius: 34, height: 18, 'open-ended': true, material: 'color: #5d6d7e; side: back' });
+        ent('a-sphere', { position: '0 4 0', radius: 40, 'theta-length': 70, material: 'color: #dfe6e9; side: back' });
+        // 舞台
+        box(0, 0, -12, 10, 1.2, 4, '#212121');
+        box(-4.8, 1.2, -13.8, 0.3, 5, 0.3, '#424242', { solid: false }); box(4.8, 1.2, -13.8, 0.3, 5, 0.3, '#424242', { solid: false });
+        box(0, 6, -13.8, 10, 0.4, 0.4, '#424242', { solid: false });
+        label('CONCERT STAGE', 0, 5, -13.7, 6, 1, { bg: '#4a148c' });
+    },
+    equipment: [
+        { id: 'B2-smokectl', kind: 'vent', size: 3, name: '排煙設備（性能式設計）', p: [0, 31, 0], fact: true, desc: '大巨蛋屬於超大空間，難以完全套用一般的排煙規定，因此改採「性能式認可」：以火災模擬驗證煙控設計及人員避難逃生安全，並送內政部消防技術委員會審議。', src: '<a href="https://www.cna.com.tw/news/aloc/202206020406.aspx" target="_blank" rel="noopener">中央社 2022/6/2</a>', quiz: { q: '大空間難以套用一般排煙規定時，可採用哪種方式？', opts: ['性能式設計（以模擬驗證安全）', '不設排煙設備', '只開門窗自然通風'], a: 0 } },
+        { id: 'B2-beam', kind: 'beam', name: '光束型偵煙探測器（示意）', p: [0, 16, -6], desc: '挑高空間中，天花板上的點型偵煙器可能因為煙層分層而很晚才偵測到火災。光束型探測器以一道光束橫跨大空間，煙遮住光線時就動作。（詳見倉儲頁的「高天花板煙層」模擬）' },
+        { id: 'B2-exitN', kind: 'exit', name: '出口標示燈（北通道）', p: [0, 3.4, -16.95], desc: '每個疏散通道口上方都有出口標示燈。演唱會時場內燈光昏暗，出口標示燈是觀眾找到通道的關鍵。' },
+        { id: 'B2-exitS', kind: 'exit', name: '出口標示燈（南通道）', p: [0, 3.4, 16.95], rot: 180, desc: '南側疏散通道出口。' },
+        { id: 'B2-exitW', kind: 'exit', name: '出口標示燈（西通道）', p: [-23.95, 3.4, 0], rot: 90, desc: '西側疏散通道出口。' },
+        { id: 'B2-exitE', kind: 'exit', name: '出口標示燈（東通道）', p: [23.95, 3.4, 0], rot: -90, desc: '東側疏散通道出口。' },
+        { id: 'B2-hyd', kind: 'hydrant', name: '室內消防栓箱', p: [23.9, 0.3, 5], rot: -90, desc: '設在看台下方牆面，前方需保持淨空。' },
+        { id: 'B2-spk', kind: 'speaker', name: '緊急廣播', p: [-14, 4, 8], desc: '大型場館疏散的關鍵在於「分區、分批」。緊急廣播依區域引導觀眾前往指定通道，避免所有人同時湧向同一個出口而造成推擠。', quiz: { q: '大型場館疏散時，為什麼要分區廣播引導？', opts: ['避免人群同時湧向同一出口', '節省廣播電力', '讓表演繼續進行'], a: 0 } },
+        { id: 'B2-target', kind: 'info', name: '疏散時間目標', p: [0, 0, 4], fact: true, desc: '依臺北市政府說明，大巨蛋的公安標準要求觀眾在 8 分鐘內離開觀眾席、15 分鐘內疏散到戶外安全的區域。實際疏散動線請見「疏散動線圖」頁，人流狀況請見「人群模擬」頁。', src: '<a href="https://news.pts.org.tw/article/486146" target="_blank" rel="noopener">公視新聞</a>', quiz: { q: '依臺北市府說明，觀眾須在幾分鐘內離開觀眾席？', opts: ['8 分鐘', '3 分鐘', '30 分鐘'], a: 0 } }
+    ],
+    violations: [
+        { id: 'B2-v1', name: '東側疏散通道口堆放舞台器材箱', cat: '防火避難設施', fix: '器材箱移至指定倉儲區，疏散通道與出入口在活動期間必須保持淨寬、不得堆放。',
+            build() { [[25.4, -1.3], [25.4, -0.4], [26.3, -1.3]].forEach(([bx, bz]) => box(bx, 0, bz, 0.85, 1.1, 0.85, '#263238', { cls: 'clickable', data: { vid: 'B2-v1' } })); label('ROAD CASE', 25.4, 1.25, -0.85, 1, 0.3, { rot: -90, bg: '#000', cls: 'clickable', data: { vid: 'B2-v1' } }); } },
+        { id: 'B2-v2', name: '西通道出口標示燈故障不亮', cat: '消防安全設備', fix: '修復燈具，活動前應實施出口標示燈與緊急照明的點燈測試。', replaces: 'B2-exitW',
+            build() { exitSign(-23.95, 3.4, 0, 90, true, { cls: 'clickable', data: { vid: 'B2-v2' } }); } },
+        { id: 'B2-v3', name: '消防栓箱被廣告看板擋住', cat: '消防安全設備', fix: '移開看板，消防栓箱前方應保持淨空並可隨時開啟。',
+            build() { box(23.3, 0, 5, 0.08, 2, 2, '#ff7043', { cls: 'clickable', data: { vid: 'B2-v3' } }); label('SPONSOR', 23.24, 1.2, 5, 1.6, 0.5, { rot: -90, bg: '#ff7043', cls: 'clickable', data: { vid: 'B2-v3' } }); } }
+    ],
+    exits: [
+        { name: '北側疏散通道', test: (x, z) => z < -20.5 && Math.abs(x) < 2, mm: [0, -22] },
+        { name: '南側疏散通道', test: (x, z) => z > 20.5 && Math.abs(x) < 2, mm: [0, 22] },
+        { name: '西側疏散通道', test: (x, z) => x < -28.5 && Math.abs(z) < 2, mm: [-29, 0] },
+        { name: '東側疏散通道', test: (x, z) => x > 28.5 && Math.abs(z) < 2, mm: [29, 0] }
+    ],
+    fire: {
+        p: [3, 1.2, -11.5], heatR: 7,
+        block: { x0: -2, x1: 2, z0: -18, z1: -17, yb: 0, yt: 3 },
+        sections: [{ x0: -34, x1: 34, z0: -34, z1: 34, top: 40, layer: t => 32 - 12 * smooth(t, 0, 240) }],
+        intro: '演唱會舞台起火！北側通道靠近舞台已被火煙封住。——提示：大空間的煙會先往高處累積，請冷靜依廣播與出口標示燈，前往其他疏散通道。'
+    }
+};
+
+// ================= 狀態 =================
+const state = { zone: 'L1', mode: 'tour', keys: {}, crouch: false, modalOpen: false };
+const progress = {};
+Object.keys(ZONES).forEach(z => progress[z] = { visited: new Set(), quiz: {}, found: new Set(), wrong: 0, checked: new Set(), evac: [] });
+let fire = null;      // 避難模式狀態
+let smokeEls = [];
+
+// ================= 建置區域 =================
+function buildZone() {
+    const Z = ZONES[state.zone], mode = state.mode;
+    world.innerHTML = '';
+    solids = [];
+    smokeEls = [];
+    Z.shutter = null;
+    $('sky').setAttribute('color', Z.sky);
+    Z.build(mode);
+
+    const replaced = new Set(mode === 'inspect' ? Z.violations.filter(v => v.replaces).map(v => v.replaces) : []);
+    Z.equipment.forEach(eq => {
+        if (!replaced.has(eq.id)) equipVisual(eq);
+        if (mode === 'tour') {
+            const [x, y, z] = eq.p;
+            const hy = y > 2.5 ? y - 0.7 : y + (eq.kind === 'exit' ? 0.5 : 1.0);
+            const g = ent('a-entity', { position: `${x} ${hy} ${z}`, billboard: '' });
+            const ring = ent('a-ring', { 'radius-inner': 0.17, 'radius-outer': 0.24, material: 'shader: flat; color: #ffc107', class: 'clickable', 'data-eq': eq.id }, g);
+            ring.setAttribute('animation', 'property: scale; to: 1.25 1.25 1.25; dir: alternate; dur: 900; loop: true');
+            label('i', 0, 0, 0.01, 0.3, 0.3, { parent: g, fg: progress[state.zone].visited.has(eq.id) ? '#9e9e9e' : '#ffc107', font: 96, cw: 128, ch: 128, cls: 'clickable', data: { eq: eq.id } });
+        }
+    });
+    if (mode === 'inspect') Z.violations.forEach(v => v.build());
+    if (mode === 'evac') Z.violations.filter(v => v.evac).forEach(v => v.build());
+
+    // 起點
+    const [sx, sz, yaw] = Z.start[mode];
+    rigEl.object3D.position.set(sx, 0, sz);
+    rigEl.object3D.rotation.y = yaw * Math.PI / 180;
+    const lc = camEl.components['look-controls'];
+    if (lc && lc.yawObject) { lc.yawObject.rotation.y = 0; lc.pitchObject.rotation.x = 0; }
+    state.crouch = false;
+    camEl.object3D.position.y = 1.6;
+
+    // 燈光與霧
+    $('amb').setAttribute('light', { intensity: state.zone === 'B4' ? 0.6 : 0.75, color: '#fff' });
+    sceneEl.setAttribute('fog', { type: 'exponential', color: '#222', density: 0 });
+    fire = null;
+    if (mode === 'evac') startFire();
+    renderModeBox();
+    renderProgress();
+}
+
+// ================= 避難體驗 =================
+function startFire() {
+    const Z = ZONES[state.zone], F = Z.fire;
+    fire = { t: 0, exposure: 0, done: false, sprOn: false, lastFog: -1, layer: 99, inSmoke: false };
+    const [fx, fy, fz] = F.p;
+    const g = ent('a-entity', { position: `${fx} ${fy} ${fz}` });
+    ent('a-cone', { 'radius-bottom': 0.9, 'radius-top': 0.05, height: 2.0, position: '0 1 0', material: 'shader: flat; color: #ff6d00; opacity: 0.9; transparent: true', animation: 'property: scale; from: 1 0.85 1; to: 1.1 1.15 1.1; dir: alternate; dur: 220; loop: true' }, g);
+    ent('a-cone', { 'radius-bottom': 0.5, 'radius-top': 0.02, height: 1.3, position: '0 0.7 0', material: 'shader: flat; color: #ffd54f', animation: 'property: scale; from: 1 0.8 1; to: 1.05 1.2 1.05; dir: alternate; dur: 170; loop: true' }, g);
+    ent('a-entity', { position: '0 1.5 0', light: 'type: point; color: #ff8f00; intensity: 2.2; distance: 14', animation: 'property: light.intensity; from: 1.6; to: 2.6; dir: alternate; dur: 140; loop: true' }, g);
+    solids.push({ x0: fx - 1, x1: fx + 1, z0: fz - 1, z1: fz + 1, yb: 0, yt: 3 });
+    if (F.block) solids.push(F.block);
+    F.sections.forEach(s => {
+        const e = box((s.x0 + s.x1) / 2, 0, (s.z0 + s.z1) / 2, s.x1 - s.x0, 1, s.z1 - s.z0, '#2b2b2b', { opacity: 0.72, solid: false, side: 'double' });
+        e.object3D.visible = false;
+        smokeEls.push({ e, s });
+    });
+    $('amb').setAttribute('light', { intensity: 0.32, color: '#ffd9b0' });
+    showModal(`<h3>🔥 避難體驗：${Z.name}</h3><p>${F.intro}</p>
+        <p>操作：<b>W/A/S/D</b> 或方向鍵移動、<b>Q/E</b> 或 ←/→ 轉向、滑鼠拖曳看四周、<b>C</b> 蹲低（手機使用左下角按鈕）。<br>右側會顯示煙層高度與「吸入濃煙」量，滿 100% 即失敗。</p>
+        <div class="btn-row"><button class="btn" onclick="closeModal()">開始！</button></div>`);
+}
+
+function updateFire(dt) {
+    if (!fire || fire.done || state.modalOpen) return;
+    const Z = ZONES[state.zone], F = Z.fire;
+    fire.t += dt;
+    const p = rigEl.object3D.position;
+    const head = camEl.object3D.position.y;
+
+    // 防火捲門
+    if (Z.shutter && F.shutter) {
+        const k = clamp((fire.t - F.shutter.start) / F.shutter.dur, 0, 1);
+        const b = 3.9 * (1 - k);
+        Z.shutter.bottom = b;
+        Z.shutter.solid.yb = b;
+        const el = Z.shutter.el.object3D;
+        el.visible = k > 0;
+        el.scale.y = 4.5 - b;
+        el.position.y = b + (4.5 - b) / 2;
+        if (k > 0 && !fire.shutterMsg) { fire.shutterMsg = true; toast('偵煙連動：防火捲門開始降下！'); }
+    }
+    // 撒水
+    if (F.sprinklers && !fire.sprOn && fire.t > 8) {
+        fire.sprOn = true;
+        F.sprinklers.forEach(([sx, sz]) => ent('a-cylinder', { position: `${sx} 2.25 ${sz}`, radius: 1.2, height: 4.4, 'open-ended': true, material: 'color: #81d4fa; opacity: 0.18; transparent: true; side: double' }));
+        toast('撒水頭動作！');
+    }
+    // 煙層
+    let layer = 99;
+    smokeEls.forEach(({ e, s }) => {
+        const L = s.layer(fire.t);
+        const h = s.top - L;
+        e.object3D.visible = h > 0.05;
+        e.object3D.scale.y = Math.max(h, 0.01);
+        e.object3D.position.y = L + h / 2;
+        if (p.x >= s.x0 && p.x <= s.x1 && p.z >= s.z0 && p.z <= s.z1) layer = Math.min(layer, L);
+    });
+    fire.layer = layer;
+    // 暴露量：頭部在煙層中 + 靠近火源的輻射熱
+    let rate = 0;
+    if (head > layer) rate += 4 + 4 * clamp((head - layer) / 1.0, 0, 1);
+    const d = Math.hypot(p.x - F.p[0], p.z - F.p[2]);
+    if (d < F.heatR) rate += 14 * (1 - d / F.heatR);
+    fire.exposure = clamp(fire.exposure + rate * dt, 0, 100);
+    fire.inSmoke = head > layer;
+    // 霧（能見度）
+    const fog = head > layer ? 0.2 : (layer - head < 0.6 ? 0.06 : (layer < 10 ? 0.015 : 0));
+    if (Math.abs(fog - fire.lastFog) > 0.004) { fire.lastFog = fog; sceneEl.setAttribute('fog', { type: 'exponential', color: '#262626', density: fog }); }
+
+    // 出口判定
+    const ex = Z.exits.find(e => e.test(p.x, p.z));
+    if (ex) return endEvac(true, ex.name);
+    if (fire.exposure >= 100) return endEvac(false);
+    if (state.zone === 'B4' && p.x > 18.5 && p.z > 2 && p.z < 6 && !fire.rampMsg) { fire.rampMsg = true; toast('車道不是避難路線，請改走安全梯！'); }
+}
+
+function endEvac(ok, exitName) {
+    fire.done = true;
+    const pr = progress[state.zone];
+    const rec = { ok, time: Math.round(fire.t), exposure: Math.round(fire.exposure), exit: exitName || '—' };
+    pr.evac.push(rec);
+    renderProgress();
+    const grade = !ok ? '' : rec.exposure < 25 ? '🏅 優良：幾乎沒有吸入濃煙' : rec.exposure < 60 ? '👍 及格：有吸入一些濃煙，下次記得更早蹲低' : '⚠️ 驚險：吸入大量濃煙';
+    showModal(ok
+        ? `<h3>✅ 成功避難！</h3><p>出口：<b>${exitName}</b><br>用時：<b>${rec.time} 秒</b>　吸入濃煙：<b>${rec.exposure}%</b><br>${grade}</p>${evacLesson()}<div class="btn-row"><button class="btn" onclick="restartZone()">再試一次</button><button class="btn secondary" onclick="closeModal()">關閉</button></div>`
+        : `<h3>❌ 避難失敗</h3><p>你吸入了過多濃煙（或太靠近火源）。實際火災中，濃煙才是造成傷亡的主因。</p>${evacLesson()}<div class="btn-row"><button class="btn" onclick="restartZone()">再試一次</button></div>`);
+}
+function evacLesson() {
+    const L = {
+        L1: '重點：①最近的出口不一定能用（S2 被雜物堵住——這正是公安檢查要找的缺失）②防火捲門降下後走旁邊的防火門 ③越過捲門後的另一個防火區劃，煙會少很多。',
+        B4: '重點：①不要為了「最近」而經過起火車輛 ②防煙垂壁另一側的煙比較少、比較晚下降 ③車道不是避難路線，應走安全梯。',
+        B2: '重點：①大空間的煙會先往上累積，爭取了避難時間 ②被火封住的出口要放棄，改走其他通道 ③依廣播與出口標示燈分散前往各通道。'
+    };
+    return `<p style="font-size:0.85rem;color:#ffc107;">${L[state.zone]}</p>`;
+}
+
+// ================= 移動與碰撞 =================
+function isBlocked(x, z) {
+    const r = 0.3, head = camEl.object3D.position.y;
+    return solids.some(s => s.yb < head + 0.05 && s.yt > 0.25 && x > s.x0 - r && x < s.x1 + r && z > s.z0 - r && z < s.z1 + r);
+}
+function move(dt) {
+    if (state.modalOpen) return;
+    const k = state.keys;
+    const rig = rigEl.object3D;
+    const turn = (k.KeyQ || k.ArrowLeft ? 1 : 0) - (k.KeyE || k.ArrowRight ? 1 : 0);
+    rig.rotation.y += turn * 1.8 * dt;
+    const fwd = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
+    const str = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0);
+    // 蹲低高度
+    const cy = camEl.object3D.position;
+    cy.y += ((state.crouch ? 0.9 : 1.6) - cy.y) * Math.min(1, dt * 8);
+    if (!fwd && !str) return;
+    const yaw = rig.rotation.y + camEl.object3D.rotation.y;
+    const speed = (state.crouch ? 0.9 : (state.mode === 'evac' ? 1.6 : 3)) * dt;
+    const n = Math.hypot(fwd, str);
+    const dx = (-Math.sin(yaw) * fwd + Math.cos(yaw) * str) / n * speed;
+    const dz = (-Math.cos(yaw) * fwd - Math.sin(yaw) * str) / n * speed;
+    const p = rig.position;
+    if (!isBlocked(p.x + dx, p.z + dz)) { p.x += dx; p.z += dz; }
+    else if (!isBlocked(p.x + dx, p.z)) p.x += dx;
+    else if (!isBlocked(p.x, p.z + dz)) p.z += dz;
+}
+
+window.addEventListener('keydown', e => {
+    if (e.code === 'Escape') { closeModal(); return; }
+    if (state.modalOpen) return;
+    if (e.code === 'KeyC') { setCrouch(!state.crouch); return; }
+    state.keys[e.code] = true;
+    if (e.code.startsWith('Arrow')) e.preventDefault();
+});
+window.addEventListener('keyup', e => { state.keys[e.code] = false; });
+document.querySelectorAll('#pad [data-key]').forEach(b => {
+    const k = b.dataset.key;
+    const on = e => { e.preventDefault(); state.keys[k] = true; };
+    const off = e => { e.preventDefault(); state.keys[k] = false; };
+    b.addEventListener('pointerdown', on);
+    b.addEventListener('pointerup', off);
+    b.addEventListener('pointerleave', off);
+    b.addEventListener('pointercancel', off);
+});
+function setCrouch(v) { state.crouch = v; $('btnCrouch').classList.toggle('on', v); }
+$('btnCrouch').addEventListener('click', () => setCrouch(!state.crouch));
+
+// ================= 點擊互動 =================
+sceneEl.addEventListener('click', e => {
+    if (state.modalOpen) return;
+    const t = e.target;
+    if (!t || !t.getAttribute) return;
+    const vid = t.getAttribute('data-vid'), eqId = t.getAttribute('data-eq');
+    const Z = ZONES[state.zone], pr = progress[state.zone];
+    if (state.mode === 'inspect') {
+        if (vid) {
+            const v = Z.violations.find(x => x.id === vid);
+            const first = !pr.found.has(vid);
+            pr.found.add(vid);
+            showModal(`<h3>🔍 發現缺失！</h3><span class="tag">${v.cat}</span><p><b>${v.name}</b></p><p>改善方式：${v.fix}</p>
+                ${first ? '' : '<p class="src">（此項已記錄過）</p>'}<div class="btn-row"><button class="btn" onclick="closeModal()">繼續檢查</button></div>`);
+        } else if (eqId) {
+            const eq = Z.equipment.find(x => x.id === eqId);
+            pr.checked.add(eqId);
+            toast(`✔ ${eq.name}：檢查正常`, true);
+        }
+        renderModeBox(); renderProgress();
+        return;
+    }
+    if (state.mode === 'tour' && eqId) openEquip(eqId);
+});
+
+function openEquip(id) {
+    const Z = ZONES[state.zone], eq = Z.equipment.find(x => x.id === id), pr = progress[state.zone];
+    pr.visited.add(id);
+    let html = `<h3>${eq.name}</h3>${eq.fact ? '<span class="tag">📌 查證資料</span>' : ''}<p>${eq.desc}</p>`;
+    if (eq.src) html += `<p class="src">資料來源：${eq.src}</p>`;
+    if (eq.quiz) {
+        const ans = pr.quiz[id];
+        html += `<p><b>📝 小測驗：</b>${eq.quiz.q}</p>` + eq.quiz.opts.map((o, i) => {
+            const cls = ans == null ? '' : i === eq.quiz.a ? 'right' : i === ans ? 'wrong' : '';
+            return `<button class="quiz-opt ${cls}" ${ans != null ? 'disabled' : ''} onclick="answerQuiz('${id}', ${i})">${o}</button>`;
+        }).join('');
+    }
+    html += '<div class="btn-row"><button class="btn" onclick="closeModal()">關閉</button></div>';
+    showModal(html);
+    renderModeBox(); renderProgress();
+}
+window.answerQuiz = (id, i) => {
+    const pr = progress[state.zone];
+    if (pr.quiz[id] == null) pr.quiz[id] = i;
+    openEquip(id);
+    const eq = ZONES[state.zone].equipment.find(x => x.id === id);
+    toast(i === eq.quiz.a ? '答對了！' : '答錯了，正確答案已標示為綠色。', i === eq.quiz.a);
+};
+
+// ================= 介面 =================
+function showModal(html) { $('modal').innerHTML = html; $('modal-bg').style.display = 'block'; state.modalOpen = true; state.keys = {}; }
+function closeModal() { $('modal-bg').style.display = 'none'; state.modalOpen = false; }
+window.closeModal = closeModal;
+window.restartZone = () => { closeModal(); buildZone(); };
+$('modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg' && !(fire && !fire.done && fire.t === 0)) closeModal(); });
+
+let toastTimer = null;
+function toast(msg, ok = false) {
+    const t = $('toast');
+    t.textContent = msg; t.className = ok ? 'ok' : ''; t.style.display = 'block';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.style.display = 'none', 2200);
+}
+
+function renderModeBox() {
+    const Z = ZONES[state.zone], pr = progress[state.zone], m = state.mode;
+    const box = $('modeBox');
+    if (m === 'tour') {
+        box.innerHTML = `<h4>🧭 導覽：${Z.name}</h4>點擊黃色 ⓘ 熱點查看設備說明並作答。<br>已瀏覽 <b>${pr.visited.size}/${Z.equipment.length}</b>`;
+        $('hint').innerText = '🖱️ 拖曳畫面看四周 ｜ W/A/S/D 移動 ｜ 點擊 ⓘ 熱點 ｜ Esc 關閉視窗';
+    } else if (m === 'inspect') {
+        box.innerHTML = `<h4>🔍 公安檢查：${Z.name}</h4>本區藏有 <b>${Z.violations.length}</b> 項缺失。走動觀察並點擊有問題的物品；點到正常設備會顯示「檢查正常」。<br>已發現 <b>${pr.found.size}/${Z.violations.length}</b><div class="btn-row"><button class="btn" onclick="inspectReport()">📝 完成檢查</button></div>`;
+        $('hint').innerText = '🔍 注意：防火門、出入口、捲門下方、撒水頭、滅火器、標示燈……';
+    } else {
+        box.innerHTML = `<h4>🔥 避難體驗：${Z.name}</h4>
+            <div class="hud-row"><span>經過時間</span><b id="hTime">0 s</b></div>
+            <div class="hud-row"><span>此處煙層高度</span><b id="hLayer">—</b></div>
+            <div class="hud-row"><span>你的視線高度</span><b id="hHead">1.6 m</b></div>
+            <div>吸入濃煙 <b id="hExpo">0%</b></div><div class="bar"><div id="hBar"></div></div>
+            <div id="hWarn" style="color:#ffc107;min-height:1.2em;"></div>
+            <div class="btn-row"><button class="btn red" onclick="restartZone()">重新開始</button></div>`;
+        $('hint').innerText = 'W/A/S/D 移動 ｜ Q/E 轉向 ｜ C 蹲低 ｜ 跟著綠色出口標示走';
+    }
+}
+let hudTimer = 0;
+function updateHud(dt) {
+    if (state.mode !== 'evac' || !fire) return;
+    hudTimer += dt;
+    if (hudTimer < 0.15) return;
+    hudTimer = 0;
+    const head = camEl.object3D.position.y;
+    $('hTime').innerText = Math.round(fire.t) + ' s';
+    $('hLayer').innerText = fire.layer > 50 ? '—' : fire.layer.toFixed(1) + ' m';
+    $('hHead').innerText = head.toFixed(1) + ' m' + (state.crouch ? '（蹲低）' : '');
+    $('hExpo').innerText = Math.round(fire.exposure) + '%';
+    $('hBar').style.width = fire.exposure + '%';
+    $('hWarn').innerText = fire.inSmoke ? '⚠️ 你的頭在煙層裡！按 C 蹲低' : (fire.layer - head < 0.6 ? '煙層快到頭部了' : '');
+}
+
+window.inspectReport = () => {
+    const Z = ZONES[state.zone], pr = progress[state.zone];
+    const rows = Z.violations.map(v => `<tr><td class="${pr.found.has(v.id) ? 'ok' : 'ng'}">${pr.found.has(v.id) ? '✔ 已發現' : '✘ 遺漏'}</td><td>${v.name}<br><span class="src">${v.cat}</span></td><td>${v.fix}</td></tr>`).join('');
+    showModal(`<h3>📝 公安檢查紀錄表：${Z.name}</h3>
+        <p>發現 <b>${pr.found.size}/${Z.violations.length}</b> 項缺失，另檢查了 ${pr.checked.size} 項正常設備。</p>
+        <table><tr><th>結果</th><th>缺失項目</th><th>改善方式</th></tr>${rows}</table>
+        <p class="src">分類說明：「防火避難設施」屬建築物公共安全檢查申報範圍（如防火門、避難通道、安全梯）；「消防安全設備」屬消防安全設備檢修申報範圍（如滅火器、標示燈、撒水、消防栓）。</p>
+        <div class="btn-row"><button class="btn" onclick="closeModal()">關閉</button></div>`);
+};
+
+function renderProgress() {
+    $('progress').innerHTML = Object.entries(ZONES).map(([k, Z]) => {
+        const pr = progress[k];
+        const q = Object.keys(pr.quiz).length, qr = Object.entries(pr.quiz).filter(([id, a]) => Z.equipment.find(e => e.id === id).quiz.a === a).length;
+        const best = pr.evac.filter(r => r.ok).sort((a, b) => a.exposure - b.exposure)[0];
+        return `<div style="margin-bottom:4px;"><b>${k}</b>　導覽 ${pr.visited.size}/${Z.equipment.length}・測驗 ${qr}/${q}・缺失 ${pr.found.size}/${Z.violations.length}・避難 ${best ? '✔' : '—'}</div>`;
+    }).join('');
+}
+
+$('btnReport').addEventListener('click', () => {
+    const rows = [];
+    Object.entries(ZONES).forEach(([k, Z]) => {
+        const pr = progress[k];
+        Z.equipment.forEach(e => rows.push([k, '導覽', e.name, pr.visited.has(e.id) ? '已瀏覽' : '未瀏覽', e.quiz ? (pr.quiz[e.id] == null ? '未作答' : pr.quiz[e.id] === e.quiz.a ? '答對' : '答錯') : '']));
+        Z.violations.forEach(v => rows.push([k, '公安檢查', v.name, pr.found.has(v.id) ? '已發現' : '遺漏', v.cat]));
+        pr.evac.forEach((r, i) => rows.push([k, '避難體驗', `第 ${i + 1} 次`, r.ok ? `成功（${r.exit}）` : '失敗', `${r.time} 秒／吸入濃煙 ${r.exposure}%`]));
+    });
+    const table = rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+    showModal(`<h3>📋 學習紀錄</h3><table><tr><th>區域</th><th>類別</th><th>項目</th><th>結果</th><th>備註</th></tr>${table}</table>
+        <div class="btn-row"><button class="btn" id="btnCsv">下載 CSV</button><button class="btn secondary" onclick="closeModal()">關閉</button></div>`);
+    $('btnCsv').addEventListener('click', () => {
+        const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+        const csv = '﻿' + [['區域', '類別', '項目', '結果', '備註'], ...rows].map(r => r.map(esc).join(',')).join('\r\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        a.download = '大巨蛋VR學習紀錄.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+});
+
+// ================= 小地圖 =================
+const mm = $('minimap'), mctx = mm.getContext('2d');
+function drawMinimap() {
+    const Z = ZONES[state.zone], [x0, x1, z0, z1] = Z.ext;
+    const W = mm.width, H = mm.height;
+    const sc = Math.min(W / (x1 - x0), H / (z1 - z0));
+    const ox = (W - (x1 - x0) * sc) / 2, oz = (H - (z1 - z0) * sc) / 2;
+    const X = x => ox + (x - x0) * sc, Y = z => oz + (z - z0) * sc;
+    mctx.fillStyle = '#14141e'; mctx.fillRect(0, 0, W, H);
+    mctx.fillStyle = '#5c6b7a';
+    solids.forEach(s => { if (s.yb < 1 && s.yt > 0.25 && s.x1 - s.x0 < 60) mctx.fillRect(X(s.x0), Y(s.z0), Math.max(1, (s.x1 - s.x0) * sc), Math.max(1, (s.z1 - s.z0) * sc)); });
+    mctx.fillStyle = '#2ecc71';
+    Z.exits.forEach(e => { mctx.fillRect(X(e.mm[0]) - 3, Y(e.mm[1]) - 3, 6, 6); });
+    if (state.mode === 'tour') {
+        Z.equipment.forEach(e => { mctx.fillStyle = progress[state.zone].visited.has(e.id) ? '#777' : '#ffc107'; mctx.beginPath(); mctx.arc(X(e.p[0]), Y(e.p[2]), 2, 0, 7); mctx.fill(); });
+    }
+    if (fire) { mctx.fillStyle = '#ff5722'; mctx.beginPath(); mctx.arc(X(Z.fire.p[0]), Y(Z.fire.p[2]), 4, 0, 7); mctx.fill(); }
+    const p = rigEl.object3D.position, yaw = rigEl.object3D.rotation.y + camEl.object3D.rotation.y;
+    const px = X(p.x), py = Y(p.z), fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+    mctx.fillStyle = '#4fc3f7';
+    mctx.beginPath();
+    mctx.moveTo(px + fx * 8, py + fz * 8);
+    mctx.lineTo(px - fz * 4 - fx * 3, py + fx * 4 - fz * 3);
+    mctx.lineTo(px + fz * 4 - fx * 3, py - fx * 4 - fz * 3);
+    mctx.closePath(); mctx.fill();
+    mctx.fillStyle = '#aaa'; mctx.font = '10px sans-serif';
+    mctx.fillText('■ 出口', 4, H - 4);
+}
+
+// ================= 主迴圈 =================
+window.gameTick = dt => {
+    if (!world.hasLoaded && !sceneEl.hasLoaded) return;
+    move(dt);
+    updateFire(dt);
+    updateHud(dt);
+    drawMinimap();
+};
+
+document.querySelectorAll('[data-zone]').forEach(b => b.addEventListener('click', () => { state.zone = b.dataset.zone; syncButtons(); buildZone(); }));
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { state.mode = b.dataset.mode; syncButtons(); buildZone(); }));
+function syncButtons() {
+    document.querySelectorAll('[data-zone]').forEach(b => b.classList.toggle('active', b.dataset.zone === state.zone));
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
+}
+
+function init() {
+    syncButtons();
+    buildZone();
+    showModal(`<h3>🏛️ 臺北大巨蛋 VR 公安導覽</h3>
+        <p>三個區域（B2 球場層、L1 通道商場、B4 停車場），三種模式：</p>
+        <p>🧭 <b>導覽</b>：點擊黃色 ⓘ 熱點認識消防與避難設備，並回答小測驗。<br>
+        🔍 <b>公安檢查</b>：扮演檢查員，找出場景中隱藏的違規缺失，完成後產生檢查紀錄表。<br>
+        🔥 <b>避難體驗</b>：火災發生！在濃煙下降前，依指示燈找到正確出口。</p>
+        <p class="src">＊場景為依一般大型場館配置繪製的教學示意，並非大巨蛋實際平面；標有「📌 查證資料」的內容附有資料來源。電腦：W/A/S/D 移動、拖曳滑鼠看四周；手機：左下角按鈕移動、轉動手機看四周；支援 VR 眼鏡（右下角按鈕）。</p>
+        <div class="btn-row"><button class="btn" onclick="closeModal()">開始導覽</button><a class="btn secondary" href="simulate0_guide.html" target="_blank" rel="noopener" style="text-decoration:none">📖 看使用說明</a></div>`);
+}
+if (sceneEl.hasLoaded) init(); else sceneEl.addEventListener('loaded', init);
+</script>
+</body>
+</html>

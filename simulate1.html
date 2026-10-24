@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+    <title>臺北大巨蛋 - 防火避難疏散動線示意圖</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --inner: #222;
+            --text-main: #f0f0f0;
+            --text-sub: #b0b0b0;
+            --c-F: #4fc3f7;
+            --c-L: #4caf50;
+            --c-M: #ffc107;
+            --c-U: #ff5252;
+            --ok: #4caf50;
+            --ng: #ff5252;
+            --blue-highlight: #2196f3;
+        }
+
+        * { box-sizing: border-box; }
+        /* 深色底的基本連結色：沒有另外指定顏色的連結都用淺藍色，按過（已造訪）後保持原色，不會變成看不見的深紫色 */
+        a, a:visited { color: #90caf9; }
+        a:hover { color: #bbdefb; }
+
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #004e92, #000428);
+            padding: 18px 30px;
+            border-bottom: 4px solid var(--c-M);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.7rem; }
+        .subtitle { color: var(--c-M); font-size: 0.9rem; letter-spacing: 1px; }
+        .series { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.88rem; }
+        .series a { color: #90caf9; text-decoration: none; }
+        .series a:hover { text-decoration: underline; }
+
+        .top-nav { max-width: 1250px; margin: 16px auto 0; padding: 0 20px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .top-nav a { background: var(--card-bg); color: var(--text-sub); text-decoration: none; padding: 5px 14px; border-radius: 20px; font-size: 0.86rem; border: 1px solid #444; }
+        .top-nav a:hover { color: #fff; border-color: var(--c-M); }
+
+        main { max-width: 1250px; margin: 20px auto; padding: 0 20px; }
+        section { margin-bottom: 30px; }
+        .section-title { font-size: 1.3rem; margin: 0 0 6px; border-left: 5px solid var(--c-M); padding-left: 10px; }
+        .section-desc { color: var(--text-sub); margin: 0 0 14px; font-size: 0.93rem; }
+
+        .card { background-color: var(--card-bg); padding: 18px; border-radius: 10px; min-width: 0; }
+        .card h3 { margin: 0 0 10px; color: var(--blue-highlight); font-size: 1.05rem; }
+        .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        svg { width: 100%; height: auto; display: block; }
+        #mapSvg { max-height: 620px; }
+        #mapSvg text, #sectionSvg text { font-family: "Microsoft JhengHei", sans-serif; }
+        .exit-mk { cursor: pointer; }
+        .flow { fill: none; stroke-width: 3; stroke-dasharray: 9 9; animation: flow 1s linear infinite; opacity: 0.85; }
+        .flow.reroute { stroke-dasharray: 4 6; stroke-width: 2.5; }
+        @keyframes flow { to { stroke-dashoffset: -18; } }
+        .paused .flow { animation-play-state: paused; }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.88rem; color: var(--text-sub); margin-bottom: 8px; }
+        .toolbar select, .toolbar input[type=number] { font-family: inherit; background: #1b1b1b; color: #fff; border: 1px solid #555; border-radius: 4px; padding: 3px 5px; }
+        .chk { display: inline-flex; align-items: center; gap: 4px; }
+        .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+
+        .btn { background: var(--blue-highlight); color: #fff; border: none; border-radius: 5px; padding: 6px 12px; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 0.85rem; }
+        .btn:hover { opacity: 0.85; }
+        .btn.secondary { background: #555; }
+
+        .verdict { padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; font-weight: bold; }
+        .verdict.ok { background: rgba(76,175,80,0.18); color: #a5d6a7; }
+        .verdict.ng { background: rgba(255,82,82,0.18); color: #ff8a80; }
+        .kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .kpi div { background: var(--inner); border-radius: 6px; padding: 8px; text-align: center; }
+        .kpi b { display: block; font-size: 1.3rem; }
+        .kpi span { font-size: 0.75rem; color: var(--text-sub); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        th, td { border-bottom: 1px solid #444; padding: 6px 6px; text-align: left; vertical-align: middle; }
+        th { color: var(--text-sub); font-weight: normal; }
+        td input[type=number] { width: 64px; background: #1b1b1b; color: #fff; border: 1px solid #555; border-radius: 4px; padding: 2px 4px; font-family: inherit; }
+        .table-wrap { overflow-x: auto; }
+        .ok { color: #81c784; } .ng { color: #ff8a80; font-weight: bold; }
+        .muted { color: var(--text-sub); font-size: 0.8rem; }
+
+        .params { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 14px; font-size: 0.84rem; }
+        .params label { display: flex; justify-content: space-between; align-items: center; gap: 6px; color: var(--text-sub); }
+        .params input { width: 70px; background: #1b1b1b; color: #fff; border: 1px solid #555; border-radius: 4px; padding: 2px 4px; font-family: inherit; }
+
+        .formula { background: var(--inner); border-radius: 8px; padding: 10px 14px; font-size: 0.92rem; margin-bottom: 12px; }
+        .formula .eq { font-family: "Cambria Math", "Times New Roman", serif; font-size: 1.05rem; color: #fff; }
+        .formula var { font-style: italic; color: var(--c-M); }
+
+        .timeline-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        .timeline-bar input[type=range] { flex: 1; min-width: 200px; }
+        #tLabel { font-family: Consolas, monospace; min-width: 140px; }
+
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.88rem; }
+        .quiz details { background: var(--inner); border-radius: 6px; padding: 8px 12px; margin-bottom: 8px; }
+        .quiz summary { cursor: pointer; font-weight: bold; }
+        .quiz p { margin: 6px 0 0; color: var(--text-sub); font-size: 0.9rem; }
+        .source { font-size: 0.8rem; color: var(--text-sub); }
+        .source a { color: #90caf9; }
+
+        footer { text-align: center; padding: 30px; color: #777; font-size: 0.8rem; border-top: 1px solid #333; margin-top: 30px; }
+        footer a { color: #90caf9; }
+
+        @media (max-width: 960px) { .grid-main, .grid-2 { grid-template-columns: 1fr; } }
+        @media print {
+            body { background: #fff; color: #000; }
+            header, .top-nav, .toolbar, .timeline-bar, .btn, footer { display: none !important; }
+            .card { background: #fff; border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g3">臺北大巨蛋公安</span>
+    <span class="pb-sep">›</span><span class="pb-page">疏散動線與避難時間</span>
+    <span class="pb-right"><a class="pb-btn" href="simulate1-guide.html" target="_blank" rel="noopener">📖 使用說明</a></span>
+</div>
+
+<header>
+    <div>
+        <div class="subtitle">建築物公共安全課程範例</div>
+        <h1>臺北大巨蛋疏散動線與避難時間計算</h1>
+    </div>
+    <div class="series">
+        <a href="simulate0.html">🥽 VR 防災導覽</a>
+        <a href="simulate2.html">👥 人群動態模擬</a>
+    </div>
+</header>
+
+<nav class="top-nav">
+    <a href="#plan">🗺️ 動線圖與計算器</a>
+    <a href="#timeline">⏱️ 疏散進度與瓶頸</a>
+    <a href="#section">📐 剖面：向上避難</a>
+    <a href="#quiz">💡 思考題</a>
+</nav>
+
+<main>
+    <!-- ===================== 動線圖 + 計算器 ===================== -->
+    <section id="plan">
+        <h2 class="section-title">🗺️ 疏散動線圖與避難時間計算器</h2>
+        <p class="section-desc">每一層看台分成東、南、西、北 4 區，各自有疏散通道與出口。<b>點地圖上的出口</b>可以模擬「被火煙封鎖」：原本走那裡的人會改走相鄰的出口，下方的計算會即時更新。</p>
+
+        <div class="grid-main">
+            <div class="card">
+                <div class="toolbar">
+                    <label>活動型態
+                        <select id="cfg">
+                            <option value="concert" selected>演唱會（約 55,000 人，含場地搖滾區）</option>
+                            <option value="baseball">棒球賽（約 40,000 人）</option>
+                        </select>
+                    </label>
+                    <span class="chk"><input type="checkbox" class="tierChk" value="F" checked><span class="sw" style="background:var(--c-F)"></span>場地</span>
+                    <span class="chk"><input type="checkbox" class="tierChk" value="L" checked><span class="sw" style="background:var(--c-L)"></span>下層</span>
+                    <span class="chk"><input type="checkbox" class="tierChk" value="M" checked><span class="sw" style="background:var(--c-M)"></span>中層</span>
+                    <span class="chk"><input type="checkbox" class="tierChk" value="U" checked><span class="sw" style="background:var(--c-U)"></span>上層</span>
+                    <button class="btn secondary" id="btnClearBlock">解除所有封鎖</button>
+                </div>
+                <svg id="mapSvg" viewBox="0 0 800 580" xmlns="http://www.w3.org/2000/svg"></svg>
+                <p class="source">＊俯視示意圖，非實際比例與配置。人數依新聞報導的總容量估算後分配到各層；出口寬度、距離等為<b>教學示意值</b>，非大巨蛋實際設計數據。</p>
+            </div>
+
+            <div class="card">
+                <h3>📊 計算結果</h3>
+                <div id="verdict" class="verdict"></div>
+                <div class="kpi">
+                    <div><b id="kSeat">—</b><span>最慢離開觀眾席（目標 8 分鐘）</span></div>
+                    <div><b id="kOut">—</b><span>最慢到達戶外（目標 15 分鐘）</span></div>
+                </div>
+                <svg id="chartSvg" viewBox="0 0 420 400" xmlns="http://www.w3.org/2000/svg"></svg>
+                <div class="muted">細長條：離開觀眾席時間　粗長條：到達戶外時間　虛線：8 分鐘／15 分鐘目標</div>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:20px;">
+            <div class="card">
+                <h3>🧮 計算方式</h3>
+                <div class="formula">
+                    <div class="eq">避難時間 <var>T</var> ＝ <var>t</var><sub>開始</sub> ＋ <var>t</var><sub>步行</sub> ＋ <var>P</var> ÷ (<var>N</var> × <var>W</var>)</div>
+                    <div style="margin-top:6px; font-size:0.86rem; color:var(--text-sub);">
+                        <var>P</var>：通過該出口的人數（人）　<var>W</var>：出口或樓梯的有效寬度（m）<br>
+                        <var>N</var>：有效流動係數，每公尺寬度每秒可通過的人數（人/m·s）<br>
+                        最後一項是「排隊通過出口」所需時間。要在目標時間內完成，出口寬度至少需要 <var>W</var> ≥ <var>P</var> ÷ (<var>N</var> × 可用時間)——這就是課本上「<var>W</var> ≥ <var>P</var>/<var>C</var>」的意思（<var>C</var> 為出口在可用時間內的通過能力）。
+                    </div>
+                </div>
+                <div class="params">
+                    <label>開始避難時間 (s)<input type="number" id="pT0" value="60" min="0" step="10"></label>
+                    <label>N：平面出口 (人/m·s)<input type="number" id="pNL" value="1.5" min="0.5" max="3" step="0.1"></label>
+                    <label>N：樓梯 (人/m·s)<input type="number" id="pNS" value="1.3" min="0.5" max="3" step="0.1"></label>
+                    <label>平面步行 (m/s)<input type="number" id="pVL" value="1.0" min="0.3" max="2" step="0.1"></label>
+                    <label>看台走道 (m/s)<input type="number" id="pVS" value="0.5" min="0.2" max="2" step="0.1"></label>
+                    <label>上樓梯 (m/s)<input type="number" id="pVU" value="0.45" min="0.2" max="2" step="0.05"></label>
+                    <label>下樓梯 (m/s)<input type="number" id="pVD" value="0.6" min="0.2" max="2" step="0.05"></label>
+                </div>
+                <p class="source">＊以上為教學預設值，可自行調整。實際設計需依內政部建築研究所《建築物防火避難安全性能驗證技術手冊》等規範的參數與方法。樓梯步行距離以「垂直高度 × 2」近似斜面長度。</p>
+            </div>
+
+            <div class="card">
+                <h3>🛠️ 各層參數（每一區）</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>層</th><th>每區人數</th><th>看台出口寬 (m)</th><th>疏散路線寬 (m)</th><th>路線</th><th>建議最小寬度</th></tr></thead>
+                        <tbody id="tierTable"></tbody>
+                    </table>
+                </div>
+                <p class="source">「建議最小寬度」：在目前封鎖條件下，要讓該層最慢的一區達到 8 分鐘（看台出口）與 15 分鐘（疏散路線）目標所需的寬度。試試把上層路線寬度從 6 m 調大，看看封鎖一座安全梯時要多寬才夠。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== 時間軸 ===================== -->
+    <section id="timeline">
+        <h2 class="section-title">⏱️ 疏散進度與瓶頸</h2>
+        <p class="section-desc">拖曳時間軸或按播放：上方地圖各區的顏色會隨「仍在觀眾席的人數」變淡，出口旁的<b>紅色圓圈</b>大小代表正在排隊的人數——最大的圓圈就是瓶頸。想看人群實際移動的樣子，請到「人群動態模擬」。</p>
+        <div class="card">
+            <div class="timeline-bar">
+                <button class="btn" id="btnPlay">▶ 播放</button>
+                <input type="range" id="tSlider" min="0" max="1200" step="5" value="0">
+                <span id="tLabel">0:00</span>
+            </div>
+            <div class="kpi" style="margin-top:12px; grid-template-columns: repeat(3, 1fr);">
+                <div><b id="kInSeat">—</b><span>仍在觀眾席</span></div>
+                <div><b id="kQueue">—</b><span>排隊中（最大瓶頸）</span></div>
+                <div><b id="kSafe">—</b><span>已到達戶外</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== 剖面 ===================== -->
+    <section id="section">
+        <h2 class="section-title">📐 剖面示意：為什麼有人要「往上」逃？</h2>
+        <p class="section-desc">大巨蛋的球場（草皮層）位於地面下 10.5 公尺。這是因為基地位在國父紀念館周邊、建物需限高 60 公尺，而棒球場又得預留高飛球的空間，於是把球場往下沉。結果是：<b>場地與下層觀眾要往上避難，上層觀眾則往下避難</b>，兩種行為完全不同。</p>
+        <div class="grid-main">
+            <div class="card">
+                <svg id="sectionSvg" viewBox="0 0 800 330" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+            <div class="card">
+                <h3>🗺️ 圖例與重點</h3>
+                <div class="legend-item"><span class="sw" style="background:var(--c-F)"></span>場地（搖滾區）：地下 10.5 m，經通道<b>向上</b>到地面</div>
+                <div class="legend-item"><span class="sw" style="background:var(--c-L)"></span>下層看台：位於地面以下，<b>向上</b>疏散</div>
+                <div class="legend-item"><span class="sw" style="background:var(--c-M)"></span>中層看台：接近地面，<b>水平</b>疏散至戶外平台</div>
+                <div class="legend-item"><span class="sw" style="background:var(--c-U)"></span>上層看台：經安全梯<b>向下</b>疏散</div>
+                <ul style="font-size:0.88rem; color:var(--text-sub); padding-left:18px;">
+                    <li>向上爬樓梯比向下慢、也更耗體力，計算器中「上樓梯」速度預設較低。</li>
+                    <li>演唱會時場地搖滾區約 1.5 萬人，這些人全部位於最深的地下層，大幅增加疏散風險。</li>
+                    <li>依臺北市政府說明，大巨蛋的公安標準要求觀眾 <b>8 分鐘內離開觀眾席、15 分鐘內疏散到戶外</b>。</li>
+                </ul>
+                <p class="source">資料來源：<a href="https://news.pts.org.tw/article/721489" target="_blank" rel="noopener">公視新聞（下沉式設計、演唱會人數、專家意見）</a>、<a href="https://news.pts.org.tw/article/486146" target="_blank" rel="noopener">公視新聞（8 分鐘／15 分鐘標準）</a>。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== 思考題 ===================== -->
+    <section id="quiz">
+        <h2 class="section-title">💡 思考題</h2>
+        <div class="card quiz">
+            <details><summary>1. 封鎖哪一個出口，對「到達戶外時間」的影響最大？為什麼？</summary>
+                <p>動手試試：逐一點擊各層的出口。一般而言，<b>本來就最接近極限、又只能靠樓梯</b>的路線（例如上層安全梯）被封鎖時影響最大——相鄰出口要承擔兩倍人數，排隊時間跟著加倍，還要多走一段繞行距離。</p></details>
+            <details><summary>2. 封鎖上層北側安全梯後，相鄰的安全梯至少要加寬到幾公尺，才能回到 15 分鐘內？</summary>
+                <p>看「各層參數」表中上層的「建議最小寬度」。關鍵在 <var>W</var> ≥ <var>P</var> ÷ (<var>N</var> × 可用時間)：人數加倍、可用時間又因繞行而縮短，所需寬度會增加超過一倍。這也是法規要求「多方向、多出口」而不是只靠一個大出口的原因。</p></details>
+            <details><summary>3. 為什麼演唱會比棒球賽更難疏散？</summary>
+                <p>除了總人數從約 4 萬增加到約 5.5 萬，新增的 1.5 萬人還集中在最深的場地層，而且要「往上」避難。可以在計算器切換兩種活動型態比較。</p></details>
+            <details><summary>4. 計算結果全部合格，就代表實際一定安全嗎？</summary>
+                <p>不一定。這個計算假設人群平均分配、依指示前往指定出口、沒有恐慌或逆流；實際上還要考慮場外人行空間是否足夠、交通疏運、煙控是否有效等。這正是需要「性能式設計」以火災與避難模擬交叉驗證的原因（見 VR 導覽頁 B2 的排煙說明）。</p></details>
+        </div>
+        <div style="margin-top:10px;"><button class="btn secondary" onclick="window.print()">🖨️ 列印本頁計算結果</button></div>
+    </section>
+</main>
+
+<footer>
+    建築物公共安全檢查與規劃課程 | 教材範例：臺北大巨蛋 | 圖面與參數皆為教學示意<br>
+    <a href="index.html">回平台首頁</a> ・ <a href="simulate0.html">VR 防災導覽</a> ・ <a href="simulate2.html">人群動態模擬</a>
+</footer>
+
+<script>
+// ================= 資料 =================
+const $ = id => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const fmt = s => !isFinite(s) ? '無法疏散' : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+const TIERS = [
+    { key: 'F', name: '場地搖滾區', P: { concert: 15000, baseball: 0 }, rx: [0, 120], ry: [0, 80], dSeat: 40, seatWalk: 'level', Wv: 12, dRoute: 50, h: 10.5, route: '場地通道（上行坡道／樓梯）', stair: true, Wr: 12, exitOff: 0 },
+    { key: 'L', name: '下層看台', P: { concert: 14000, baseball: 15000 }, rx: [128, 178], ry: [86, 122], dSeat: 25, seatWalk: 'seat', Wv: 8, dRoute: 60, h: 5, route: '上行樓梯至地面', stair: true, Wr: 8, exitOff: -20 },
+    { key: 'M', name: '中層看台', P: { concert: 14000, baseball: 13000 }, rx: [186, 228], ry: [128, 158], dSeat: 20, seatWalk: 'seat', Wv: 8, dRoute: 50, h: 0, route: '水平至戶外避難平台', stair: false, Wr: 10, exitOff: 20 },
+    { key: 'U', name: '上層看台', P: { concert: 12000, baseball: 12000 }, rx: [236, 280], ry: [164, 196], dSeat: 25, seatWalk: 'seat', Wv: 6, dRoute: 50, h: -20, route: '下行安全梯', stair: true, Wr: 5, exitOff: 0 }
+];
+const QUADS = [{ q: 'N', name: '北', ang: -90 }, { q: 'E', name: '東', ang: 0 }, { q: 'S', name: '南', ang: 90 }, { q: 'W', name: '西', ang: 180 }];
+const REROUTE_EXTRA = 80;   // 改走相鄰出口需多繞的距離 (m)
+const CX = 400, CY = 290;
+
+const blocked = new Set();   // 'U-N' 之類
+let visibleTiers = new Set(['F', 'L', 'M', 'U']);
+let results = null;
+let tNow = 0;
+
+function params() {
+    const n = (id, d) => { const v = parseFloat($(id).value); return isFinite(v) && v > 0 ? v : d; };
+    return { t0: Math.max(0, parseFloat($('pT0').value) || 0), NL: n('pNL', 1.5), NS: n('pNS', 1.3), VL: n('pVL', 1), VS: n('pVS', 0.5), VU: n('pVU', 0.45), VD: n('pVD', 0.6) };
+}
+
+// ================= 計算 =================
+function compute() {
+    const p = params(), cfg = $('cfg').value;
+    const zones = [], routes = {};
+    TIERS.forEach(T => {
+        const Ptier = T.P[cfg];
+        if (!Ptier) return;
+        QUADS.forEach((Q, qi) => {
+            const id = T.key + '-' + Q.q;
+            zones.push({ id, T, Q, qi, P: Ptier / 4 });
+            routes[id] = { id, T, Q, qi, P: 0, zones: [] };
+        });
+    });
+    // 分配：被封鎖的區改走相鄰（同層）未封鎖出口
+    zones.forEach(z => {
+        if (!blocked.has(z.id)) { z.routes = [{ r: z.id, share: 1, extra: 0 }]; return; }
+        const alt = [];
+        for (let d = 1; d <= 2 && !alt.length; d++) {
+            [(z.qi + d) % 4, (z.qi + 4 - d) % 4].forEach(k => {
+                const rid = z.T.key + '-' + QUADS[k].q;
+                if (!blocked.has(rid) && !alt.find(a => a.r === rid)) alt.push({ r: rid, extra: REROUTE_EXTRA * d });
+            });
+        }
+        alt.forEach(a => a.share = 1 / alt.length);
+        z.routes = alt;
+    });
+    zones.forEach(z => z.routes.forEach(a => { routes[a.r].P += z.P * a.share; routes[a.r].zones.push(z.id); }));
+
+    zones.forEach(z => {
+        const T = z.T;
+        const capV = p.NL * T.Wv;
+        z.seatWalk = T.dSeat / (T.seatWalk === 'level' ? p.VL : p.VS);
+        z.tSeat = p.t0 + z.seatWalk + z.P / capV;
+        z.leaveStart = p.t0 + z.seatWalk;
+        z.capV = capV;
+        if (!z.routes.length) { z.tOut = Infinity; z.arrive = Infinity; return; }
+        const stairT = T.h === 0 ? 0 : 2 * Math.abs(T.h) / (T.h > 0 ? p.VU : p.VD);
+        let worst = -1, arrive = Infinity;
+        z.routes.forEach(a => {
+            const R = routes[a.r];
+            const capR = (T.stair ? p.NS : p.NL) * T.Wr;
+            const travel = (T.dRoute + a.extra) / p.VL + stairT;
+            const t = p.t0 + z.seatWalk + travel + Math.max(z.P / capV, R.P / capR);
+            a.travel = travel; a.capR = capR;
+            worst = Math.max(worst, t);
+            arrive = Math.min(arrive, p.t0 + z.seatWalk + travel);
+        });
+        z.tOut = worst; z.arrive = arrive;
+    });
+    // 每層建議最小寬度
+    const need = {};
+    TIERS.forEach(T => {
+        const zs = zones.filter(z => z.T === T);
+        if (!zs.length) return;
+        let wv = 0, wr = 0, wrImpossible = false;
+        zs.forEach(z => {
+            const avail = 480 - z.leaveStart;
+            wv = Math.max(wv, avail > 0 ? z.P / (p.NL * avail) : Infinity);
+            z.routes.forEach(a => {
+                const availR = 900 - (p.t0 + z.seatWalk + a.travel);
+                if (availR <= 0) wrImpossible = true;
+                else wr = Math.max(wr, routes[a.r].P / ((T.stair ? p.NS : p.NL) * availR));
+            });
+            if (!z.routes.length) wrImpossible = true;
+        });
+        need[T.key] = { wv, wr: wrImpossible ? Infinity : wr };
+    });
+    results = { zones, routes, need, p };
+    return results;
+}
+
+// ================= 地圖 =================
+const svg = $('mapSvg');
+const mk = (tag, attrs, parent = svg) => {
+    const e = document.createElementNS(SVGNS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    parent.appendChild(e);
+    return e;
+};
+const rad = d => d * Math.PI / 180;
+const ePt = (rx, ry, ang) => [CX + rx * Math.cos(rad(ang)), CY + ry * Math.sin(rad(ang))];
+function sectorPath(rx0, ry0, rx1, ry1, a0, a1) {
+    const pts = [];
+    for (let i = 0; i <= 24; i++) pts.push(ePt(rx1, ry1, a0 + (a1 - a0) * i / 24));
+    if (rx0 > 0) for (let i = 24; i >= 0; i--) pts.push(ePt(rx0, ry0, a0 + (a1 - a0) * i / 24));
+    else pts.push([CX, CY]);
+    return 'M' + pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' L') + ' Z';
+}
+function exitPos(T, Q) {
+    const a = Q.ang + T.exitOff;
+    return ePt(T.rx[1] + 14, T.ry[1] + 14, a);
+}
+const M = { wedges: {}, exits: {}, queues: {}, flowG: null };
+function buildMap() {
+    svg.innerHTML = '';
+    const defs = mk('defs', {});
+    const pat = mk('pattern', { id: 'grid', width: 40, height: 40, patternUnits: 'userSpaceOnUse' }, defs);
+    mk('path', { d: 'M 40 0 L 0 0 0 40', fill: 'none', stroke: '#333', 'stroke-width': 0.5 }, pat);
+    mk('rect', { width: 800, height: 580, fill: 'url(#grid)' });
+    mk('rect', { x: 50, y: 40, width: 700, height: 500, rx: 50, fill: 'none', stroke: '#555', 'stroke-dasharray': '5,5' });
+    mk('text', { x: 400, y: 30, fill: '#888', 'font-size': 12, 'text-anchor': 'middle' }).textContent = '戶外避難平台 / 開放空間（安全區）';
+
+    TIERS.forEach(T => {
+        QUADS.forEach(Q => {
+            const id = T.key + '-' + Q.q;
+            const w = mk('path', { d: sectorPath(T.rx[0], T.ry[0], T.rx[1], T.ry[1], Q.ang - 45, Q.ang + 45), fill: `var(--c-${T.key})`, stroke: '#1a1a1a', 'stroke-width': 2, opacity: 0.55 });
+            M.wedges[id] = w;
+        });
+    });
+    mk('text', { x: CX, y: CY + 5, fill: '#fff', 'font-size': 13, 'text-anchor': 'middle', 'font-weight': 'bold' }).textContent = '球場層（地下 10.5 m）';
+    M.flowG = mk('g', {});
+    TIERS.forEach(T => QUADS.forEach(Q => {
+        const id = T.key + '-' + Q.q;
+        const [x, y] = exitPos(T, Q);
+        const g = mk('g', { class: 'exit-mk' });
+        M.queues[id] = mk('circle', { cx: x, cy: y, r: 0, fill: 'rgba(255,82,82,0.45)', stroke: '#ff5252' }, g);
+        const r = mk('rect', { x: x - 9, y: y - 9, width: 18, height: 18, rx: 3, fill: `var(--c-${T.key})`, stroke: '#fff', 'stroke-width': 1.5 }, g);
+        const xm = mk('text', { x, y: y + 6, 'text-anchor': 'middle', 'font-size': 18, fill: '#fff', 'font-weight': 'bold' }, g);
+        xm.textContent = '';
+        mk('title', {}, g).textContent = `${T.name}・${Q.name}側出口（點擊封鎖／解除）`;
+        g.addEventListener('click', () => { blocked.has(id) ? blocked.delete(id) : blocked.add(id); update(); });
+        M.exits[id] = { g, r, xm };
+    }));
+    // 圖例
+    const lg = mk('g', { transform: 'translate(60,505)' });
+    mk('rect', { x: 0, y: 0, width: 14, height: 14, rx: 3, fill: '#888', stroke: '#fff' }, lg);
+    mk('text', { x: 20, y: 12, fill: '#aaa', 'font-size': 12 }, lg).textContent = '出口（點擊可封鎖）';
+    mk('circle', { cx: 170, cy: 7, r: 7, fill: 'rgba(255,82,82,0.45)', stroke: '#ff5252' }, lg);
+    mk('text', { x: 182, y: 12, fill: '#aaa', 'font-size': 12 }, lg).textContent = '排隊人數（時間軸）';
+}
+
+function centroid(T, Q) {
+    const rx = T.rx[0] ? (T.rx[0] + T.rx[1]) / 2 : T.rx[1] * 0.55, ry = T.ry[0] ? (T.ry[0] + T.ry[1]) / 2 : T.ry[1] * 0.55;
+    return ePt(rx, ry, Q.ang);
+}
+
+function renderMap() {
+    const R = results;
+    M.flowG.innerHTML = '';
+    const zoneIds = new Set(R.zones.map(z => z.id));
+    TIERS.forEach(T => QUADS.forEach(Q => {
+        const id = T.key + '-' + Q.q;
+        const show = zoneIds.has(id) && visibleTiers.has(T.key);
+        M.wedges[id].style.display = show ? '' : 'none';
+        M.exits[id].g.style.display = show ? '' : 'none';
+        const isB = blocked.has(id);
+        M.exits[id].r.setAttribute('fill', isB ? '#000' : `var(--c-${T.key})`);
+        M.exits[id].xm.textContent = isB ? '✕' : '';
+        M.exits[id].xm.setAttribute('fill', '#ff5252');
+    }));
+    R.zones.forEach(z => {
+        if (!visibleTiers.has(z.T.key)) return;
+        const [cx, cy] = centroid(z.T, z.Q);
+        z.routes.forEach(a => {
+            const RT = R.routes[a.r];
+            const [ex, ey] = exitPos(RT.T, RT.Q);
+            let d;
+            if (a.extra) {
+                // 沿看台外圈繞到相鄰出口
+                const [mx, my] = ePt(z.T.rx[1] + 6, z.T.ry[1] + 6, (z.Q.ang + RT.Q.ang + (Math.abs(z.Q.ang - RT.Q.ang) > 180 ? 360 : 0)) / 2);
+                d = `M ${cx} ${cy} Q ${mx} ${my} ${ex} ${ey}`;
+            } else d = `M ${cx} ${cy} L ${ex} ${ey}`;
+            const pth = mk('path', { d, class: 'flow' + (a.extra ? ' reroute' : ''), stroke: `var(--c-${z.T.key})` }, M.flowG);
+            mk('title', {}, pth).textContent = `${z.T.name}${z.Q.name}區 → ${RT.Q.name}側出口`;
+        });
+        // 出口外的箭頭指向安全區
+        if (!blocked.has(z.id)) {
+            const [ex, ey] = exitPos(z.T, z.Q);
+            const [ox, oy] = ePt(z.T.rx[1] + 60, z.T.ry[1] + 60, z.Q.ang + z.T.exitOff);
+            mk('path', { d: `M ${ex} ${ey} L ${clamp(ox, 60, 740)} ${clamp(oy, 50, 530)}`, class: 'flow', stroke: `var(--c-${z.T.key})`, opacity: 0.35 }, M.flowG);
+        }
+    });
+}
+
+// ================= 結果圖表與表格 =================
+function renderChart() {
+    const c = $('chartSvg');
+    c.innerHTML = '';
+    const zs = results.zones.filter(z => visibleTiers.has(z.T.key));
+    const rowH = 22, top = 24, left = 70, W = 330, maxT = 1200;
+    const H = top + zs.length * rowH + 10;
+    c.setAttribute('viewBox', `0 0 420 ${Math.max(H, 120)}`);
+    const xOf = t => left + Math.min(t, maxT) / maxT * W;
+    const add = (tag, a) => { const e = document.createElementNS(SVGNS, tag); Object.entries(a).forEach(([k, v]) => e.setAttribute(k, v)); c.appendChild(e); return e; };
+    [[480, '8 分'], [900, '15 分']].forEach(([t, l]) => {
+        add('line', { x1: xOf(t), x2: xOf(t), y1: top - 6, y2: H - 6, stroke: '#ffc107', 'stroke-dasharray': '4 3' });
+        add('text', { x: xOf(t), y: top - 10, fill: '#ffc107', 'font-size': 11, 'text-anchor': 'middle' }).textContent = l;
+    });
+    add('text', { x: left + W, y: top - 10, fill: '#777', 'font-size': 10, 'text-anchor': 'end' }).textContent = '20 分';
+    zs.forEach((z, i) => {
+        const y = top + i * rowH;
+        add('text', { x: left - 6, y: y + 13, fill: '#ccc', 'font-size': 11, 'text-anchor': 'end' }).textContent = `${z.T.name.slice(0, 2)}${z.Q.name}${blocked.has(z.id) ? '✕' : ''}`;
+        const okS = z.tSeat <= 480, okO = z.tOut <= 900;
+        add('rect', { x: left, y: y + 2, width: xOf(z.tSeat) - left, height: 5, fill: okS ? '#81c784' : '#ff8a80' });
+        add('rect', { x: left, y: y + 9, width: xOf(isFinite(z.tOut) ? z.tOut : maxT) - left, height: 9, fill: okO ? `var(--c-${z.T.key})` : '#ff5252', opacity: okO ? 0.85 : 1 });
+        add('text', { x: Math.min(xOf(isFinite(z.tOut) ? z.tOut : maxT) + 4, 405), y: y + 17, fill: okO ? '#aaa' : '#ff8a80', 'font-size': 10, 'text-anchor': xOf(z.tOut) > 380 ? 'end' : 'start' }).textContent = fmt(z.tOut);
+    });
+}
+
+function renderSummary() {
+    const zs = results.zones;
+    const maxSeat = Math.max(...zs.map(z => z.tSeat)), maxOut = Math.max(...zs.map(z => z.tOut));
+    $('kSeat').innerText = fmt(maxSeat);
+    $('kSeat').className = maxSeat <= 480 ? 'ok' : 'ng';
+    $('kOut').innerText = fmt(maxOut);
+    $('kOut').className = maxOut <= 900 ? 'ok' : 'ng';
+    const failS = zs.filter(z => z.tSeat > 480), failO = zs.filter(z => z.tOut > 900);
+    const v = $('verdict');
+    if (!failS.length && !failO.length) { v.className = 'verdict ok'; v.innerText = `✅ 全部 ${zs.length} 區都達到 8 分鐘／15 分鐘目標${blocked.size ? `（封鎖 ${blocked.size} 個出口）` : ''}`; }
+    else {
+        v.className = 'verdict ng';
+        const names = arr => arr.map(z => z.T.name.slice(0, 2) + z.Q.name).join('、');
+        v.innerText = '❌ ' + [failS.length ? `離開觀眾席超過 8 分鐘：${names(failS)}` : '', failO.length ? `到達戶外超過 15 分鐘：${names(failO)}` : ''].filter(Boolean).join('；');
+    }
+}
+
+function buildTierTable() {
+    $('tierTable').innerHTML = TIERS.map(T => `<tr id="row-${T.key}">
+        <td><span class="sw" style="background:var(--c-${T.key})"></span> ${T.name}</td>
+        <td id="pp-${T.key}"></td>
+        <td><input type="number" min="1" max="40" step="0.5" value="${T.Wv}" data-tier="${T.key}" data-f="Wv"></td>
+        <td><input type="number" min="1" max="40" step="0.5" value="${T.Wr}" data-tier="${T.key}" data-f="Wr"></td>
+        <td class="muted">${T.route}${T.h ? `（${T.h > 0 ? '上' : '下'} ${Math.abs(T.h)} m）` : ''}</td>
+        <td id="need-${T.key}"></td></tr>`).join('');
+    document.querySelectorAll('#tierTable input').forEach(inp => inp.addEventListener('input', () => {
+        const v = parseFloat(inp.value);
+        if (isFinite(v) && v > 0) { TIERS.find(t => t.key === inp.dataset.tier)[inp.dataset.f] = v; update(); }
+    }));
+}
+function renderTierTable() {
+    const cfg = $('cfg').value;
+    TIERS.forEach(T => {
+        const has = T.P[cfg] > 0;
+        $('row-' + T.key).style.opacity = has ? 1 : 0.35;
+        $('pp-' + T.key).innerText = has ? Math.round(T.P[cfg] / 4).toLocaleString() : '—（無）';
+        const n = results.need[T.key];
+        if (!n) { $('need-' + T.key).innerHTML = '—'; return; }
+        const f = (need, cur) => !isFinite(need) ? '<span class="ng">時間不足</span>' : `<span class="${need <= cur + 1e-9 ? 'ok' : 'ng'}">${need.toFixed(1)} m</span>`;
+        $('need-' + T.key).innerHTML = `看台 ${f(n.wv, T.Wv)}<br>路線 ${f(n.wr, T.Wr)}`;
+    });
+}
+
+// ================= 時間軸 =================
+function renderTimeline() {
+    const t = tNow, R = results;
+    $('tLabel').innerText = `${fmt(t)}（${t} 秒）`;
+    let inSeat = 0, safe = 0, total = 0, maxQ = 0, maxQid = null;
+    const qByRoute = {};
+    R.zones.forEach(z => {
+        total += z.P;
+        const left = z.P * clamp((t - z.leaveStart) / Math.max(1, z.tSeat - z.leaveStart), 0, 1);
+        const out = isFinite(z.tOut) ? z.P * clamp((t - z.arrive) / Math.max(1, z.tOut - z.arrive), 0, 1) : 0;
+        const outC = Math.min(out, left);
+        inSeat += z.P - left;
+        safe += outC;
+        z.routes.forEach(a => { qByRoute[a.r] = (qByRoute[a.r] || 0) + (left - outC) * a.share; });
+        if (!z.routes.length) qByRoute[z.id] = (qByRoute[z.id] || 0) + left;
+        M.wedges[z.id].setAttribute('opacity', (0.12 + 0.7 * (1 - left / z.P)).toFixed(2));
+    });
+    Object.keys(M.queues).forEach(id => {
+        const q = qByRoute[id] || 0;
+        M.queues[id].setAttribute('r', q > 20 ? (6 + Math.sqrt(q) * 0.45).toFixed(1) : 0);
+        if (q > maxQ) { maxQ = q; maxQid = id; }
+    });
+    $('kInSeat').innerText = Math.round(inSeat).toLocaleString() + ' 人';
+    $('kSafe').innerText = `${Math.round(safe).toLocaleString()} 人（${Math.round(safe / total * 100)}%）`;
+    if (maxQid) {
+        const [tk, q] = maxQid.split('-');
+        $('kQueue').innerText = `${Math.round(maxQ).toLocaleString()} 人＠${TIERS.find(x => x.key === tk).name.slice(0, 2)}${QUADS.find(x => x.q === q).name}`;
+    } else $('kQueue').innerText = '0';
+}
+let playTimer = null;
+$('btnPlay').addEventListener('click', () => {
+    if (playTimer) { clearInterval(playTimer); playTimer = null; $('btnPlay').innerText = '▶ 播放'; return; }
+    if (tNow >= 1200) tNow = 0;
+    $('btnPlay').innerText = '⏸ 暫停';
+    playTimer = setInterval(() => {
+        tNow = Math.min(1200, tNow + 10);
+        $('tSlider').value = tNow;
+        renderTimeline();
+        if (tNow >= 1200) { clearInterval(playTimer); playTimer = null; $('btnPlay').innerText = '▶ 播放'; }
+    }, 80);
+});
+$('tSlider').addEventListener('input', () => { tNow = +$('tSlider').value; renderTimeline(); });
+
+// ================= 剖面圖 =================
+function buildSection() {
+    const s = $('sectionSvg');
+    const add = (tag, a, txt) => { const e = document.createElementNS(SVGNS, tag); Object.entries(a).forEach(([k, v]) => e.setAttribute(k, v)); if (txt) e.textContent = txt; s.appendChild(e); return e; };
+    const Y = h => 200 - h * 4.2;   // 0 m 在 y=200
+    add('defs', {}).innerHTML = '<marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#fff"/></marker>';
+    add('rect', { x: 0, y: Y(0), width: 800, height: 330 - Y(0), fill: '#3e2723', opacity: 0.5 });
+    add('line', { x1: 0, x2: 800, y1: Y(0), y2: Y(0), stroke: '#8d6e63', 'stroke-width': 3 });
+    add('text', { x: 10, y: Y(0) - 6, fill: '#bcaaa4', 'font-size': 12 }, '地面 ±0 m');
+    // 屋頂
+    add('path', { d: `M 60 ${Y(30)} Q 400 ${Y(64) - 40} 740 ${Y(30)}`, fill: 'none', stroke: '#90a4ae', 'stroke-width': 3 });
+    add('text', { x: 400, y: Y(64) - 4, fill: '#90a4ae', 'font-size': 12, 'text-anchor': 'middle' }, '屋頂（建物限高 60 m）');
+    // 場地
+    add('rect', { x: 290, y: Y(-10.5), width: 220, height: 8, fill: 'var(--c-F)' });
+    add('text', { x: 400, y: Y(-10.5) + 24, fill: 'var(--c-F)', 'font-size': 12, 'text-anchor': 'middle' }, '球場／搖滾區 −10.5 m');
+    // 看台（左右對稱）
+    const tiers = [['L', -10.5, -1, 290, 200], ['M', -1, 12, 200, 130], ['U', 12, 30, 130, 70]];
+    tiers.forEach(([k, h0, h1, x0, x1]) => {
+        [[x0, x1], [800 - x0, 800 - x1]].forEach(([a, b]) => {
+            const steps = 6;
+            let d = `M ${a} ${Y(h0)}`;
+            for (let i = 1; i <= steps; i++) {
+                const x = a + (b - a) * i / steps, y = Y(h0 + (h1 - h0) * i / steps);
+                d += ` L ${a + (b - a) * (i - 1) / steps + (b - a) / steps} ${Y(h0 + (h1 - h0) * (i - 1) / steps)} L ${x} ${y}`;
+            }
+            add('path', { d, fill: 'none', stroke: `var(--c-${k})`, 'stroke-width': 4 });
+        });
+    });
+    // 避難方向箭頭
+    const arrow = (x1, y1, x2, y2, c, label, lx, ly) => {
+        add('path', { d: `M ${x1} ${y1} L ${x2} ${y2}`, stroke: c, 'stroke-width': 3, fill: 'none', 'marker-end': 'url(#arr)', class: 'flow' });
+        add('text', { x: lx, y: ly, fill: c, 'font-size': 12, 'text-anchor': 'middle' }, label);
+    };
+    arrow(300, Y(-9), 230, Y(0) - 4, 'var(--c-F)', '場地 ↑ 向上 10.5 m', 250, Y(-6));
+    arrow(240, Y(-5), 180, Y(0) - 4, 'var(--c-L)', '下層 ↑', 175, Y(-5));
+    arrow(170, Y(5), 40, Y(0) - 6, 'var(--c-M)', '中層 → 水平', 95, Y(6) - 6);
+    arrow(100, Y(22), 20, Y(0) - 6, 'var(--c-U)', '上層 ↓ 安全梯', 70, Y(26));
+    add('text', { x: 620, y: Y(0) - 8, fill: '#bcaaa4', 'font-size': 12, 'text-anchor': 'middle' }, '戶外避難空間');
+    add('text', { x: 790, y: 322, fill: '#777', 'font-size': 10, 'text-anchor': 'end' }, '＊剖面為示意，看台高度與比例非實際尺寸');
+}
+
+// ================= 更新 =================
+function update() {
+    compute();
+    renderMap();
+    renderChart();
+    renderSummary();
+    renderTierTable();
+    renderTimeline();
+}
+
+$('cfg').addEventListener('change', update);
+document.querySelectorAll('.tierChk').forEach(c => c.addEventListener('change', () => {
+    visibleTiers = new Set([...document.querySelectorAll('.tierChk')].filter(x => x.checked).map(x => x.value));
+    update();
+}));
+['pT0', 'pNL', 'pNS', 'pVL', 'pVS', 'pVU', 'pVD'].forEach(id => $(id).addEventListener('input', update));
+$('btnClearBlock').addEventListener('click', () => { blocked.clear(); update(); });
+
+buildMap();
+buildTierTable();
+buildSection();
+update();
+</script>
+</body>
+</html>

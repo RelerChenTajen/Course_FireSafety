@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+    <title>智慧倉儲物流中心 | AIoT 火警偵測系統</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #16213e;
+            --bg-inner: #0f1525;
+            --text-primary: #e94560;
+            --text-secondary: #a2a8d3;
+            --alert-color: #ff3838;
+            --safe-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --info: #4fc3f7;
+        }
+
+        * { box-sizing: border-box; }
+        /* 深色底的基本連結色：沒有另外指定顏色的連結都用淺藍色，按過（已造訪）後保持原色，不會變成看不見的深紫色 */
+        a, a:visited { color: #4fc3f7; }
+        a:hover { color: #81d4fa; }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--text-primary);
+            padding-bottom: 15px;
+        }
+        .header h1 { margin: 0; font-size: 1.7rem; }
+        .header small { color: var(--text-secondary); }
+        .header-right { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.9rem; }
+        #clock { font-family: Consolas, monospace; }
+        .system-status { font-weight: bold; color: var(--safe-color); }
+        .pbar { margin: -20px -20px 20px; }   /* 抵銷 body 的 padding，讓頂部列貼齊視窗 */
+        .home-link { color: var(--info); text-decoration: none; font-weight: bold; }
+
+        .top-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+        .top-nav a { background: var(--bg-panel); color: var(--text-secondary); text-decoration: none; padding: 6px 14px; border-radius: 20px; font-size: 0.88rem; border: 1px solid #2a3a66; }
+        .top-nav a:hover { color: white; border-color: var(--text-primary); }
+
+        section { margin-bottom: 30px; }
+        .section-title { font-size: 1.3rem; margin: 0 0 6px; border-left: 4px solid var(--text-primary); padding-left: 10px; }
+        .section-desc { color: var(--text-secondary); margin: 0 0 15px; font-size: 0.93rem; }
+
+        .panel {
+            background-color: var(--bg-panel);
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            min-width: 0;
+        }
+        .panel h3 { margin: 0 0 10px; font-size: 1.05rem; color: var(--text-secondary); }
+
+        .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+        /* Map */
+        #mapSvg { width: 100%; height: auto; display: block; background: #0b1020; border-radius: 8px; }
+        #mapSvg text { font-family: 'Microsoft JhengHei', sans-serif; pointer-events: none; }
+        .cell { cursor: pointer; }
+        .map-bar { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .map-bar select { font-family: inherit; }
+        .heat-scale { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px; }
+        .heat-scale .bar { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #1b2a4a, #3b0f70, #8c2981, #de4968, #fe9f6d, #fcfdbf); }
+        .wk { transition: transform 1s linear; }
+
+        /* Status */
+        .status-box { text-align: center; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 1.15rem; background: #1e3d2f; color: var(--safe-color); margin-bottom: 10px; }
+        .status-box.warning { background: #4a3d10; color: var(--warning-color); }
+        .status-box.alarm { background: rgba(255,56,56,0.3); color: #fff; animation: blinkAlert 0.8s infinite alternate; }
+        .status-box.acked { background: rgba(255,56,56,0.25); color: #ffb3b3; }
+        @keyframes blinkAlert { from { opacity: 0.75; } to { opacity: 1; box-shadow: 0 0 18px rgba(255,56,56,0.6); } }
+        .status-sub { font-size: 0.82rem; color: var(--text-secondary); text-align: center; margin: -4px 0 10px; min-height: 1.2em; }
+
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 0.86rem; background: #34495e; color: white; transition: 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-fire { background: var(--alert-color); }
+        .btn-ok { background: #1e8449; }
+        .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .btn-row .btn { flex: 1; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        th, td { border-bottom: 1px solid #2a3a66; padding: 5px 6px; text-align: left; }
+        th { color: var(--text-secondary); font-weight: normal; }
+        .hit { color: var(--alert-color); font-weight: bold; }
+        .warn-txt { color: var(--warning-color); }
+        .ok-txt { color: var(--safe-color); }
+        .table-wrap { overflow-x: auto; }
+
+        .trend { width: 100%; height: 90px; display: block; background: var(--bg-inner); border-radius: 6px; margin-top: 6px; }
+        .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.74rem; color: var(--text-secondary); margin-top: 4px; }
+        .legend i { display: inline-block; width: 12px; height: 3px; vertical-align: middle; margin-right: 3px; }
+        .cell-head { display: flex; justify-content: space-between; align-items: baseline; }
+        .cell-head b { font-size: 1.1rem; }
+
+        /* Scenario */
+        .scn-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .scn { text-align: left; border: 1px solid #2a3a66; background: var(--bg-inner); color: white; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-family: inherit; }
+        .scn:hover { border-color: var(--text-primary); }
+        .scn.running { border-color: var(--alert-color); background: rgba(255,56,56,0.15); }
+        .scn b { display: block; font-size: 0.9rem; }
+        .scn span { font-size: 0.78rem; color: var(--text-secondary); }
+        .tag { float: right; font-size: 0.68rem; padding: 0 6px; border-radius: 8px; background: var(--alert-color); }
+        .tag.no { background: #566573; }
+        .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 0.85rem; margin-top: 12px; color: var(--text-secondary); }
+        .settings label { display: flex; flex-direction: column; }
+        .settings select { font-family: inherit; margin-top: 2px; padding: 3px; }
+        .ctrl-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; font-size: 0.86rem; color: var(--text-secondary); }
+        .progress { height: 6px; background: #2a3a66; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+        .progress > div { height: 100%; width: 0; background: var(--text-primary); }
+        .hint { font-size: 0.84rem; color: var(--warning-color); min-height: 1.2em; margin-top: 6px; }
+
+        .log-panel { background: var(--bg-inner); height: 220px; overflow-y: auto; padding: 8px 10px; font-family: Consolas, monospace; font-size: 0.82rem; border-radius: 8px; border: 1px solid #333; }
+        .log-entry { margin-bottom: 4px; }
+        .log-time { color: #666; margin-right: 8px; }
+        .log-alert { color: var(--alert-color); font-weight: bold; }
+        .log-warn { color: var(--warning-color); }
+        .log-ack { color: var(--safe-color); }
+
+        /* Linkage / rescue */
+        .link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.84rem; }
+        .link-item { display: flex; align-items: center; gap: 8px; background: var(--bg-inner); border-radius: 6px; padding: 6px 8px; }
+        .link-item small { margin-left: auto; color: var(--text-secondary); font-family: Consolas, monospace; }
+        .lamp { width: 11px; height: 11px; border-radius: 50%; background: #455a64; flex: none; }
+        .lamp.on { background: var(--safe-color); box-shadow: 0 0 6px var(--safe-color); }
+        .lamp.bad { background: var(--alert-color); box-shadow: 0 0 6px var(--alert-color); }
+        .rescue-card { background: #fffdf5; color: #222; border-radius: 8px; padding: 14px 16px; font-size: 0.88rem; border-top: 6px solid var(--alert-color); }
+        .rescue-card h4 { margin: 0 0 6px; font-size: 1.05rem; color: #b71c1c; }
+        .rescue-card .row { display: grid; grid-template-columns: 90px 1fr; gap: 4px 8px; margin-bottom: 4px; }
+        .rescue-card .row b { color: #555; }
+        .haz { border-left: 4px solid #999; padding: 3px 8px; margin: 4px 0; background: #f5f5f5; border-radius: 4px; }
+        .haz.near { border-left-color: #d32f2f; background: #fdecea; }
+        .rescue-card .muted { color: #777; font-size: 0.78rem; }
+        .roll { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 0.82rem; }
+        .roll div { background: var(--bg-inner); border-radius: 5px; padding: 4px 8px; }
+        .roll .safe { color: var(--safe-color); }
+        .roll .miss { color: var(--alert-color); font-weight: bold; }
+
+        /* Stratification */
+        #stratCanvas { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; background: #0b1020; border-radius: 8px; }
+        .formula { font-size: 0.82rem; color: var(--text-secondary); background: var(--bg-inner); border-radius: 6px; padding: 8px 10px; margin-top: 8px; }
+        .det-row td:first-child { white-space: nowrap; }
+        .bar-cell { width: 45%; }
+        .det-bar { height: 10px; border-radius: 5px; background: var(--info); }
+
+        /* Case */
+        .timeline { position: relative; padding-left: 22px; }
+        .timeline::before { content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 3px; background: #2a3a66; }
+        .tl-item { position: relative; margin-bottom: 12px; padding: 8px 10px; border-radius: 8px; background: var(--bg-inner); }
+        .tl-item::before { content: ''; position: absolute; left: -20px; top: 13px; width: 11px; height: 11px; border-radius: 50%; background: var(--text-primary); }
+        .tl-time { font-family: Consolas, monospace; font-weight: bold; color: var(--warning-color); }
+        .tl-aiot { font-size: 0.82rem; color: var(--info); margin-top: 4px; }
+        .fact-list { font-size: 0.9rem; padding-left: 18px; }
+        .fact-list li { margin-bottom: 6px; }
+        .source { font-size: 0.8rem; color: var(--text-secondary); }
+        .source a { color: var(--info); }
+
+        footer { text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 30px; }
+        footer a { color: var(--info); }
+
+        @media (max-width: 1000px) {
+            .grid-main, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .pbar { margin: -12px -12px 12px; }
+            .header h1 { font-size: 1.25rem; }
+            .scn-list, .settings, .link-grid, .roll { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g2">AIoT 消防偵測</span>
+    <span class="pb-sep">›</span><span class="pb-page">智慧倉儲物流中心戰情室</span>
+    <span class="pb-right"><a class="pb-btn" href="warehouse_aiot_guide.html" target="_blank" rel="noopener">📖 使用說明</a></span>
+</div>
+
+    <div class="header">
+        <div>
+            <h1>📦 智慧倉儲物流中心戰情室</h1>
+            <small>AIoT 全倉熱影像 × 氣體偵測 × 撒水連動 × 人員清點</small>
+        </div>
+        <div class="header-right">
+            <span id="clock">--:--:--</span>
+            <label><input type="checkbox" id="soundOn"> 警報音</label>
+            <div id="sysStatus" class="system-status">● 系統監控中</div>
+        </div>
+    </div>
+
+    <nav class="top-nav">
+        <a href="#monitor">📍 全倉監控</a>
+        <a href="#strat">🌫️ 高天花板煙層</a>
+        <a href="#response">💧 撒水・連動・搶救資訊</a>
+        <a href="#case">📼 案例回顧：2023 明揚火災</a>
+    </nav>
+
+    <!-- ===================== 全倉監控 ===================== -->
+    <section id="monitor">
+        <h2 class="section-title">📍 全倉監控：熱力地圖與多感測器判定</h2>
+        <p class="section-desc">4 排貨架 × 6 個儲位 × 3 層，每格都有溫度。熱影像只看得到攝影機涵蓋範圍內的儲位（畫斜線的是死角），氣體感測器則按排監測。點任一儲位可查看詳細趨勢。</p>
+
+        <div class="grid-main">
+            <div class="panel">
+                <div class="map-bar">
+                    <label>顯示樓層
+                        <select id="viewLevel">
+                            <option value="max">各儲位最高值</option>
+                            <option value="0">L1 下層</option>
+                            <option value="1">L2 中層</option>
+                            <option value="2">L3 上層</option>
+                        </select>
+                    </label>
+                    <label><input type="checkbox" id="layerCam" checked> 攝影機覆蓋／死角</label>
+                    <label><input type="checkbox" id="layerSpr"> 撒水頭</label>
+                    <label><input type="checkbox" id="layerWk" checked> 人員</label>
+                </div>
+                <svg id="mapSvg" viewBox="0 0 940 520" xmlns="http://www.w3.org/2000/svg"></svg>
+                <div class="heat-scale"><span>20°C</span><div class="bar"></div><span>250°C+</span></div>
+            </div>
+
+            <div class="panel">
+                <div id="statusBox" class="status-box">● 系統監控中（正常）</div>
+                <div class="status-sub" id="statusSub"></div>
+                <div class="btn-row">
+                    <button class="btn btn-fire" id="btnAck" disabled>確認</button>
+                    <button class="btn btn-ok" id="btnReset" disabled>復歸</button>
+                    <button class="btn" id="btnFalse" disabled>標記誤報</button>
+                </div>
+
+                <h3 style="margin-top:14px;">🧪 分區判定（需 ≥ 2 項才發火警）</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>分區</th><th>熱影像</th><th>CO ppm</th><th>H₂ ppm</th></tr></thead>
+                        <tbody id="zoneTable"></tbody>
+                    </table>
+                </div>
+                <p class="source" style="margin:6px 0 0;">熱影像異常＝比全倉中位數高 15°C 以上，或升溫 ≥ 10°C/min 且高出 5°C；CO ≥ 50 ppm；H₂ ≥ 50 ppm。任一攝影機看到 ≥ 90°C 直接發火警。</p>
+
+                <h3 style="margin-top:14px;">🔍 儲位詳情</h3>
+                <div class="cell-head"><b id="cellName">A1</b><span id="cellCov" class="source"></span></div>
+                <div id="cellTemps" style="font-size:0.88rem;"></div>
+                <canvas class="trend" id="cellTrend"></canvas>
+                <div class="legend"><span><i style="background:#4fc3f7"></i>L1</span><span><i style="background:#f1c40f"></i>L2</span><span><i style="background:#e94560"></i>L3</span><span>（近 120 秒）</span></div>
+            </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:20px;">
+            <div class="panel">
+                <h3>🎛️ 情境模擬</h3>
+                <div class="scn-list" id="scnList"></div>
+                <div class="settings">
+                    <label>熱影像攝影機
+                        <select id="optCams">
+                            <option value="2">2 台（有死角）</option>
+                            <option value="4">4 台（全覆蓋）</option>
+                        </select>
+                    </label>
+                    <label>紙箱悶燒起火儲位
+                        <select id="optOrigin"></select>
+                    </label>
+                    <label>撒水頭類型
+                        <select id="optSpr">
+                            <option value="std">標準反應型（τ≈60 s）</option>
+                            <option value="fast">快速反應型／ESFR（τ≈15 s）</option>
+                        </select>
+                    </label>
+                    <label>119 火災通報
+                        <select id="opt119">
+                            <option value="auto">火警時自動通報</option>
+                            <option value="manual">人工通報（警報確認後）</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="ctrl-row">
+                    <label>速度
+                        <select id="speedSel">
+                            <option value="1">1x</option>
+                            <option value="5" selected>5x</option>
+                            <option value="10">10x</option>
+                        </select>
+                    </label>
+                    <button class="btn" id="btnResetWh">🔄 恢復正常（重置倉庫）</button>
+                </div>
+                <div class="progress"><div id="scnProgress"></div></div>
+                <div class="hint" id="scnHint"></div>
+
+                <h3 style="margin-top:12px;">📋 情境測試紀錄</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>情境</th><th>位置</th><th>設定</th><th>預警</th><th>火警</th><th>撒水頭</th><th>結果</th></tr></thead>
+                        <tbody id="resultBody"><tr><td colspan="7" class="source">尚無紀錄。</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>📝 事件日誌</h3>
+                <div class="log-panel" id="logContainer"></div>
+                <div class="ctrl-row"><button class="btn" id="btnExport">匯出 CSV</button></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== 高天花板煙層 ===================== -->
+    <section id="strat">
+        <h2 class="section-title">🌫️ 高天花板的煙層分層與偵測器選型</h2>
+        <p class="section-desc">倉庫屋頂在夏天被曬熱，天花板下方會形成一層熱空氣（熱障）。初期火災的煙溫度不夠高，升到一半就停住，無法到達天花板上的偵煙器。比較同一場火中，四種偵測方式各在什麼時候動作。</p>
+        <div class="grid-main">
+            <div class="panel">
+                <canvas id="stratCanvas" width="800" height="450"></canvas>
+                <div class="formula">煙羽最大上升高度（熱分層經驗式，NFPA 92）：Z<sub>max</sub> ≈ 5.54 · Q<sub>c</sub><sup>1/4</sup> · (ΔT/Δz)<sup>−3/8</sup>　其中 Q<sub>c</sub> 為對流熱釋放率 (kW)，ΔT/Δz 為室內垂直溫度梯度 (°C/m)。<br>火災規模以 t² 成長：Q = α·t²。下方的偵測門檻與延遲為教學示意參數。</div>
+            </div>
+            <div class="panel">
+                <h3>⚙️ 條件</h3>
+                <div class="settings" style="margin-top:0;">
+                    <label>天花板高度
+                        <select id="stH"><option value="6">6 m</option><option value="12" selected>12 m</option><option value="18">18 m</option></select>
+                    </label>
+                    <label>季節
+                        <select id="stSeason"><option value="summer" selected>夏季（屋頂熱障，上下溫差 20°C）</option><option value="winter">冬季（溫差 3°C）</option></select>
+                    </label>
+                    <label>火災成長速度
+                        <select id="stGrowth"><option value="slow" selected>慢速（紙箱悶燒 α=0.0029）</option><option value="medium">中速（α=0.0117）</option></select>
+                    </label>
+                    <label>火源位置
+                        <select id="stHidden"><option value="0">貨架外側（熱影像看得到）</option><option value="1">貨架內部（被貨物遮蔽）</option></select>
+                    </label>
+                </div>
+                <div class="ctrl-row"><button class="btn btn-fire" id="btnStrat">▶ 開始模擬</button><span id="stNow" style="font-family:Consolas,monospace;"></span></div>
+                <h3 style="margin-top:12px;">⏱️ 偵測時間比較</h3>
+                <table>
+                    <thead><tr><th>偵測方式</th><th>動作時間</th><th class="bar-cell"></th></tr></thead>
+                    <tbody id="detTable"></tbody>
+                </table>
+                <p class="source">💡 試試：12 m 夏季 vs 冬季、12 m vs 18 m，觀察點型偵煙器的動作時間差多少。實際選用請依《各類場所消防安全設備設置標準》中各類探測器的裝置高度限制。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== 撒水・連動・搶救資訊 ===================== -->
+    <section id="response">
+        <h2 class="section-title">💧 撒水、設備連動與消防搶救資訊</h2>
+        <p class="section-desc">發出火警後，系統自動連動各項設備並清點人員，同時整理出一張給消防隊的「搶救資訊卡」。情境中撒水頭的動作情形，可在上方地圖勾選「撒水頭」圖層觀察。</p>
+        <div class="grid-3">
+            <div class="panel">
+                <h3>🔗 設備連動狀態</h3>
+                <div class="link-grid">
+                    <div class="link-item"><span class="lamp" id="lkAlarm"></span>火警發報<small id="tkAlarm"></small></div>
+                    <div class="link-item"><span class="lamp" id="lk119"></span>119 通報<small id="tk119"></small></div>
+                    <div class="link-item"><span class="lamp" id="lkShutter"></span>防火鐵捲門<small id="tkShutter"></small></div>
+                    <div class="link-item"><span class="lamp" id="lkVent"></span>排煙窗開啟<small id="tkVent"></small></div>
+                    <div class="link-item"><span class="lamp" id="lkConv"></span>輸送帶停止<small id="tkConv"></small></div>
+                    <div class="link-item"><span class="lamp" id="lkChg"></span>充電區斷電<small id="tkChg"></small></div>
+                    <div class="link-item"><span class="lamp" id="lkPA"></span>廣播疏散<small id="tkPA"></small></div>
+                    <div class="link-item"><span class="lamp" id="lkSpr"></span>撒水頭動作<small id="tkSpr">0 個</small></div>
+                </div>
+                <p class="source">撒水頭內的玻璃球在約 68°C 破裂後開始撒水。快速反應型（如高架倉庫常用的 ESFR）對熱反應較快，可在火勢擴大前就把火壓制住。時間標示為警報後的經過秒數。</p>
+            </div>
+
+            <div class="panel">
+                <h3>👷 人員定位與疏散清點</h3>
+                <div id="rollSummary" style="margin-bottom:8px; font-weight:bold;"></div>
+                <div class="roll" id="rollList"></div>
+                <p class="source">作業員配戴 UWB/BLE 定位標籤。警報後依廣播撤離到集合點，離起火點最近的出口會被標為封閉。W05 駕駛堆高機並配戴耳罩，較晚才察覺警報——這正是需要「清點」的原因。</p>
+            </div>
+
+            <div class="panel">
+                <h3>🚒 消防搶救資訊卡</h3>
+                <div class="rescue-card" id="rescueCard"></div>
+                <div class="ctrl-row"><button class="btn" id="btnCopyCard">📋 複製文字</button><span id="copyMsg" class="source"></span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== 案例回顧 ===================== -->
+    <section id="case">
+        <h2 class="section-title">📼 案例回顧：2023 年屏東明揚國際科技公司火災</h2>
+        <p class="section-desc">2023 年 9 月 22 日傍晚，屏東科技產業園區明揚國際科技公司的原料倉庫起火並發生爆炸。這個案例凸顯了「業者是否即時提供搶救資訊」對消防人員安全的影響。</p>
+        <div class="grid-2">
+            <div class="panel">
+                <div class="timeline">
+                    <div class="tl-item"><span class="tl-time">17:31</span>　消防局接獲報案，廠區倉庫冒煙起火。</div>
+                    <div class="tl-item"><span class="tl-time">17:42</span>　最近的消防分隊抵達現場。
+                        <div class="tl-aiot">💡 若有搶救資訊系統：抵達時即可得知倉庫內存放的化學品種類、數量與位置，指揮官可依此決定是否入室。</div></div>
+                    <div class="tl-item"><span class="tl-time">17:57</span>　消防人員攜帶滅火器進入冒煙的倉庫區；煙霧增加，指揮官下令撤退。</div>
+                    <div class="tl-item"><span class="tl-time">約 18:01</span>　撤退途中發生爆炸。
+                        <div class="tl-aiot">💡 若已知存放大量有機過氧化物，應優先採取防禦性戰術、劃定警戒區，而非入室搶救。</div></div>
+                    <div class="tl-item"><span class="tl-time">之後</span>　火勢延燒，燃燒約 28 小時才撲滅。</div>
+                </div>
+                <p class="source">時間依媒體報導及監察院調查報告摘要整理，可能因資料來源不同而有數分鐘差異。</p>
+            </div>
+            <div class="panel">
+                <h3>🔎 關鍵事實</h3>
+                <ul class="fact-list">
+                    <li><b>傷亡：</b>共 10 人罹難（其中 4 名為消防員），逾百人受傷。</li>
+                    <li><b>違規儲存：</b>廠內違法存放約 3,000 公斤有機過氧化物，超過法定管制量 30 倍以上。</li>
+                    <li><b>未提供搶救資訊：</b>業者未向消防人員告知化學品種類、數量、位置平面配置圖等資訊，也未指派專人協助救災。</li>
+                </ul>
+                <h3>📜 後續法規修正</h3>
+                <ul class="fact-list">
+                    <li>2024 年 11 月 12 日，立法院三讀修正《消防法》：工廠、化學品倉庫等場所發生火災時，管理權人應提供化學品種類、數量、位置平面配置圖及<b>搶救必要資訊</b>，並依規定更新上傳至指定平台，且須<b>立即指派專人到場協助救災</b>。</li>
+                    <li>未提供或提供不實資訊將處以高額罰鍰；同時增訂「消防人員安全衛生防護」專章。</li>
+                </ul>
+                <h3>🧪 對照演練</h3>
+                <p style="font-size:0.9rem;">在上方執行「🔋 鋰電池熱失控」情境，觀察搶救資訊卡如何標出鄰近的危險物品與未撤離人員。思考：如果這張卡在消防隊抵達時就送到指揮官手上，入室決策會有什麼不同？</p>
+                <p class="source">資料來源：<a href="https://www.thenewslens.com/article/192319" target="_blank" rel="noopener">關鍵評論網</a>、<a href="https://www.cna.com.tw/news/asoc/202309230171.aspx" target="_blank" rel="noopener">中央社（2023/9/23）</a>、<a href="https://www.cna.com.tw/news/aall/202411120051.aspx" target="_blank" rel="noopener">中央社（消防法修正，2024/11/12）</a>、<a href="https://news.pts.org.tw/article/754070" target="_blank" rel="noopener">公視新聞</a>。本頁為教學整理，詳細內容請以原始資料為準。</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>智慧倉儲物流中心 AIoT 火警偵測系統 ｜ 教學示範用途，倉庫配置與存放物品皆為虛構 ｜ <a href="index.html">回平台首頁</a></footer>
+
+<script>
+// ================= 工具 =================
+const $ = id => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const ramp = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const smooth = (t, a, b) => { const x = ramp(t, a, b); return x * x * (3 - 2 * x); };
+const noise = a => (Math.random() - 0.5) * 2 * a;
+const nowStr = () => new Date().toLocaleTimeString('zh-TW', { hour12: false });
+const M_PER_PX = 60 / 820;    // 倉庫長約 60 m
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+// ================= 倉庫配置 =================
+const AISLES = ['A', 'B', 'C', 'D'], NB = 6, NL = 3;
+const ROW_Y = { A: 60, B: 160, C: 260, D: 360 }, BAY_X0 = 150, BAY_W = 100, ROW_H = 50;
+const CELLS = [];
+AISLES.forEach(a => { for (let b = 1; b <= NB; b++) CELLS.push(a + b); });
+const cellCenter = id => id === 'CHG' ? [140, 465] : [BAY_X0 + (+id.slice(1) - 1) * BAY_W + BAY_W / 2, ROW_Y[id[0]] + ROW_H / 2];
+const ZONES = ['A', 'B', 'C', 'D', 'CHG'];
+const ZONE_NAME = { A: 'A 排', B: 'B 排', C: 'C 排', D: 'D 排', CHG: '充電區' };
+const zoneOf = id => id === 'CHG' ? 'CHG' : id[0];
+
+const CAMERAS = [
+    { id: 'CAM-1', x: 140, y: 135, dir: 1, aisles: ['A', 'B'], bays: [1, 2, 3, 4] },
+    { id: 'CAM-2', x: 760, y: 335, dir: -1, aisles: ['C', 'D'], bays: [3, 4, 5, 6] },
+    { id: 'CAM-3', x: 760, y: 135, dir: -1, aisles: ['A', 'B'], bays: [3, 4, 5, 6] },
+    { id: 'CAM-4', x: 140, y: 335, dir: 1, aisles: ['C', 'D'], bays: [1, 2, 3, 4] }
+];
+let covered = new Set();
+function updateCoverage() {
+    const n = +$('optCams').value;
+    covered = new Set(['CHG']);  // 充電區有內建溫度監測
+    CAMERAS.slice(0, n).forEach(c => c.aisles.forEach(a => c.bays.forEach(b => covered.add(a + b))));
+}
+
+const EXITS = [
+    { id: 'E1', x: 60, y: 235, cross: 100, out: [[25, 235]], ap: 'AP1' },
+    { id: 'E2', x: 880, y: 135, cross: 815, out: [[915, 135], [915, 300]], ap: 'AP2' },
+    { id: 'E3', x: 750, y: 500, cross: 815, via: [[815, 470], [750, 470]], out: [[750, 512], [915, 512], [915, 300]], ap: 'AP2' }
+];
+const HAZARDS = [
+    { name: '鋰電池儲區', where: 'D 排第 4–6 儲位', qty: '鋰電池約 2,000 kg', x: 650, y: 385, note: '熱失控會持續放熱並釋放可燃、有毒氣體，撲滅後仍可能復燃，需長時間大量射水冷卻。' },
+    { name: '危險物品儲存室', where: '南側，充電區東邊', qty: '有機過氧化物 50 kg', x: 280, y: 465, note: '受熱可能劇烈分解甚至爆炸；火勢波及時避免貿然入室，採防禦性戰術。' },
+    { name: '堆高機充電區', where: '西南角', qty: '堆高機電池 6 組', x: 140, y: 465, note: '充電中可能產生氫氣；先確認斷電再處置。' }
+];
+const WALKWAYS = [{ y: 40, name: '北側走道' }, { y: 135, name: 'A/B 走道' }, { y: 235, name: 'B/C 走道' }, { y: 335, name: 'C/D 走道' }, { y: 425, name: '南側走道' }];
+
+// ================= 情境 =================
+const SCENARIOS = {
+    smolder: { name: '📦 紙箱貨物悶燒', fire: true, duration: 260, desc: '先悶燒冒煙、累積 CO，約 150 秒後轉為明火。', hint: '比較 2 台與 4 台攝影機：火源落在死角時，火警會晚多久？' },
+    battery: { name: '🔋 鋰電池熱失控', fire: true, duration: 200, desc: '溫度上升前先排出 H₂、CO，約 100 秒後熱失控。', hint: '觀察：H₂ 預警比溫度異常早了多久？' },
+    charging: { name: '🔌 堆高機充電過熱', fire: true, duration: 220, desc: '充電座持續升溫並產生氫氣。', hint: '觀察：充電區內建溫度監測＋氣體偵測的組合。' },
+    sun: { name: '☀️ 夏季屋頂日照', fire: false, duration: 180, desc: '上層貨架整體緩慢升溫 14°C。', hint: '為什麼不會誤報？（判定看的是「比全倉中位數高多少」，整體升溫不算局部異常）' },
+    diesel: { name: '🚜 柴油堆高機排氣', fire: false, duration: 120, desc: 'B 排一帶 CO 暫時升高。', hint: '只有 CO 一項成立 → 只發預警，不發火警。' }
+};
+
+// ================= 模擬狀態 =================
+let T = {}, gas = {}, heads = {}, snaps = [], trend = {};
+let scn = null, simT = 0, alarm = null, alarmT = null, warnOn = false, alarmZone = null, falseLatch = false;
+let link = {}, blockedExit = null, workers = [], selected = 'A1';
+const results = [];
+
+function amb(l) {
+    let off = 0;
+    if (scn && scn.key === 'sun') off = [2, 6, 14][l] * smooth(scn.t, 10, 150);
+    return 26 + off;
+}
+
+function resetWarehouse() {
+    CELLS.forEach(id => { T[id] = [26, 26, 26]; heads[id] = { temp: 26, active: false, at: null }; trend[id] = []; });
+    T.CHG = [26]; trend.CHG = [];
+    ZONES.forEach(z => gas[z] = { co: 2, h2: 1 });
+    snaps = [];
+    scn = null; alarm = null; alarmT = null; warnOn = false; alarmZone = null; falseLatch = false;
+    link = {}; blockedExit = null;
+    initWorkers();
+    document.querySelectorAll('.scn').forEach(x => x.classList.remove('running'));
+    $('scnProgress').style.width = '0';
+    $('scnHint').innerText = '';
+}
+
+// ================= 物理模型 =================
+function originTemp(key, t) {
+    if (key === 'smolder') return 26 + 20 * smooth(t, 10, 150) + 420 * smooth(t, 150, 210);
+    if (key === 'battery') return 26 + 10 * smooth(t, 10, 90) + 520 * smooth(t, 100, 115);
+    if (key === 'charging') return 26 + 40 * smooth(t, 10, 120) + 300 * smooth(t, 150, 185);
+    return null;
+}
+function emission(key, t) {
+    if (key === 'smolder') return { zone: zoneOf(scn.origin), co: 1.2 * smooth(t, 20, 100), h2: 0 };
+    if (key === 'battery') return { zone: 'D', co: 1.0 * smooth(t, 20, 60), h2: 4 * smooth(t, 10, 40) };
+    if (key === 'charging') return { zone: 'CHG', co: 0.8 * smooth(t, 150, 180), h2: 2 * smooth(t, 30, 100) };
+    if (key === 'diesel') return { zone: 'B', co: t >= 10 && t <= 60 ? 2 : 0, h2: 0 };
+    return null;
+}
+
+function physicsStep() {
+    const sprTau = $('optSpr').value === 'fast' ? 15 : 60;
+    const nT = {};
+    CELLS.forEach(id => {
+        const a = id[0], b = +id.slice(1);
+        nT[id] = T[id].map((v, l) => {
+            let d = 0;
+            if (l > 0) d += 0.12 * (T[id][l - 1] - v);        // 熱由下往上
+            if (l < NL - 1) d += 0.02 * (T[id][l + 1] - v);
+            if (b > 1) d += 0.05 * (T[a + (b - 1)][l] - v);
+            if (b < NB) d += 0.05 * (T[a + (b + 1)][l] - v);
+            if (id === 'D1' && l === 0) d += 0.02 * (T.CHG[0] - v);
+            d -= 0.01 * (v - amb(l));
+            return v + d + noise(0.08);
+        });
+    });
+    const chg = T.CHG[0] + 0.02 * (T.D1[0] - T.CHG[0]) - 0.01 * (T.CHG[0] - 26) + noise(0.08);
+
+    // 撒水頭
+    CELLS.forEach(id => {
+        const h = heads[id], t = nT[id];
+        const gasT = 26 + 0.5 * (t[2] - 26) + 0.3 * (Math.max(t[0], t[1]) - 26);
+        h.temp += (gasT - h.temp) / sprTau;
+        if (!h.active && h.temp >= 68) {
+            h.active = true; h.at = simT;
+            addLog(`💧 ${id} 上方撒水頭動作（玻璃球 68°C 破裂）`, 'ack');
+        }
+    });
+    CELLS.forEach(id => {
+        const a = id[0], b = +id.slice(1);
+        const wet = [b - 1, b, b + 1].some(k => k >= 1 && k <= NB && heads[a + k].active);
+        if (wet) nT[id] = nT[id].map((v, l) => v - 0.1 * (v - amb(l)));
+    });
+
+    // 起火點
+    if (scn) {
+        const ot = originTemp(scn.key, scn.t);
+        if (ot != null) {
+            const o = scn.origin;
+            const wet = o !== 'CHG' && [-1, 0, 1].some(k => { const b = +o.slice(1) + k; return b >= 1 && b <= NB && heads[o[0] + b].active; });
+            if (wet) scn.scale *= scn.key === 'battery' ? 0.995 : 0.985;
+            const v = 26 + (ot - 26) * scn.scale;
+            if (o === 'CHG') T.CHG = [Math.max(v, chg)]; else nT[o][0] = Math.max(v, nT[o][0]);
+        }
+    }
+    CELLS.forEach(id => T[id] = nT[id]);
+    if (!(scn && scn.origin === 'CHG' && originTemp(scn.key, scn.t) != null)) T.CHG = [chg];
+
+    // 氣體
+    const em = scn ? emission(scn.key, scn.t) : null;
+    const pairs = [['A', 'B'], ['B', 'C'], ['C', 'D'], ['D', 'CHG']];
+    const dg = {};
+    ZONES.forEach(z => dg[z] = { co: 0, h2: 0 });
+    pairs.forEach(([p, q]) => ['co', 'h2'].forEach(k => {
+        const f = 0.01 * (gas[p][k] - gas[q][k]); dg[p][k] -= f; dg[q][k] += f;
+    }));
+    ZONES.forEach(z => ['co', 'h2'].forEach(k => {
+        let v = gas[z][k] + dg[z][k] - 0.012 * (gas[z][k] - (k === 'co' ? 2 : 1));
+        if (em && em.zone === z) v += em[k] * (scn.key === 'battery' || scn.key === 'smolder' ? Math.max(scn.scale, 0.2) : 1);
+        gas[z][k] = Math.max(0, v + noise(0.3));
+    }));
+    // 明火燃燒額外產生 CO
+    if (scn && scn.origin && originTemp(scn.key, scn.t) != null) {
+        const ot = scn.origin === 'CHG' ? T.CHG[0] : T[scn.origin][0];
+        gas[zoneOf(scn.origin)].co += 0.006 * Math.max(0, ot - 100);
+    }
+
+    snaps.push({ t: simT, v: Object.fromEntries(CELLS.map(id => [id, T[id].slice()]).concat([['CHG', T.CHG.slice()]])) });
+    while (snaps.length > 31) snaps.shift();
+    CELLS.concat(['CHG']).forEach(id => { trend[id].push(T[id].slice()); if (trend[id].length > 120) trend[id].shift(); });
+}
+
+// ================= 偵測判定 =================
+function median(arr) { const s = arr.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; }
+
+function evaluate() {
+    const all = [];
+    CELLS.forEach(id => T[id].forEach(v => all.push(v)));
+    const med = median(all);
+    const old = snaps.length > 5 ? snaps[0] : null;
+    const span = old ? simT - old.t : 0;
+    const zr = {};
+    ZONES.forEach(z => zr[z] = { thermal: false, maxT: -99, co: gas[z].co, h2: gas[z].h2, cell: null });
+    let maxCovered = -99, maxCell = null;
+    CELLS.concat(['CHG']).forEach(id => {
+        if (!covered.has(id)) return;
+        const z = zoneOf(id);
+        T[id].forEach((v, l) => {
+            const d = v - med;
+            const ror = old && span > 0 ? (v - old.v[id][l]) / span * 60 : 0;
+            const anomaly = d >= 15 || (ror >= 10 && d >= 5);
+            if (anomaly) zr[z].thermal = true;
+            if (v > zr[z].maxT) { zr[z].maxT = v; zr[z].cell = id; }
+            if (v > maxCovered) { maxCovered = v; maxCell = id; }
+        });
+    });
+    let best = null, anyHit = false;
+    ZONES.forEach(z => {
+        const r = zr[z];
+        r.coHit = r.co >= 50; r.h2Hit = r.h2 >= 50;
+        r.hits = r.thermal + r.coHit + r.h2Hit;
+        if (r.hits) anyHit = true;
+        if (!best || r.hits > zr[best].hits) best = z;
+    });
+    const fire = zr[best].hits >= 2 || maxCovered >= 90;
+    if (maxCovered >= 90 && zr[best].hits < 2) best = zoneOf(maxCell);
+    return { zr, fire, anyHit, best, med, maxCovered, maxCell };
+}
+
+function handleDetection(ev) {
+    const z = ev.zr[ev.best];
+    if (!ev.fire) falseLatch = false;
+    if (ev.anyHit && !warnOn) {
+        warnOn = true;
+        if (scn && scn.firstWarn == null) scn.firstWarn = scn.t;
+        const w = ZONES.find(k => ev.zr[k].hits);
+        const r = ev.zr[w];
+        let msg = `⚠️ ${ZONE_NAME[w]} 預警：`;
+        if (r.h2Hit) msg += `偵測到氫氣 ${r.h2.toFixed(0)} ppm，疑似電池排氣（熱失控前兆）`;
+        else if (r.coHit && !r.thermal) msg += `CO ${r.co.toFixed(0)} ppm 升高但無熱異常，可能為柴油堆高機排氣或初期悶燒`;
+        else msg += `熱影像偵測到局部溫度異常（${r.maxT.toFixed(0)}°C）`;
+        addLog(msg, 'warn');
+    } else if (!ev.anyHit && warnOn && !alarm) {
+        warnOn = false;
+        addLog('數值恢復正常。');
+    }
+    if (ev.fire && !alarm && !falseLatch) {
+        alarm = 'unacked'; alarmZone = ev.best;
+        if (alarmT == null) { alarmT = simT; onFireAlarm(ev); }
+        if (scn && scn.firstAlarm == null) scn.firstAlarm = scn.t;
+        const parts = [];
+        if (z.thermal) parts.push(`熱影像 ${z.maxT.toFixed(0)}°C`);
+        if (z.coHit) parts.push(`CO ${z.co.toFixed(0)} ppm`);
+        if (z.h2Hit) parts.push(`H₂ ${z.h2.toFixed(0)} ppm`);
+        addLog(`🚨 火警！${ZONE_NAME[ev.best]}（${parts.join('、') || '高溫 ≥ 90°C'}）`, 'alert');
+    }
+    if (alarm === 'unacked') beep();
+}
+
+function onFireAlarm(ev) {
+    const t = simT;
+    link.alarm = t; link.shutter = t + 3; link.vent = t + 3; link.conv = t + 1; link.chg = t + 1; link.pa = t + 2;
+    if ($('opt119').value === 'auto') link.n119 = t + 5;
+    // 封閉最接近起火點的出口
+    const [ox, oy] = fireCenter();
+    const near = EXITS.map(e => ({ e, d: Math.hypot(e.x - ox, e.y - oy) })).sort((p, q) => p.d - q.d)[0];
+    if (near.d < 320) { blockedExit = near.e.id; addLog(`出口 ${near.e.id} 鄰近起火點，廣播引導改由其他出口撤離。`, 'warn'); }
+    workers.forEach(w => { w.evacAt = t + w.react; });
+    addLog('連動：防火鐵捲門關閉、排煙窗開啟、輸送帶停止、充電區斷電、廣播疏散。', 'ack');
+}
+
+function fireCenter() {
+    if (scn && scn.origin) return cellCenter(scn.origin);
+    if (alarmZone && alarmZone !== 'CHG') return cellCenter(alarmZone + '3');
+    return cellCenter('CHG');
+}
+
+// ================= 人員 =================
+const WORKER_DEF = [
+    ['W01', '揀貨員', 1, 300, 6], ['W02', '揀貨員', 2, 520, 8], ['W03', '理貨員', 3, 250, 10], ['W04', '理貨員', 3, 640, 7],
+    ['W05', '堆高機駕駛（配戴耳罩）', 2, 700, 110], ['W06', '盤點人員', 0, 400, 12], ['W07', '包裝員', 4, 600, 9], ['W08', '保全', 4, 330, 5]
+];
+function initWorkers() {
+    workers = WORKER_DEF.map(([id, role, wi, x, react]) => ({ id, role, x, y: WALKWAYS[wi].y, dir: Math.random() < 0.5 ? 1 : -1, react, state: 'work', path: [], evacAt: null, exit: null }));
+}
+function locName(w) {
+    if (w.state === 'safe') return '集合點';
+    if (w.x < 150) return '西側橫向通道';
+    if (w.x > 750) return '東側橫向通道';
+    const k = WALKWAYS.reduce((p, c) => Math.abs(c.y - w.y) < Math.abs(p.y - w.y) ? c : p);
+    return `${k.name}（距西牆約 ${Math.round((w.x - 60) * M_PER_PX)} m）`;
+}
+function planPath(w) {
+    const opts = EXITS.filter(e => e.id !== blockedExit).map(e => {
+        const pts = [[e.cross, w.y], [e.cross, e.via ? e.via[0][1] : e.y]].concat(e.via ? e.via.slice(1) : []).concat([[e.x, e.y]]);
+        let len = 0, p = [w.x, w.y];
+        pts.forEach(q => { len += Math.abs(q[0] - p[0]) + Math.abs(q[1] - p[1]); p = q; });
+        return { e, pts, len };
+    }).sort((p, q) => p.len - q.len);
+    const best = opts[0];
+    w.exit = best.e.id;
+    w.path = best.pts.concat(best.e.out);
+}
+function stepWorkers() {
+    const speed = 17;   // 約 1.2 m/s
+    workers.forEach(w => {
+        if (w.state === 'work') {
+            if (w.evacAt != null && simT >= w.evacAt) {
+                w.state = 'evac'; planPath(w);
+                if (w.react > 60) addLog(`${w.id}（${w.role}）較晚察覺警報，開始撤離。`, 'warn');
+                return;
+            }
+            w.x += w.dir * 6;
+            if (w.x < 160 || w.x > 740 || Math.random() < 0.02) w.dir *= -1;
+            w.x = clamp(w.x, 160, 740);
+        } else if (w.state === 'evac') {
+            let step = speed;
+            while (step > 0 && w.path.length) {
+                const [tx, ty] = w.path[0];
+                const d = Math.hypot(tx - w.x, ty - w.y);
+                if (d <= step) { w.x = tx; w.y = ty; step -= d; w.path.shift(); }
+                else { w.x += (tx - w.x) / d * step; w.y += (ty - w.y) / d * step; step = 0; }
+            }
+            if (!w.path.length) { w.state = 'safe'; w.safeT = simT; }
+        }
+    });
+}
+
+// ================= 日誌 / 音效 =================
+const logRows = [];
+function addLog(msg, type = 'info') {
+    const time = nowStr();
+    logRows.push({ time, type, msg });
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = `<span class="log-time">${time}</span>`;
+    const s = document.createElement('span');
+    s.className = { alert: 'log-alert', warn: 'log-warn', ack: 'log-ack' }[type] || '';
+    s.textContent = msg;
+    div.appendChild(s);
+    const box = $('logContainer');
+    box.prepend(div);
+    while (box.childElementCount > 100) box.lastChild.remove();
+}
+$('btnExport').addEventListener('click', () => {
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = '﻿' + ['時間,類型,內容', ...logRows.map(r => [r.time, r.type, r.msg].map(esc).join(','))].join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = '倉儲火警事件日誌.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+});
+let audioCtx = null, lastBeep = 0;
+function beep() {
+    if (!$('soundOn').checked) return;
+    const n = performance.now();
+    if (n - lastBeep < 700) return;
+    lastBeep = n;
+    try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.05;
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.18);
+    } catch (e) { /* 不支援時忽略 */ }
+}
+
+// ================= 地圖繪製 =================
+const svg = $('mapSvg');
+const mk = (tag, attrs, parent = svg) => {
+    const e = document.createElementNS(SVGNS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    parent.appendChild(e);
+    return e;
+};
+const COLOR_STOPS = [[0, [27, 42, 74]], [0.15, [59, 15, 112]], [0.35, [140, 41, 129]], [0.55, [222, 73, 104]], [0.75, [254, 159, 109]], [1, [252, 253, 191]]];
+function heatColor(t) {
+    const x = Math.pow(clamp((t - 22) / 228, 0, 1), 0.5);
+    for (let i = 1; i < COLOR_STOPS.length; i++) {
+        const [p1, c1] = COLOR_STOPS[i], [p0, c0] = COLOR_STOPS[i - 1];
+        if (x <= p1) { const k = (x - p0) / (p1 - p0); return `rgb(${c0.map((v, j) => Math.round(v + (c1[j] - v) * k)).join(',')})`; }
+    }
+    return 'rgb(252,253,191)';
+}
+const M = { cells: {}, labels: {}, hatch: {}, spr: {}, wk: {}, exits: {} };
+function buildMap() {
+    const defs = mk('defs', {});
+    const pat = mk('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+    mk('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: 'rgba(255,255,255,0.35)', 'stroke-width': 3 }, pat);
+
+    mk('rect', { x: 60, y: 20, width: 820, height: 480, fill: '#111a33', stroke: '#5c6b99', 'stroke-width': 3 });
+    mk('rect', { x: 66, y: 28, width: 70, height: 85, fill: '#1f2b4d' });
+    mk('text', { x: 101, y: 75, 'text-anchor': 'middle', 'font-size': 12, fill: '#a2a8d3' }).textContent = '辦公室';
+    [[80, 440, 120, '堆高機充電區', '#3a2a10'], [220, 440, 120, '危險物品儲存室', '#3d1420'], [620, 440, 110, '裝卸碼頭', '#1f2b4d']].forEach(([x, y, w, t, c]) => {
+        mk('rect', { x, y, width: w, height: 50, fill: c, stroke: '#5c6b99' });
+        mk('text', { x: x + w / 2, y: y + 30, 'text-anchor': 'middle', 'font-size': 11, fill: '#ddd' }).textContent = t;
+    });
+    M.cells.CHG = mk('rect', { x: 82, y: 442, width: 116, height: 46, fill: 'transparent', class: 'cell', opacity: 0.6 });
+    M.cells.CHG.addEventListener('click', () => { selected = 'CHG'; renderDetail(); renderMap(); });
+    mk('text', { x: 282, y: 485, 'text-anchor': 'middle', 'font-size': 10, fill: '#ff8a80' }).textContent = '⚠ 有機過氧化物';
+    mk('rect', { x: 548, y: 356, width: 304, height: 58, fill: 'none', stroke: '#f1c40f', 'stroke-dasharray': '5 4' });
+    mk('text', { x: 700, y: 352, 'text-anchor': 'middle', 'font-size': 11, fill: '#f1c40f' }).textContent = '鋰電池儲區';
+
+    // 貨架儲位
+    CELLS.forEach(id => {
+        const a = id[0], b = +id.slice(1);
+        const x = BAY_X0 + (b - 1) * BAY_W, y = ROW_Y[a];
+        const r = mk('rect', { x: x + 2, y, width: BAY_W - 4, height: ROW_H, rx: 3, fill: '#1b2a4a', stroke: '#33416b', class: 'cell' });
+        r.addEventListener('click', () => { selected = id; renderDetail(); renderMap(); });
+        M.cells[id] = r;
+        M.hatch[id] = mk('rect', { x: x + 2, y, width: BAY_W - 4, height: ROW_H, fill: 'url(#hatch)', opacity: 0 });
+        mk('text', { x: x + 8, y: y + 15, 'font-size': 11, fill: '#ccc' }).textContent = id;
+        M.labels[id] = mk('text', { x: x + BAY_W / 2, y: y + 37, 'text-anchor': 'middle', 'font-size': 13, fill: '#fff', 'font-weight': 'bold' });
+        M.spr[id] = mk('circle', { cx: x + BAY_W - 14, cy: y + 12, r: 6, fill: '#263238', stroke: '#4fc3f7', 'stroke-width': 1.5, opacity: 0 });
+    });
+    AISLES.forEach(a => mk('text', { x: 135, y: ROW_Y[a] + 30, 'text-anchor': 'end', 'font-size': 14, fill: '#e94560', 'font-weight': 'bold' }).textContent = a);
+
+    // 攝影機視野
+    M.camLayer = mk('g', {});
+    CAMERAS.forEach(c => {
+        const g = mk('g', {}, M.camLayer);
+        const far = c.dir > 0 ? c.x + 420 : c.x - 420;
+        mk('polygon', { points: `${c.x},${c.y} ${far},${c.y - 85} ${far},${c.y + 85}`, fill: 'rgba(79,195,247,0.08)', stroke: 'rgba(79,195,247,0.35)' }, g);
+        mk('circle', { cx: c.x, cy: c.y, r: 7, fill: '#4fc3f7' }, g);
+        mk('text', { x: c.x, y: c.y - 10, 'text-anchor': 'middle', 'font-size': 10, fill: '#4fc3f7' }, g).textContent = c.id;
+        c.g = g;
+    });
+
+    // 出口與集合點
+    EXITS.forEach(e => {
+        const g = mk('g', {});
+        mk('rect', { x: e.x - 12, y: e.y - 10, width: 24, height: 20, fill: '#1e8449', rx: 3 }, g);
+        mk('text', { x: e.x, y: e.y + 4, 'text-anchor': 'middle', 'font-size': 10, fill: '#fff' }, g).textContent = e.id;
+        M.exits[e.id] = mk('text', { x: e.x, y: e.y + 6, 'text-anchor': 'middle', 'font-size': 22, fill: '#ff3838', opacity: 0 });
+        M.exits[e.id].textContent = '✕';
+    });
+    [['AP1', 25, 235], ['AP2', 915, 300]].forEach(([id, x, y]) => {
+        mk('circle', { cx: x, cy: y, r: 16, fill: 'none', stroke: '#2ecc71', 'stroke-width': 2, 'stroke-dasharray': '4 3' });
+        mk('text', { x, y: y + 30, 'text-anchor': 'middle', 'font-size': 10, fill: '#2ecc71' }).textContent = '集合點';
+    });
+
+    M.fire = mk('text', { x: 0, y: 0, 'font-size': 26, opacity: 0, 'text-anchor': 'middle' });
+    M.fire.textContent = '🔥';
+    M.sel = mk('rect', { x: 0, y: 0, width: BAY_W, height: ROW_H + 4, fill: 'none', stroke: '#fff', 'stroke-width': 2.5 });
+
+    M.wkLayer = mk('g', {});
+    WORKER_DEF.forEach(([id]) => {
+        const g = mk('g', { class: 'wk' }, M.wkLayer);
+        mk('circle', { cx: 0, cy: 0, r: 8, fill: '#ffeb3b', stroke: '#000' }, g);
+        mk('text', { x: 0, y: -11, 'text-anchor': 'middle', 'font-size': 9, fill: '#ffeb3b' }, g).textContent = id;
+        M.wk[id] = g;
+    });
+}
+
+function renderMap() {
+    const lv = $('viewLevel').value;
+    const showCam = $('layerCam').checked, showSpr = $('layerSpr').checked;
+    CELLS.forEach(id => {
+        const v = lv === 'max' ? Math.max(...T[id]) : T[id][+lv];
+        M.cells[id].setAttribute('fill', heatColor(v));
+        M.labels[id].textContent = v.toFixed(0) + '°';
+        M.hatch[id].setAttribute('opacity', showCam && !covered.has(id) ? 1 : 0);
+        const h = heads[id];
+        M.spr[id].setAttribute('opacity', showSpr ? 1 : 0);
+        M.spr[id].setAttribute('fill', h.active ? '#4fc3f7' : '#263238');
+    });
+    M.cells.CHG.setAttribute('fill', T.CHG[0] > 35 ? heatColor(T.CHG[0]) : 'transparent');
+    M.camLayer.style.display = showCam ? '' : 'none';
+    const nCam = +$('optCams').value;
+    CAMERAS.forEach((c, i) => c.g.style.display = i < nCam ? '' : 'none');
+    EXITS.forEach(e => M.exits[e.id].setAttribute('opacity', blockedExit === e.id ? 1 : 0));
+
+    const ot = scn && scn.origin ? (scn.origin === 'CHG' ? T.CHG[0] : T[scn.origin][0]) : 0;
+    if (ot > 150) {
+        const [x, y] = cellCenter(scn.origin);
+        M.fire.setAttribute('x', x); M.fire.setAttribute('y', y + 8); M.fire.setAttribute('opacity', 1);
+    } else M.fire.setAttribute('opacity', 0);
+
+    if (selected === 'CHG') { M.sel.setAttribute('x', 80); M.sel.setAttribute('y', 438); M.sel.setAttribute('width', 120); M.sel.setAttribute('height', 54); }
+    else {
+        const [x, y] = cellCenter(selected);
+        M.sel.setAttribute('x', x - BAY_W / 2); M.sel.setAttribute('y', y - ROW_H / 2 - 2);
+        M.sel.setAttribute('width', BAY_W); M.sel.setAttribute('height', ROW_H + 4);
+    }
+    M.wkLayer.style.display = $('layerWk').checked ? '' : 'none';
+    workers.forEach(w => M.wk[w.id].style.transform = `translate(${w.x}px, ${w.y}px)`);
+}
+
+function drawTrend(canvas, series, min, max) {
+    const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w) return;
+    if (canvas.width !== Math.round(w * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+    const c = canvas.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    const yOf = v => h - 4 - (clamp(v, min, max) - min) / (max - min) * (h - 8);
+    c.fillStyle = '#556'; c.font = '10px sans-serif';
+    c.fillText(max + '°C', 4, 12); c.fillText(min + '°C', 4, h - 6);
+    series.forEach(s => {
+        c.strokeStyle = s.color; c.lineWidth = 2; c.beginPath();
+        const off = 120 - s.data.length;
+        s.data.forEach((v, i) => { const x = (off + i) / 119 * w; i ? c.lineTo(x, yOf(v)) : c.moveTo(x, yOf(v)); });
+        c.stroke();
+    });
+}
+
+function renderDetail() {
+    const id = selected, t = T[id];
+    $('cellName').innerText = id === 'CHG' ? '堆高機充電區' : `${id[0]} 排第 ${id.slice(1)} 儲位`;
+    $('cellCov').innerText = covered.has(id) ? (id === 'CHG' ? '內建溫度監測' : '✔ 熱影像涵蓋') : '✘ 熱影像死角';
+    $('cellCov').style.color = covered.has(id) ? 'var(--safe-color)' : 'var(--alert-color)';
+    $('cellTemps').innerHTML = t.map((v, l) => `${id === 'CHG' ? '溫度' : 'L' + (l + 1)}：<b>${v.toFixed(1)}°C</b>`).join('　') +
+        `　｜　${ZONE_NAME[zoneOf(id)]} CO ${gas[zoneOf(id)].co.toFixed(0)}・H₂ ${gas[zoneOf(id)].h2.toFixed(0)} ppm`;
+    const tr = trend[id];
+    const cols = ['#4fc3f7', '#f1c40f', '#e94560'];
+    const maxV = Math.max(60, ...tr.flat());
+    drawTrend($('cellTrend'), t.map((_, l) => ({ data: tr.map(s => s[l]), color: cols[l] })), 20, Math.ceil(maxV / 20) * 20);
+}
+
+function renderPanel(ev) {
+    const box = $('statusBox');
+    if (alarm === 'unacked') { box.className = 'status-box alarm'; box.innerText = `🚨 火警：${ZONE_NAME[alarmZone]}`; }
+    else if (alarm === 'acked') { box.className = 'status-box acked'; box.innerText = `🚨 處理中：${ZONE_NAME[alarmZone]}`; }
+    else if (ev.anyHit) { box.className = 'status-box warning'; box.innerText = '⚠️ 預警：單一感測異常'; }
+    else { box.className = 'status-box'; box.innerText = '● 系統監控中（正常）'; }
+    $('statusSub').innerText = `全倉溫度中位數 ${ev.med.toFixed(1)}°C ・ 熱影像最高 ${ev.maxCovered.toFixed(0)}°C`;
+    const s = $('sysStatus');
+    s.innerText = alarm ? '⚠️ 火警警報 (FIRE ALARM)' : ev.anyHit ? '⚠️ 預警中' : '● 系統監控中';
+    s.style.color = alarm ? 'var(--alert-color)' : ev.anyHit ? 'var(--warning-color)' : 'var(--safe-color)';
+    $('btnAck').disabled = alarm !== 'unacked';
+    $('btnReset').disabled = !(alarm === 'acked' && !ev.fire);
+    $('btnFalse').disabled = !alarm;
+
+    $('zoneTable').innerHTML = ZONES.map(z => {
+        const r = ev.zr[z];
+        const th = r.maxT < -50 ? '<span class="source">無涵蓋</span>' : `<span class="${r.thermal ? 'hit' : ''}">${r.maxT.toFixed(0)}°C${r.thermal ? ' ✔' : ''}</span>`;
+        return `<tr><td>${ZONE_NAME[z]}${r.hits >= 2 ? ' 🚨' : r.hits ? ' ⚠️' : ''}</td><td>${th}</td>
+            <td class="${r.coHit ? 'hit' : ''}">${r.co.toFixed(0)}${r.coHit ? ' ✔' : ''}</td>
+            <td class="${r.h2Hit ? 'hit' : ''}">${r.h2.toFixed(0)}${r.h2Hit ? ' ✔' : ''}</td></tr>`;
+    }).join('');
+}
+
+// ================= 連動 / 人員 / 搶救資訊 =================
+function renderResponse() {
+    const rel = v => v == null ? '' : `+${Math.max(0, v - (alarmT ?? v))}s`;
+    const on = (id, tk, v) => { $(id).classList.toggle('on', v != null && simT >= v); $(tk).innerText = v != null && simT >= v ? rel(v) : ''; };
+    on('lkAlarm', 'tkAlarm', link.alarm);
+    on('lk119', 'tk119', link.n119);
+    $('lk119').classList.toggle('bad', alarmT != null && link.n119 == null);
+    if (alarmT != null && link.n119 == null) $('tk119').innerText = '待人工通報';
+    on('lkShutter', 'tkShutter', link.shutter);
+    on('lkVent', 'tkVent', link.vent);
+    on('lkConv', 'tkConv', link.conv);
+    on('lkChg', 'tkChg', link.chg);
+    on('lkPA', 'tkPA', link.pa);
+    const nSpr = CELLS.filter(id => heads[id].active).length;
+    $('lkSpr').classList.toggle('on', nSpr > 0);
+    $('tkSpr').innerText = nSpr + ' 個';
+
+    const safe = workers.filter(w => w.state === 'safe').length;
+    $('rollSummary').innerHTML = alarmT == null ? '<span class="ok-txt">● 正常作業中（8 人在場）</span>'
+        : safe === workers.length ? '<span class="ok-txt">✅ 全員已抵達集合點（8/8）</span>'
+            : `<span class="hit">已抵達集合點 ${safe}/8，尚有 ${8 - safe} 人未清點</span>`;
+    $('rollList').innerHTML = workers.map(w => {
+        const st = w.state === 'safe' ? `<span class="safe">✔ 集合點（經 ${w.exit}）</span>`
+            : w.state === 'evac' ? `<span class="warn-txt">撤離中 → ${w.exit}</span>`
+                : alarmT != null ? '<span class="miss">未撤離</span>' : '作業中';
+        return `<div><b>${w.id}</b> ${w.role}<br>${st}</div>`;
+    }).join('');
+
+    renderRescueCard();
+}
+
+let cardText = '';
+function renderRescueCard() {
+    const card = $('rescueCard');
+    if (alarmT == null) {
+        card.innerHTML = '<h4>🚒 搶救資訊卡</h4><div class="muted">發出火警後自動產生：起火位置、現場狀況、危險物品、未撤離人員與建議進入路線。</div>';
+        cardText = '';
+        return;
+    }
+    const [ox, oy] = fireCenter();
+    const loc = scn && scn.origin ? (scn.origin === 'CHG' ? '堆高機充電區（西南角）' : `${scn.origin[0]} 排第 ${scn.origin.slice(1)} 儲位`) : ZONE_NAME[alarmZone];
+    const maxT = Math.max(...CELLS.map(id => Math.max(...T[id])), T.CHG[0]);
+    const nSpr = CELLS.filter(id => heads[id].active).length;
+    const haz = HAZARDS.map(h => ({ ...h, dist: Math.round(Math.hypot(h.x - ox, h.y - oy) * M_PER_PX) })).sort((a, b) => a.dist - b.dist);
+    const missing = workers.filter(w => w.state !== 'safe');
+    const entry = EXITS.filter(e => e.id !== blockedExit).map(e => ({ e, d: Math.hypot(e.x - ox, e.y - oy) })).sort((a, b) => b.d - a.d)[0].e;
+    const elapsed = simT - alarmT;
+    card.innerHTML = `
+        <h4>🚒 搶救資訊卡（火警後 ${Math.floor(elapsed / 60)} 分 ${elapsed % 60} 秒）</h4>
+        <div class="row"><b>起火位置</b><span>${loc}</span></div>
+        <div class="row"><b>現場狀況</b><span>最高溫 ${maxT.toFixed(0)}°C・撒水頭動作 ${nSpr} 個・防火鐵捲門${link.shutter != null && simT >= link.shutter ? '已關閉' : '未關閉'}</span></div>
+        <div class="row"><b>危險物品</b><span>${haz.map(h => `<div class="haz ${h.dist < 25 ? 'near' : ''}"><b>${h.dist < 25 ? '⚠️ ' : ''}${h.name}</b>（${h.where}，${h.qty}，距起火點約 ${h.dist} m）<br><span class="muted">${h.note}</span></div>`).join('')}</span></div>
+        <div class="row"><b>人員</b><span>${missing.length ? `<span style="color:#d32f2f;font-weight:bold;">尚有 ${missing.length} 人未清點：</span>` + missing.map(w => `${w.id}（${w.role}，最後位置：${locName(w)}）`).join('；') : '✅ 8 人全數抵達集合點'}</span></div>
+        <div class="row"><b>建議進入</b><span>由 ${entry.id} 進入（距起火點最遠）${blockedExit ? `；${blockedExit} 鄰近火點，勿由此進入` : ''}</span></div>
+        <div class="row"><b>現場聯絡人</b><span>倉儲主管已指派到場協助（依 2024 年修正《消防法》應立即指派專人）</span></div>
+        <div class="muted">＊本示範倉庫的配置與存放物品均為虛構資料。</div>`;
+    cardText = [
+        `【搶救資訊卡】火警後 ${elapsed} 秒`,
+        `起火位置：${loc}`,
+        `現場狀況：最高溫 ${maxT.toFixed(0)}°C，撒水頭動作 ${nSpr} 個`,
+        '危險物品：' + haz.map(h => `${h.name}（${h.qty}，距約 ${h.dist} m）`).join('；'),
+        '未清點人員：' + (missing.length ? missing.map(w => `${w.id} ${locName(w)}`).join('；') : '無'),
+        `建議進入口：${entry.id}${blockedExit ? `（避開 ${blockedExit}）` : ''}`
+    ].join('\n');
+}
+$('btnCopyCard').addEventListener('click', async () => {
+    if (!cardText) { $('copyMsg').innerText = '尚未產生'; return; }
+    try { await navigator.clipboard.writeText(cardText); $('copyMsg').innerText = '已複製'; }
+    catch (e) { $('copyMsg').innerText = '瀏覽器不允許複製'; }
+});
+
+// ================= 主迴圈 =================
+function tick() {
+    simT++;
+    if (scn) {
+        scn.t++;
+        const sc = SCENARIOS[scn.key];
+        $('scnProgress').style.width = Math.min(100, scn.t / sc.duration * 100) + '%';
+        if (scn.t === sc.duration) finishScenario();
+    }
+    physicsStep();
+    const ev = evaluate();
+    handleDetection(ev);
+    stepWorkers();
+    renderMap();
+    renderPanel(ev);
+    renderDetail();
+    renderResponse();
+}
+
+function finishScenario() {
+    const sc = SCENARIOS[scn.key];
+    const alarmed = scn.firstAlarm != null;
+    const verdict = sc.fire ? (alarmed ? '正確偵測' : '漏報') : (alarmed ? '誤報' : '正確不報');
+    const cls = verdict === '漏報' ? 'hit' : verdict === '誤報' ? 'warn-txt' : 'ok-txt';
+    const loc = scn.origin ? scn.origin : sc.name.includes('柴油') ? 'B 排' : '全倉';
+    results.unshift({
+        name: sc.name, loc, setting: `${$('optCams').value} 台攝影機・${$('optSpr').value === 'fast' ? '快速' : '標準'}撒水`,
+        warn: scn.firstWarn, alarm: scn.firstAlarm, spr: CELLS.filter(id => heads[id].active).length, verdict, cls
+    });
+    const f = v => v == null ? '—' : v + 's';
+    $('resultBody').innerHTML = results.map(r => `<tr><td>${r.name}</td><td>${r.loc}</td><td>${r.setting}</td><td>${f(r.warn)}</td><td>${f(r.alarm)}</td><td>${r.spr}</td><td class="${r.cls}">${r.verdict}</td></tr>`).join('');
+    addLog(`情境結束：${sc.name} → ${verdict}（數值維持現狀，按「恢復正常」重置）`);
+}
+
+function startScenario(key) {
+    resetWarehouse();
+    let origin = null;
+    if (key === 'smolder') {
+        const v = $('optOrigin').value;
+        origin = v === 'random' ? CELLS[Math.floor(Math.random() * CELLS.length)] : v;
+    }
+    if (key === 'battery') origin = ['D4', 'D5', 'D6'][Math.floor(Math.random() * 3)];
+    if (key === 'charging') origin = 'CHG';
+    scn = { key, t: 0, origin, scale: 1, firstWarn: null, firstAlarm: null };
+    document.querySelectorAll('.scn').forEach(x => x.classList.toggle('running', x.dataset.key === key));
+    $('scnHint').innerText = '💡 ' + SCENARIOS[key].hint;
+    addLog(`啟動模擬：${SCENARIOS[key].name}${origin ? `（起火位置 ${origin}${covered.has(origin) ? '' : '，位於熱影像死角'}）` : ''}`);
+    if (origin) { selected = origin; }
+}
+
+// ================= 事件綁定 =================
+$('scnList').innerHTML = Object.entries(SCENARIOS).map(([k, s]) =>
+    `<button class="scn" data-key="${k}"><span class="tag ${s.fire ? '' : 'no'}">${s.fire ? '火災' : '非火災'}</span><b>${s.name}</b><span>${s.desc}</span></button>`).join('');
+document.querySelectorAll('.scn').forEach(b => b.addEventListener('click', () => startScenario(b.dataset.key)));
+$('optOrigin').innerHTML = '<option value="random">隨機</option>' + CELLS.map(id => `<option value="${id}">${id}</option>`).join('');
+$('btnResetWh').addEventListener('click', () => { resetWarehouse(); addLog('倉庫狀態已重置，恢復常態監測。'); tickRender(); });
+$('optCams').addEventListener('change', () => { updateCoverage(); tickRender(); });
+['viewLevel', 'layerCam', 'layerSpr', 'layerWk'].forEach(id => $(id).addEventListener('change', renderMap));
+
+$('btnAck').addEventListener('click', () => {
+    alarm = 'acked';
+    addLog('值班人員已確認火警，停止閃爍與音響。', 'ack');
+    if (link.n119 == null) { link.n119 = simT; addLog('值班人員以人工撥打 119 通報。', 'alert'); }
+    tickRender();
+});
+$('btnReset').addEventListener('click', () => { alarm = null; addLog('現場處置完成，警報已復歸。', 'ack'); tickRender(); });
+$('btnFalse').addEventListener('click', () => {
+    alarm = null; falseLatch = true;
+    addLog('已標記為誤報並復歸（請記錄原因，作為調整判定規則的依據）。', 'warn');
+    tickRender();
+});
+
+function tickRender() {
+    const ev = evaluate();
+    renderMap(); renderPanel(ev); renderDetail(); renderResponse();
+}
+
+let timer = null;
+function startTimer() {
+    if (timer) clearInterval(timer);
+    timer = setInterval(tick, 1000 / +$('speedSel').value);
+}
+$('speedSel').addEventListener('change', startTimer);
+
+// ================= 高天花板煙層模擬 =================
+const strat = { running: false, t: 0, det: {}, timer: null };
+const DETECTORS = [
+    { key: 'spot', name: '點型偵煙（天花板）', color: '#e94560' },
+    { key: 'beam', name: '光束型偵煙（0.6H）', color: '#f1c40f' },
+    { key: 'asd', name: '吸氣式（空氣採樣）', color: '#2ecc71' },
+    { key: 'thermal', name: '熱影像', color: '#4fc3f7' }
+];
+function stratParams() {
+    const H = +$('stH').value;
+    const dT = $('stSeason').value === 'summer' ? 20 : 3;
+    return { H, grad: dT / H, alpha: $('stGrowth').value === 'slow' ? 0.00293 : 0.0117, hidden: $('stHidden').value === '1' };
+}
+function stratState(p, t) {
+    const Q = p.alpha * t * t;
+    const Qc = 0.7 * Q;
+    const zmax = Q > 0 ? 5.54 * Math.pow(Qc, 0.25) * Math.pow(p.grad, -0.375) : 0;
+    return { Q, zmax };
+}
+function detectorFires(key, p, s) {
+    const qSpot = 5 * Math.pow(p.H / 6, 2);
+    if (key === 'spot') return s.zmax >= p.H && s.Q >= qSpot;
+    if (key === 'beam') return s.zmax >= 0.6 * p.H && s.Q >= qSpot * 0.5;
+    if (key === 'asd') return s.zmax >= 0.5 * p.H && s.Q >= 5;
+    if (key === 'thermal') return s.Q >= (p.hidden ? 80 : 15);
+}
+const DET_DELAY = { spot: 20, beam: 10, asd: 15, thermal: 3 };
+
+function drawStrat() {
+    const cv = $('stratCanvas'), c = cv.getContext('2d');
+    const W = cv.width, Hc = cv.height;
+    const p = stratParams(), s = stratState(p, strat.t);
+    const top = 40, floor = Hc - 40, left = 60, right = W - 40;
+    const yOf = z => floor - z / p.H * (floor - top);
+    c.clearRect(0, 0, W, Hc);
+    // 溫度梯度背景
+    const g = c.createLinearGradient(0, top, 0, floor);
+    g.addColorStop(0, p.grad * p.H > 10 ? 'rgba(233,69,96,0.35)' : 'rgba(79,195,247,0.12)');
+    g.addColorStop(1, 'rgba(79,195,247,0.08)');
+    c.fillStyle = g; c.fillRect(left, top, right - left, floor - top);
+    c.strokeStyle = '#5c6b99'; c.lineWidth = 3; c.strokeRect(left, top, right - left, floor - top);
+    c.fillStyle = '#a2a8d3'; c.font = '13px Microsoft JhengHei';
+    c.fillText(`${p.H} m`, 12, top + 5); c.fillText('0 m', 22, floor + 4);
+    c.fillText($('stSeason').value === 'summer' ? '☀️ 屋頂受熱：上方空氣較熱' : '❄️ 上下溫差小', left + 10, top + 18);
+    // 貨架
+    const rackH = Math.min(p.H - 1.5, 9);
+    [0.18, 0.62].forEach(fx => {
+        const x = left + fx * (right - left);
+        c.fillStyle = '#2a3a66';
+        c.fillRect(x, yOf(rackH), 140, floor - yOf(rackH));
+        c.strokeStyle = '#3d4f80'; c.lineWidth = 1;
+        for (let k = 1; k < 4; k++) { c.beginPath(); c.moveTo(x, yOf(rackH * k / 4)); c.lineTo(x + 140, yOf(rackH * k / 4)); c.stroke(); }
+    });
+    // 火源與煙羽
+    const fx = left + 0.45 * (right - left);
+    const ztop = Math.min(s.zmax, p.H);
+    if (strat.t > 0) {
+        c.font = `${16 + Math.min(20, s.Q / 10)}px sans-serif`;
+        c.fillText('🔥', fx - 12, floor - 4);
+        const grd = c.createLinearGradient(0, floor, 0, yOf(ztop));
+        grd.addColorStop(0, 'rgba(160,160,160,0.65)'); grd.addColorStop(1, 'rgba(160,160,160,0.15)');
+        c.fillStyle = grd;
+        c.beginPath(); c.moveTo(fx - 8, floor - 20);
+        c.lineTo(fx - 8 - ztop / p.H * 70, yOf(ztop)); c.lineTo(fx + 8 + ztop / p.H * 70, yOf(ztop)); c.lineTo(fx + 8, floor - 20);
+        c.closePath(); c.fill();
+        // 煙層
+        const thick = Math.min(0.35 * p.H, s.Q / 400 * p.H + 0.3);
+        c.fillStyle = 'rgba(150,150,150,0.45)';
+        const yTop = s.zmax >= p.H ? top : yOf(ztop + thick / 2);
+        c.fillRect(left + 2, yTop, right - left - 4, yOf(Math.max(0, ztop - thick)) - yTop);
+        if (s.zmax < p.H) { c.fillStyle = '#f1c40f'; c.font = '13px Microsoft JhengHei'; c.fillText(`煙層停滯於約 ${s.zmax.toFixed(1)} m（到不了天花板）`, fx + 90, yOf(ztop) - 8); }
+    }
+    // 偵測器
+    const lit = k => strat.det[k] != null && strat.t >= strat.det[k];
+    [0.2, 0.5, 0.8].forEach(fx2 => { c.fillStyle = lit('spot') ? '#e94560' : '#777'; c.beginPath(); c.arc(left + fx2 * (right - left), top + 8, 7, 0, 7); c.fill(); });
+    c.strokeStyle = lit('beam') ? '#f1c40f' : 'rgba(241,196,15,0.35)'; c.setLineDash([8, 6]); c.lineWidth = 2;
+    c.beginPath(); c.moveTo(left + 4, yOf(0.6 * p.H)); c.lineTo(right - 4, yOf(0.6 * p.H)); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = lit('asd') ? '#2ecc71' : 'rgba(46,204,113,0.4)'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(right - 20, top + 4); c.lineTo(right - 20, yOf(0.5 * p.H)); c.lineTo(right - 120, yOf(0.5 * p.H)); c.stroke();
+    c.fillStyle = lit('thermal') ? '#4fc3f7' : '#777';
+    c.fillRect(left + 4, yOf(p.H - 1) - 6, 18, 12);
+    c.fillStyle = '#a2a8d3'; c.font = '11px Microsoft JhengHei';
+    c.fillText('熱影像', left + 26, yOf(p.H - 1) + 4);
+    c.fillText('光束型', left + 8, yOf(0.6 * p.H) - 6);
+    c.fillText('吸氣式採樣管', right - 120, yOf(0.5 * p.H) - 6);
+    c.fillText('點型偵煙', left + 0.5 * (right - left) + 12, top + 12);
+    $('stNow').innerText = strat.t ? `t=${strat.t}s　Q=${s.Q.toFixed(0)} kW　Z=${s.zmax.toFixed(1)} m` : '';
+}
+
+function renderDetTable() {
+    const p = stratParams();
+    const maxT = 600;
+    $('detTable').innerHTML = DETECTORS.map(d => {
+        const t = strat.det[d.key];
+        const shown = t != null && strat.t >= t;
+        const q = shown ? stratState(p, t - DET_DELAY[d.key]).Q : null;
+        return `<tr class="det-row"><td style="color:${d.color}">${d.name}</td>
+            <td>${shown ? `<b>${t} s</b><br><span class="source">${q.toFixed(0)} kW</span>` : (strat.t >= maxT ? '<span class="hit">未動作</span>' : '—')}</td>
+            <td class="bar-cell">${shown ? `<div class="det-bar" style="width:${t / maxT * 100}%; background:${d.color}"></div>` : ''}</td></tr>`;
+    }).join('');
+}
+
+function runStrat() {
+    const p = stratParams();
+    strat.det = {};
+    for (let t = 1; t <= 600; t++) {
+        const s = stratState(p, t);
+        DETECTORS.forEach(d => { if (strat.det[d.key] == null && detectorFires(d.key, p, s)) strat.det[d.key] = t + DET_DELAY[d.key]; });
+    }
+    strat.t = 0;
+    if (strat.timer) clearInterval(strat.timer);
+    strat.timer = setInterval(() => {
+        strat.t += 5;
+        drawStrat(); renderDetTable();
+        if (strat.t >= 600) { clearInterval(strat.timer); strat.timer = null; }
+    }, 50);
+}
+$('btnStrat').addEventListener('click', runStrat);
+['stH', 'stSeason', 'stGrowth', 'stHidden'].forEach(id => $(id).addEventListener('change', () => {
+    if (strat.timer) clearInterval(strat.timer);
+    strat.timer = null; strat.t = 0; strat.det = {}; drawStrat(); renderDetTable();
+}));
+
+// ================= 啟動 =================
+setInterval(() => $('clock').innerText = nowStr(), 1000);
+$('clock').innerText = nowStr();
+updateCoverage();
+buildMap();
+resetWarehouse();
+addLog('系統啟動：熱影像攝影機、分區氣體偵測器、撒水監測連線正常。');
+tickRender();
+startTimer();
+drawStrat();
+renderDetTable();
+</script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+<title>人群模擬怎麼玩 | simulate2 操作說明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chiron+GoRound+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+  /* Layout: 一欄的「圖畫書」——每一步一張大圖＋一兩句話，手機上圖在上、字在下 */
+  :root {
+    --bg: #f3f6fb;
+    --paper: #ffffff;
+    --ink: #172036;
+    --soft: #5b6782;
+    --line: #d5dceb;
+    --stage: #e8eef8;
+    --accent: #0e8fb3;
+    --hot: #d93a3a;
+    --tF: #1a9fd0;   /* 場地 */
+    --tL: #2f9e44;   /* 下層 */
+    --tM: #d9a400;   /* 中層 */
+    --tU: #e04848;   /* 上層 */
+    --losA: #22c55e; --losC: #eab308; --losD: #f97316; --losE: #ef4444; --losF: #9b4de0;
+    --font-display: "Chiron GoRound TC", "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    --font-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1424; --paper: #152036; --ink: #eaf0fb; --soft: #9aa8c4; --line: #2a3754; --stage: #0f1a2e;
+      --accent: #38c6ea; --hot: #ff6b6b;
+      --tF: #4fc3f7; --tL: #5ccf6e; --tM: #ffc94a; --tU: #ff6b6b;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1424; --paper: #152036; --ink: #eaf0fb; --soft: #9aa8c4; --line: #2a3754; --stage: #0f1a2e;
+    --accent: #38c6ea; --hot: #ff6b6b;
+    --tF: #4fc3f7; --tL: #5ccf6e; --tM: #ffc94a; --tU: #ff6b6b;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); font-size: 17px; line-height: 1.6;
+    padding-inline: 16px; padding-block: 28px 56px;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; display: grid; gap: 28px; }
+
+  h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(2rem, 6vw, 3.2rem); font-weight: 900; line-height: 1.15; }
+  h2 { font-size: clamp(1.35rem, 3.6vw, 1.8rem); font-weight: 700; line-height: 1.25; }
+  p { margin: 0; }
+  .lede { color: var(--soft); font-size: 1.05rem; max-width: 34em; }
+  .tag { font-family: var(--font-display); font-weight: 700; font-size: 0.85rem; letter-spacing: 0.08em; color: var(--accent); }
+
+  /* 開場：一顆點 = 25 人 */
+  .hero { display: grid; grid-template-columns: 1fr 1.1fr; gap: 24px; align-items: center; }
+  .hero > div { min-width: 0; display: grid; gap: 12px; }
+
+  .step {
+    display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: center;
+    background: var(--paper); border-radius: 18px; padding: 22px;
+  }
+  .step .txt { min-width: 0; display: grid; gap: 10px; }
+  .step .num {
+    font-family: var(--font-display); font-weight: 900; font-size: 1rem;
+    width: 2.2em; height: 2.2em; border-radius: 50%; display: grid; place-items: center;
+    background: var(--accent); color: var(--paper);
+  }
+  .step p { font-size: 1.12rem; }
+  .step .small { font-size: 0.92rem; color: var(--soft); }
+  .pic { background: var(--stage); border-radius: 14px; padding: 10px; min-width: 0; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: var(--font-body); }
+
+  kbd {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.95em;
+    border: 2px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 0 8px; white-space: nowrap;
+  }
+  mark { background: none; color: var(--hot); font-weight: 700; }
+
+  /* 三個模式 */
+  .modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .mode { background: var(--paper); border-radius: 16px; padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .mode .big { font-size: 2.6rem; line-height: 1; }
+  .mode b { font-family: var(--font-display); font-size: 1.15rem; }
+  .mode span { color: var(--soft); font-size: 0.95rem; }
+
+  /* 擁擠程度 */
+  .los { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .los figure { margin: 0; background: var(--paper); border-radius: 14px; padding: 12px; display: grid; gap: 6px; justify-items: center; text-align: center; min-width: 0; }
+  .los figcaption { font-size: 0.95rem; }
+  .los figcaption b { font-family: var(--font-display); }
+  .chip { display: inline-block; font-family: var(--font-display); font-weight: 900; color: #fff; border-radius: 6px; padding: 0 10px; }
+
+  /* 實驗 */
+  .exp { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .card { background: var(--paper); border-radius: 16px; padding: 16px 18px; display: grid; gap: 8px; min-width: 0; }
+  .card .q { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+  .card .how { color: var(--soft); font-size: 0.95rem; }
+  .card .ans { font-size: 1.05rem; }
+  .meter { display: grid; grid-template-columns: 4.5em 1fr 3.4em; gap: 6px 8px; align-items: center; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+  .meter .bar { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+  .meter .bar i { display: block; height: 100%; border-radius: 6px; }
+
+  .note { border-top: 2px dashed var(--line); padding-top: 18px; color: var(--soft); font-size: 0.95rem; display: grid; gap: 6px; }
+
+  @media (max-width: 720px) {
+    .hero, .step { grid-template-columns: 1fr; }
+    .step .pic { order: -1; }
+    .modes, .los, .exp { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .walk { animation: walk 3.2s ease-in-out infinite; }
+    @keyframes walk { 0%, 15% { transform: translate(0, 0); } 85%, 100% { transform: translate(var(--dx), var(--dy)); } }
+    .blink { animation: blink 1.1s steps(2, start) infinite; }
+    @keyframes blink { to { opacity: 0.35; } }
+  }
+</style>
+</head>
+<body>
+<div class="pbar" style="margin:-36px -24px 20px;">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g3">臺北大巨蛋公安</span>
+    <span class="pb-sep">›</span><span class="pb-page">大規模集客動態模擬・使用說明</span>
+    <span class="pb-right"><a class="pb-btn ghost" href="simulate2.html">▶ 開始模擬</a></span>
+</div>
+
+
+
+<div class="wrap">
+
+  <!-- 開場 -->
+  <section class="hero">
+    <div>
+      <span class="tag">simulate2.html 操作說明</span>
+      <h1>5 萬人要一起離開，會塞在哪裡？</h1>
+      <p class="lede">這個頁面把觀眾畫成一顆顆小點，讓你看人群怎麼走向出口、在哪裡擠成一團。</p>
+    </div>
+    <div class="pic" aria-label="一顆點代表 25 個人">
+      <svg viewBox="0 0 420 220" role="img">
+        <title>一顆點等於 25 個人</title>
+        <circle cx="80" cy="110" r="46" fill="var(--tL)"/>
+        <text x="80" y="190" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">一顆點</text>
+        <text x="160" y="124" text-anchor="middle" font-size="44" font-weight="900" fill="var(--soft)">=</text>
+        <g id="people"></g>
+        <text x="315" y="200" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">25 個人</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 1 選模式 -->
+  <section class="step" style="grid-template-columns: 1fr;">
+    <div class="txt">
+      <span class="num">1</span>
+      <h2>先在右邊選一個模式</h2>
+    </div>
+    <div class="modes">
+      <div class="mode"><div class="big">🚨</div><b>緊急疏散</b><span>發生火災，全場往外跑</span></div>
+      <div class="mode"><div class="big">🚇</div><b>散場＋捷運</b><span>表演結束，大家去搭捷運</span></div>
+      <div class="mode"><div class="big">📥</div><b>進場</b><span>觀眾排隊過安檢、走到座位</span></div>
+    </div>
+  </section>
+
+  <!-- 2 按開始 -->
+  <section class="step">
+    <div class="pic">
+      <svg viewBox="0 0 420 300" role="img">
+        <title>小點從看台走向出口</title>
+        <ellipse cx="210" cy="150" rx="190" ry="130" fill="none" stroke="var(--tU)" stroke-width="22" opacity="0.25"/>
+        <ellipse cx="210" cy="150" rx="150" ry="100" fill="none" stroke="var(--tM)" stroke-width="20" opacity="0.25"/>
+        <ellipse cx="210" cy="150" rx="112" ry="74" fill="none" stroke="var(--tL)" stroke-width="20" opacity="0.25"/>
+        <ellipse cx="210" cy="150" rx="78" ry="50" fill="var(--tF)" opacity="0.18"/>
+        <rect x="397" y="138" width="22" height="22" rx="4" fill="var(--tU)" stroke="var(--paper)" stroke-width="2"/>
+        <rect x="199" y="2" width="22" height="22" rx="4" fill="var(--tU)" stroke="var(--paper)" stroke-width="2"/>
+        <g class="walk" style="--dx: 34px; --dy: 4px">
+          <circle cx="352" cy="120" r="7" fill="var(--tU)"/><circle cx="360" cy="176" r="7" fill="var(--tU)"/><circle cx="340" cy="150" r="7" fill="var(--tU)"/>
+        </g>
+        <g class="walk" style="--dx: 0px; --dy: -22px">
+          <circle cx="180" cy="36" r="7" fill="var(--tU)"/><circle cx="240" cy="38" r="7" fill="var(--tU)"/><circle cx="210" cy="44" r="7" fill="var(--tU)"/>
+        </g>
+        <g class="walk" style="--dx: 20px; --dy: 0px">
+          <circle cx="300" cy="140" r="6" fill="var(--tM)"/><circle cx="296" cy="164" r="6" fill="var(--tM)"/>
+          <circle cx="262" cy="150" r="6" fill="var(--tL)"/><circle cx="160" cy="150" r="6" fill="var(--tF)"/><circle cx="230" cy="130" r="6" fill="var(--tF)"/>
+        </g>
+        <path d="M 330 230 C 360 220, 390 200, 405 172" stroke="var(--ink)" stroke-width="2.5" fill="none" stroke-dasharray="6 6"/>
+        <text x="250" y="262" font-size="18" fill="var(--ink)" font-weight="700">方塊 = 出口</text>
+      </svg>
+    </div>
+    <div class="txt">
+      <span class="num">2</span>
+      <h2>按 <kbd>▶ 開始</kbd>，看大家往出口走</h2>
+      <p>四種顏色是四層看台。每個點都會找自己那一區的出口。</p>
+      <p class="small">太慢就把「模擬速度」調到 10x 或 20x。<br>想重來就按 <kbd>↺ 重置</kbd>。</p>
+    </div>
+  </section>
+
+  <!-- 3 封鎖出口 -->
+  <section class="step">
+    <div class="pic">
+      <svg viewBox="0 0 420 260" role="img">
+        <title>點一下出口，出口被封鎖，人改走旁邊</title>
+        <path d="M 40 210 Q 210 40 380 210" fill="none" stroke="var(--tU)" stroke-width="40" opacity="0.18" stroke-linecap="round"/>
+        <rect x="190" y="104" width="40" height="40" rx="6" fill="var(--ink)"/>
+        <text x="210" y="134" text-anchor="middle" font-size="30" font-weight="900" fill="var(--hot)">✕</text>
+        <rect x="40" y="186" width="32" height="32" rx="6" fill="var(--tU)"/>
+        <rect x="348" y="186" width="32" height="32" rx="6" fill="var(--tU)"/>
+        <g fill="var(--tU)">
+          <circle cx="170" cy="120" r="7"/><circle cx="252" cy="122" r="7"/><circle cx="160" cy="146" r="7"/><circle cx="262" cy="148" r="7"/>
+        </g>
+        <path d="M 160 160 Q 100 150 72 184" stroke="var(--ink)" stroke-width="3" fill="none" stroke-dasharray="7 6"/>
+        <path d="M 262 160 Q 320 150 348 184" stroke="var(--ink)" stroke-width="3" fill="none" stroke-dasharray="7 6"/>
+        <text x="210" y="80" text-anchor="middle" font-size="18" font-weight="700" fill="var(--ink)">被火擋住了！</text>
+        <text x="210" y="246" text-anchor="middle" font-size="16" fill="var(--soft)">大家改走左右兩邊的門</text>
+      </svg>
+    </div>
+    <div class="txt">
+      <span class="num">3</span>
+      <h2>點一下出口方塊，就把門關起來</h2>
+      <p>方塊變黑、出現 <mark>✕</mark>，代表被火擋住。原本走這裡的人會繞去旁邊的門。</p>
+      <p class="small">再點一次就打開。</p>
+    </div>
+  </section>
+
+  <!-- 4 看顏色 -->
+  <section class="step" style="grid-template-columns: 1fr;">
+    <div class="txt">
+      <span class="num">4</span>
+      <h2>地上的顏色越紅，代表越擠</h2>
+      <p>每 1 平方公尺（一張雙人床那麼小）站幾個人？</p>
+    </div>
+    <div class="los">
+      <figure>
+        <svg viewBox="0 0 120 120" role="img"><title>1 平方公尺 1 個人</title>
+          <rect x="10" y="10" width="100" height="100" rx="8" fill="none" stroke="var(--losA)" stroke-width="4"/>
+          <circle cx="60" cy="60" r="12" fill="var(--ink)"/>
+        </svg>
+        <figcaption><span class="chip" style="background:var(--losA)">A–C</span><br><b>很鬆</b>，可以自由走</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 120 120" role="img"><title>1 平方公尺 4 個人</title>
+          <rect x="10" y="10" width="100" height="100" rx="8" fill="none" stroke="var(--losE)" stroke-width="4"/>
+          <circle cx="38" cy="38" r="12" fill="var(--ink)"/><circle cx="82" cy="38" r="12" fill="var(--ink)"/>
+          <circle cx="38" cy="82" r="12" fill="var(--ink)"/><circle cx="82" cy="82" r="12" fill="var(--ink)"/>
+        </svg>
+        <figcaption><span class="chip" style="background:var(--losE)">D–E</span><br><b>很擠</b>，肩膀碰肩膀</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 120 120" role="img"><title>1 平方公尺 6 個人以上</title>
+          <rect class="blink" x="10" y="10" width="100" height="100" rx="8" fill="var(--losF)" opacity="0.25"/>
+          <rect x="10" y="10" width="100" height="100" rx="8" fill="none" stroke="var(--losF)" stroke-width="4"/>
+          <circle cx="32" cy="34" r="12" fill="var(--ink)"/><circle cx="60" cy="30" r="12" fill="var(--ink)"/><circle cx="88" cy="34" r="12" fill="var(--ink)"/>
+          <circle cx="32" cy="84" r="12" fill="var(--ink)"/><circle cx="60" cy="88" r="12" fill="var(--ink)"/><circle cx="88" cy="84" r="12" fill="var(--ink)"/>
+          <circle cx="60" cy="60" r="12" fill="var(--ink)"/>
+        </svg>
+        <figcaption><span class="chip" style="background:var(--losF)">F</span><br><b>危險！</b>會被擠傷，畫面會閃</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 5 看曲線 -->
+  <section class="step">
+    <div class="pic">
+      <svg viewBox="0 0 420 240" role="img">
+        <title>已到達戶外的人數曲線，與 8 分鐘、15 分鐘目標線</title>
+        <line x1="40" y1="200" x2="400" y2="200" stroke="var(--soft)" stroke-width="2"/>
+        <line x1="40" y1="30" x2="40" y2="200" stroke="var(--soft)" stroke-width="2"/>
+        <line x1="190" y1="30" x2="190" y2="200" stroke="var(--tM)" stroke-width="2.5" stroke-dasharray="6 5"/>
+        <line x1="320" y1="30" x2="320" y2="200" stroke="var(--losD)" stroke-width="2.5" stroke-dasharray="6 5"/>
+        <text x="190" y="222" text-anchor="middle" font-size="16" font-weight="700" fill="var(--tM)">8 分鐘</text>
+        <text x="320" y="222" text-anchor="middle" font-size="16" font-weight="700" fill="var(--losD)">15 分鐘</text>
+        <path d="M 40 198 C 90 196, 110 180, 150 140 S 230 50, 280 42 L 400 40" fill="none" stroke="var(--tL)" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="280" cy="42" r="8" fill="var(--tL)"/>
+        <text x="270" y="30" text-anchor="end" font-size="16" font-weight="700" fill="var(--ink)">全部出去了！</text>
+        <text x="48" y="24" font-size="14" fill="var(--soft)">已到達戶外的人</text>
+      </svg>
+    </div>
+    <div class="txt">
+      <span class="num">5</span>
+      <h2>看下面的線，什麼時候全部出去？</h2>
+      <p>綠線碰到頂端，代表大家都出來了。</p>
+      <p>目標：<b>8 分鐘</b>離開座位、<b>15 分鐘</b>走到戶外。</p>
+    </div>
+  </section>
+
+  <!-- 實驗 -->
+  <section style="display:grid; gap:14px;">
+    <span class="tag">動手玩</span>
+    <h2>試試這 4 個開關，猜猜會怎樣？</h2>
+    <p class="lede">先跑一次「什麼都不改」，再一次只改一個開關。結果會自動記在下方的「情境比較紀錄」。</p>
+    <div class="exp">
+      <div class="card">
+        <div class="q">📢 分批叫大家走，會比較慢嗎？</div>
+        <div class="how">撤離方式 → 選「分區分批廣播」</div>
+        <div class="ans">時間<b>差不多</b>，但<mark>危險的紫色擠壓不見了</mark>。</div>
+        <div class="meter">
+          <span>全部一起</span><div class="bar"><i style="width:68%; background:var(--losF)"></i></div><span>273 秒</span>
+          <span>分批</span><div class="bar"><i style="width:1%; background:var(--losF)"></i></div><span>0 秒</span>
+        </div>
+        <div class="how">↑ 擠到危險程度的時間</div>
+      </div>
+      <div class="card">
+        <div class="q">🏃 大家用衝的，會比較快嗎？</div>
+        <div class="how">勾選「恐慌推擠（越急越慢）」</div>
+        <div class="ans"><mark>反而更慢！</mark>門口擠成一團，卡住了。</div>
+        <div class="meter">
+          <span>冷靜走</span><div class="bar"><i style="width:61%; background:var(--tL)"></i></div><span>11 分</span>
+          <span>用衝的</span><div class="bar"><i style="width:100%; background:var(--hot)"></i></div><span>18 分</span>
+        </div>
+        <div class="how">↑ 全部到達戶外的時間</div>
+      </div>
+      <div class="card">
+        <div class="q">🚪 把門變寬，會快多少？</div>
+        <div class="how">「出口寬度」拉到 1.5x</div>
+        <div class="ans">快了將近 <b>2.5 分鐘</b>。</div>
+        <div class="meter">
+          <span>原本</span><div class="bar"><i style="width:74%; background:var(--tL)"></i></div><span>11 分</span>
+          <span>寬 1.5 倍</span><div class="bar"><i style="width:57%; background:var(--tL)"></i></div><span>8.6 分</span>
+        </div>
+        <div class="how">↑ 全部到達戶外的時間</div>
+      </div>
+      <div class="card">
+        <div class="q">🔥 一個門被火擋住呢？</div>
+        <div class="how">點一下最外圈（紅色）的一個出口</div>
+        <div class="ans">超過 <mark>15 分鐘</mark>目標了。所以場館要有<b>很多個</b>出口。</div>
+        <div class="meter">
+          <span>都開著</span><div class="bar"><i style="width:61%; background:var(--tL)"></i></div><span>11 分</span>
+          <span>關一個</span><div class="bar"><i style="width:84%; background:var(--hot)"></i></div><span>15.2 分</span>
+        </div>
+        <div class="how">↑ 全部到達戶外的時間</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 另外兩個模式 -->
+  <section class="step" style="grid-template-columns: 1fr;">
+    <div class="txt">
+      <h2>另外兩個模式也可以玩</h2>
+    </div>
+    <div class="exp">
+      <div class="card">
+        <div class="q">🚇 散場＋捷運</div>
+        <div class="ans">大家走出場館後，還要排隊進捷運站。看左下角的<mark>紅色長條</mark>：站外排了多少人？</div>
+        <div class="how">試試把「捷運站進站容量」調大或調小。</div>
+      </div>
+      <div class="card">
+        <div class="q">📥 進場</div>
+        <div class="ans">觀眾在四個安檢口排隊。<b>安檢通道越少，隊伍越長</b>。</div>
+        <div class="how">速度建議用 60x，不然要等很久。</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="note">
+    <p>💡 每一次跑完，結果都會記在「情境比較紀錄」表，可以按「匯出 CSV」帶走。</p>
+    <p>⚠️ 這是教學用的模擬：場館形狀、人數分配都是簡化的，不是大巨蛋真正的設計，不能拿來判斷真實場館安不安全。</p>
+  </div>
+</div>
+
+<script>
+  // 畫 25 個小人（5 × 5）
+  (function () {
+    const g = document.getElementById('people');
+    const NS = 'http://www.w3.org/2000/svg';
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+      const x = 240 + c * 30, y = 30 + r * 30;
+      const head = document.createElementNS(NS, 'circle');
+      head.setAttribute('cx', x); head.setAttribute('cy', y + 6); head.setAttribute('r', 6);
+      head.setAttribute('fill', 'var(--tL)');
+      const body = document.createElementNS(NS, 'rect');
+      body.setAttribute('x', x - 6); body.setAttribute('y', y + 13); body.setAttribute('width', 12); body.setAttribute('height', 11); body.setAttribute('rx', 4);
+      body.setAttribute('fill', 'var(--tL)');
+      g.appendChild(head); g.appendChild(body);
+    }
+  })();
+</script>
+
+</body>
+</html>

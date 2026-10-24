@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../platform.css?v=3">
+    <title>看圖找危害</title>
+    <script src="https://use.fontawesome.com/releases/v5.8.2/js/all.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/ui.css">
+    <link rel="stylesheet" href="css/board.css">
+</head>
+<body>
+<div class="pbar">
+    <a class="pb-home" href="../index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g1">教育互動推廣</span>
+    <span class="pb-sep">›</span><span class="pb-page">看圖找危害</span>
+    <span class="pb-right"><a class="pb-btn" href="lottery_guide.html" target="_blank" rel="noopener">📖 使用說明</a></span>
+</div>
+    <!-- 上方功能列 -->
+    <div class="bar top" id="topBar">
+        <nav id="nav">
+            <button type="button" id="keyHome" title="回轉盤"><i class="fas fa-home"></i><span>HOME</span></button>
+            <button type="button" id="keySave" title="下載圖檔"><i class="fas fa-camera"></i><span>SAVE</span></button>
+            <button type="button" id="keyClear" title="清除全部筆畫"><i class="fas fa-trash-alt"></i><span>CLEAR ALL</span></button>
+            <button type="button" id="keyUndo" title="復原 (Ctrl+Z)"><i class="fas fa-undo-alt"></i><span>UNDO</span></button>
+            <button type="button" id="keyRedo" title="重做 (Ctrl+Y)"><i class="fas fa-redo-alt"></i><span>REDO</span></button>
+            <button type="button" id="keyAnswer" title="逐一看答案"><i class="fas fa-lightbulb"></i><span id="answerLabel">ANSWER</span></button>
+            <button type="button" id="keyFull" title="全螢幕（F）"><i class="fas fa-expand"></i><span>FULL</span></button>
+        </nav>
+        <!-- 作答資訊 -->
+        <div class="hud" id="hud">
+            <span class="hud-topic" id="hudTopic"></span>
+            <span class="hud-team" id="hudTeam" hidden></span>
+            <span class="hud-timer" id="hudTimer" hidden>00:00</span>
+            <span class="hud-found" id="hudFoundBox">找到 <b id="hudFound">0</b> / <b id="hudTotal">0</b></span>
+            <button type="button" class="btn small" id="btnFinish" hidden>結束作答</button>
+        </div>
+        <button type="button" class="toggle" id="toggleTop" aria-controls="nav" aria-expanded="true">∧</button>
+    </div>
+
+    <!-- 圖片與畫布：題目圖、答案圖用 img，學生筆畫在 canvas，判定與答案標記在 svg -->
+    <main class="stage" id="stage">
+        <div class="board" id="board">
+            <img id="imgQ" alt="">
+            <img id="imgA" alt="" class="answer">
+            <canvas id="canvas"></canvas>
+            <svg id="marks" viewBox="0 0 960 720" aria-hidden="true"></svg>
+            <div class="cover" id="cover" hidden>
+                <button type="button" class="btn primary big" id="btnStart">▶ 開始作答</button>
+                <p id="coverText"></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 逐一揭曉答案 -->
+    <section class="reveal" id="reveal" hidden aria-live="polite">
+        <div class="rv-head">
+            <span class="rv-idx" id="rvIdx">1 / 6</span>
+            <span class="rv-status" id="rvStatus"></span>
+        </div>
+        <h3 id="rvTitle"></h3>
+        <p id="rvDesc"></p>
+        <p class="rv-law" id="rvLaw"></p>
+        <p class="rv-link" id="rvLink" hidden>🥽 到 <a href="../simulate0.html" target="_blank" rel="noopener">VR 公安導覽</a> 的「公安檢查」模式，可以在 3D 場景裡找到類似缺失。</p>
+        <div class="rv-nav">
+            <button type="button" class="btn" id="rvPrev">◀ 上一處</button>
+            <button type="button" class="btn" id="rvAll">全部顯示</button>
+            <button type="button" class="btn" id="rvOrig" hidden>原始答案圖</button>
+            <button type="button" class="btn primary" id="rvNext">下一處 ▶</button>
+        </div>
+    </section>
+
+    <!-- 下方工具列 -->
+    <div class="bar bottom" id="bottomBar">
+        <button type="button" class="toggle" id="toggleBottom" aria-controls="itemBox" aria-expanded="true">∨</button>
+        <div id="itemBox">
+            <div class="tools">
+                <button type="button" id="toolPen" class="tool on" title="畫筆"><i class="fas fa-paint-brush"></i></button>
+                <button type="button" id="toolEraser" class="tool" title="橡皮擦（只擦筆畫）"><i class="fas fa-eraser"></i></button>
+                <label>SIZE: <input type="number" id="penSize" min="1" max="100" value="10" inputmode="numeric"> PX</label>
+            </div>
+            <div class="colors" id="colors"><span class="colorLabel">COLOR:</span></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <div class="modal" id="resultModal" hidden>
+        <div class="card" role="dialog" aria-modal="true" aria-labelledby="rmTitle">
+            <h2 id="rmTitle">時間到！</h2>
+            <p id="rmText"></p>
+            <div class="actions">
+                <button type="button" class="btn primary" id="rmReveal">逐一看答案</button>
+                <a class="btn" href="lottery.html">回轉盤</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/topics.js"></script>
+    <script src="js/hazards.js"></script>
+    <script src="js/hazards-public.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/board.js"></script>
+</body>
+</html>

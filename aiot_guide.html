@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+<title>AIoT 消防模擬使用說明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<style>
+/* Layout: one narrow column of big picture cards, like a safety-instruction placard read top to bottom */
+:root {
+  --bg: #eef2f0;
+  --card: #ffffff;
+  --ink: #18231f;
+  --muted: #5a6964;
+  --line: #d3ddd9;
+  --exit: #1e8449;      /* 出口標示綠 */
+  --exit-ink: #ffffff;
+  --warn: #f2b705;      /* 公安黃 */
+  --warn-ink: #1d1a0a;
+  --fire: #d9432b;
+  --smoke: #4a4f55;
+  --screen: #1b2735;
+  --screen-ink: #e8eef2;
+  --f-display: "Huninn", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --f-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+    --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+  --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 22px; }
+
+header { display: grid; gap: 10px; }
+.sign { display: inline-flex; align-items: center; gap: 10px; background: var(--exit); color: var(--exit-ink); font-family: var(--f-display); font-size: 15px; padding: 6px 14px; border-radius: 4px; width: fit-content; letter-spacing: .08em; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(32px, 7vw, 48px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); font-size: 18px; }
+.lead a { color: var(--exit); font-weight: 700; }
+
+section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--f-display); font-weight: 400; font-size: 28px; margin: 0; display: flex; align-items: center; gap: 12px; text-wrap: balance; }
+.step { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--warn); color: var(--warn-ink); display: grid; place-items: center; font-family: var(--f-body); font-weight: 900; font-size: 20px; }
+p { margin: 0; }
+.say { font-size: 19px; }
+.small { font-size: 14px; color: var(--muted); }
+
+svg { display: block; width: 100%; height: auto; max-width: 100%; }
+svg text { font-family: var(--f-body); }
+
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 12px 6px; border-radius: 10px; background: var(--bg); min-width: 0; }
+.tile b { font-family: var(--f-display); font-weight: 400; font-size: 21px; }
+.tile span { font-size: 14px; color: var(--muted); line-height: 1.4; }
+.tile svg { width: 100%; max-width: 140px; }
+
+.keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.keycol { display: grid; gap: 10px; justify-items: center; text-align: center; min-width: 0; }
+.keycol h3 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 20px; }
+.kbd-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+kbd { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 8px; border: 2px solid var(--ink); border-bottom-width: 5px; border-radius: 8px; font-family: var(--f-body); font-weight: 900; font-size: 18px; background: var(--card); color: var(--ink); }
+kbd.hot { background: var(--warn); color: var(--warn-ink); border-color: var(--warn-ink); }
+.legend { display: grid; gap: 4px; font-size: 15px; }
+
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rule { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px; border-radius: 10px; background: var(--bg); }
+.rule b { display: block; font-size: 17px; }
+.rule span { font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+.look { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 2px dashed var(--warn); font-weight: 700; font-size: 16px; }
+
+.flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; text-align: center; }
+.flow div { display: grid; gap: 4px; justify-items: center; }
+.flow span { font-size: 15px; }
+
+footer { font-size: 13px; color: var(--muted); text-align: center; }
+
+@media (max-width: 560px) {
+  .rules, .keys { grid-template-columns: 1fr; }
+  .tile b { font-size: 18px; }
+  .tile span { font-size: 12.5px; }
+  h2 { font-size: 24px; }
+}
+</style>
+<style>
+.flow5 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; text-align: center; align-items: stretch; }
+.flow5 div { display: grid; gap: 4px; justify-items: center; align-content: start; padding: 10px 4px; background: var(--bg); border-radius: 10px; min-width: 0; }
+.flow5 .em { font-size: 34px; line-height: 1.1; }
+.flow5 b { font-family: var(--f-display); font-weight: 400; font-size: 17px; }
+.flow5 span { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.verdict { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.verdict div { padding: 12px; border-radius: 10px; background: var(--bg); display: grid; gap: 2px; }
+.verdict b { font-size: 18px; }
+.verdict span { font-size: 14px; color: var(--muted); }
+.v-ok b { color: var(--exit); }
+.v-bad b { color: var(--fire); }
+table.scn { width: 100%; border-collapse: collapse; font-size: 15px; }
+table.scn th, table.scn td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.scn th { font-size: 13px; color: var(--muted); font-weight: 700; }
+.pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.pill.fire { background: var(--fire); color: #fff; }
+.pill.fake { background: var(--line); color: var(--ink); }
+.scroll { overflow-x: auto; }
+@media (max-width: 560px) { .flow5 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .verdict { grid-template-columns: 1fr; } }
+</style>
+
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g2">AIoT 消防偵測</span>
+    <span class="pb-sep">›</span><span class="pb-page">AIoT 消防安全模擬系統・使用說明</span>
+    <span class="pb-right"><a class="pb-btn ghost" href="aiot.html">▶ 開始模擬</a></span>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="sign">🔥 使用說明</div>
+  <h1>AIoT 消防模擬，這樣玩</h1>
+  <p class="lead">不用接任何硬體，拉拉滑桿、播放火災情境，看偵測器什麼時候響、會不會誤報。開啟：<a href="aiot.html">aiot.html</a></p>
+</header>
+
+<!-- 1 -->
+<section>
+  <h2><span class="step">1</span>它在模擬什麼</h2>
+  <div class="flow5">
+    <div><span class="em">🌡️</span><b>感測器</b><span>量溫度、煙、CO</span></div>
+    <div><span class="em">🔧</span><b>Arduino</b><span>把數字送出去</span></div>
+    <div><span class="em">🧩</span><b>Node-RED</b><span>判斷有沒有火</span></div>
+    <div><span class="em">☁️</span><b>Firebase</b><span>存到雲端</span></div>
+    <div><span class="em">🔔</span><b>警報</b><span>蜂鳴器＋紅燈</span></div>
+  </div>
+  <p class="small">網頁中間的「🔁 資料流動畫」會一筆一筆跑給你看：綠點＝正常，紅點＝這筆判定是火警。</p>
+</section>
+
+<!-- 2 -->
+<section>
+  <h2><span class="step">2</span>先認識畫面</h2>
+  <svg viewBox="0 0 640 380" role="img" aria-label="畫面配置：左邊儀表板，右邊控制台、判定設定、測試紀錄">
+    <rect x="0" y="0" width="640" height="380" rx="12" fill="var(--bg)"/>
+    <!-- 儀表板 -->
+    <rect x="16" y="16" width="370" height="348" rx="10" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <rect x="32" y="30" width="338" height="30" rx="6" fill="var(--exit)"/>
+    <text x="201" y="51" font-size="15" font-weight="700" fill="#fff" text-anchor="middle">✅ 狀態：安全監控中</text>
+    <g font-weight="900" text-anchor="middle">
+      <rect x="32" y="72" width="104" height="62" rx="8" fill="var(--bg)"/><text x="84" y="94" font-size="12" fill="var(--muted)">🌡️ 溫度</text><text x="84" y="122" font-size="24" fill="var(--ink)">25.0</text>
+      <rect x="149" y="72" width="104" height="62" rx="8" fill="var(--bg)"/><text x="201" y="94" font-size="12" fill="var(--muted)">💨 煙霧</text><text x="201" y="122" font-size="24" fill="var(--ink)">100</text>
+      <rect x="266" y="72" width="104" height="62" rx="8" fill="var(--bg)"/><text x="318" y="94" font-size="12" fill="var(--muted)">☠️ CO</text><text x="318" y="122" font-size="24" fill="var(--ink)">60</text>
+    </g>
+    <g font-size="12" font-weight="700" fill="var(--ink)">
+      <rect x="32" y="146" width="104" height="52" rx="8" fill="var(--bg)"/><circle cx="46" cy="162" r="6" fill="var(--line)"/><text x="58" y="166">定溫式</text>
+      <rect x="149" y="146" width="104" height="52" rx="8" fill="var(--bg)"/><circle cx="163" cy="162" r="6" fill="var(--line)"/><text x="175" y="166">差動式</text>
+      <rect x="266" y="146" width="104" height="52" rx="8" fill="var(--bg)"/><circle cx="280" cy="162" r="6" fill="var(--fire)"/><text x="292" y="166">綜合判定</text>
+    </g>
+    <polyline points="40,330 90,326 140,320 190,300 230,262 270,236 320,226 362,222" fill="none" stroke="var(--fire)" stroke-width="3"/>
+    <polyline points="40,334 100,332 160,330 220,318 280,290 362,276" fill="none" stroke="var(--muted)" stroke-width="3"/>
+    <line x1="36" y1="344" x2="366" y2="344" stroke="var(--line)" stroke-width="2"/>
+    <!-- 右欄 -->
+    <rect x="402" y="16" width="222" height="120" rx="10" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="418" y="42" font-size="14" font-weight="700" fill="var(--ink)">🎛️ 控制台</text>
+    <g font-size="11" text-anchor="middle" font-weight="700">
+      <rect x="418" y="52" width="60" height="22" rx="5" fill="var(--warn)"/><text x="448" y="67" fill="var(--warn-ink)">手動滑桿</text>
+      <rect x="483" y="52" width="60" height="22" rx="5" fill="var(--bg)"/><text x="513" y="67" fill="var(--ink)">情境劇本</text>
+      <rect x="548" y="52" width="60" height="22" rx="5" fill="var(--bg)"/><text x="578" y="67" fill="var(--ink)">實機連線</text>
+    </g>
+    <line x1="420" y1="94" x2="606" y2="94" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/><circle cx="470" cy="94" r="8" fill="var(--fire)"/>
+    <line x1="420" y1="118" x2="606" y2="118" stroke="var(--line)" stroke-width="5" stroke-linecap="round"/><circle cx="440" cy="118" r="8" fill="var(--fire)"/>
+    <rect x="402" y="148" width="222" height="100" rx="10" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="418" y="174" font-size="14" font-weight="700" fill="var(--ink)">🛡️ 判定設定</text>
+    <rect x="418" y="186" width="190" height="10" rx="5" fill="var(--line)"/>
+    <rect x="418" y="204" width="150" height="10" rx="5" fill="var(--line)"/>
+    <rect x="418" y="222" width="170" height="10" rx="5" fill="var(--line)"/>
+    <rect x="402" y="260" width="222" height="104" rx="10" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="418" y="286" font-size="14" font-weight="700" fill="var(--ink)">📋 測試紀錄</text>
+    <rect x="418" y="298" width="190" height="12" rx="3" fill="var(--bg)"/>
+    <rect x="418" y="316" width="190" height="12" rx="3" fill="var(--bg)"/>
+    <rect x="418" y="334" width="190" height="12" rx="3" fill="var(--bg)"/>
+    <!-- 標號 -->
+    <g font-size="15" font-weight="900" text-anchor="middle">
+      <circle cx="26" cy="106" r="14" fill="var(--warn)"/><text x="26" y="111" fill="var(--warn-ink)">A</text>
+      <circle cx="26" cy="172" r="14" fill="var(--warn)"/><text x="26" y="177" fill="var(--warn-ink)">B</text>
+      <circle cx="26" cy="290" r="14" fill="var(--warn)"/><text x="26" y="295" fill="var(--warn-ink)">C</text>
+      <circle cx="612" cy="30" r="14" fill="var(--warn)"/><text x="612" y="35" fill="var(--warn-ink)">D</text>
+      <circle cx="612" cy="162" r="14" fill="var(--warn)"/><text x="612" y="167" fill="var(--warn-ink)">E</text>
+      <circle cx="612" cy="274" r="14" fill="var(--warn)"/><text x="612" y="279" fill="var(--warn-ink)">F</text>
+    </g>
+  </svg>
+  <div class="legend">
+    <div><b>A</b> 三個感測數字　<b>B</b> 三個偵測器燈號（亮紅＝動作）　<b>C</b> 即時曲線圖</div>
+    <div><b>D</b> 控制台：選玩法　<b>E</b> 判定設定：防誤報　<b>F</b> 情境測試的成績單</div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section>
+  <h2><span class="step">3</span>三種玩法</h2>
+  <div class="trio">
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <line x1="14" y1="28" x2="106" y2="28" stroke="var(--line)" stroke-width="7" stroke-linecap="round"/><circle cx="40" cy="28" r="10" fill="var(--fire)"/>
+        <line x1="14" y1="50" x2="106" y2="50" stroke="var(--line)" stroke-width="7" stroke-linecap="round"/><circle cx="84" cy="50" r="10" fill="var(--fire)"/>
+        <line x1="14" y1="72" x2="106" y2="72" stroke="var(--line)" stroke-width="7" stroke-linecap="round"/><circle cx="60" cy="72" r="10" fill="var(--fire)"/>
+      </svg>
+      <b>手動滑桿</b><span>自己拉溫度、煙、CO，看誰先響</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="12" y="12" width="96" height="66" rx="8" fill="var(--screen)"/>
+        <path d="M50 30 l26 15 l-26 15 z" fill="var(--warn)"/>
+        <rect x="20" y="68" width="80" height="5" rx="2" fill="var(--line)"/><rect x="20" y="68" width="44" height="5" rx="2" fill="var(--fire)"/>
+      </svg>
+      <b>情境劇本</b><span>自動播放 5 種狀況，最後打分數</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 90" aria-hidden="true">
+        <rect x="10" y="22" width="56" height="44" rx="4" fill="#1e6fa8"/>
+        <rect x="18" y="30" width="16" height="10" fill="#cfd8dc"/>
+        <path d="M66 44 h18 q10 0 10 10 v14" fill="none" stroke="var(--ink)" stroke-width="5"/>
+        <rect x="86" y="66" width="16" height="14" rx="2" fill="var(--muted)"/>
+      </svg>
+      <b>實機連線</b><span>USB 接上真的 Arduino（Chrome／Edge）</span>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section>
+  <h2><span class="step">4</span>三種偵測器，怎麼判斷有火</h2>
+  <div class="rules">
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><rect x="32" y="6" width="12" height="38" rx="6" fill="none" stroke="var(--ink)" stroke-width="3"/><rect x="35" y="14" width="6" height="30" fill="var(--fire)"/><circle cx="38" cy="48" r="9" fill="var(--fire)"/></svg>
+      <div><b>定溫式</b><span>溫度超過門檻（預設 60°C）就響</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><polyline points="8,52 30,48 46,30 66,8" fill="none" stroke="var(--fire)" stroke-width="5" stroke-linecap="round"/><path d="M58 6 l10 0 l0 10" fill="none" stroke="var(--fire)" stroke-width="5"/></svg>
+      <div><b>差動式</b><span>溫度「升得太快」就響（預設每分鐘 10°C）</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><circle cx="24" cy="38" r="12" fill="var(--smoke)" opacity=".7"/><circle cx="40" cy="26" r="15" fill="var(--smoke)" opacity=".7"/><circle cx="56" cy="36" r="11" fill="var(--smoke)" opacity=".7"/></svg>
+      <div><b>煙霧／CO</b><span>濃度超過門檻就響</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><circle cx="38" cy="30" r="20" fill="var(--fire)"/><text x="38" y="37" font-size="20" text-anchor="middle">🔔</text></svg>
+      <div><b>綜合判定</b><span>決定要幾個條件成立才真的發警報</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section>
+  <h2><span class="step">5</span>播放情境，看看會不會誤報</h2>
+  <div class="scroll">
+    <table class="scn">
+      <tr><th>情境</th><th>真的有火？</th><th>看什麼</th></tr>
+      <tr><td>🗑️ 垃圾桶陰燃</td><td><span class="pill fire">有火</span></td><td>只有煙，溫度不太變</td></tr>
+      <tr><td>🍳 廚房油鍋起火</td><td><span class="pill fire">有火</span></td><td>溫度衝很快，差動式先響</td></tr>
+      <tr><td>🔌 電線走火</td><td><span class="pill fire">有火</span></td><td>先冒煙，約 100 秒後才起火</td></tr>
+      <tr><td>🍞 烤焦吐司</td><td><span class="pill fake">沒火</span></td><td>煙一下子很多，又散掉</td></tr>
+      <tr><td>♨️ 開暖爐熱氣</td><td><span class="pill fake">沒火</span></td><td>溫度升一點後就不動</td></tr>
+    </table>
+  </div>
+  <p class="say">播完會在「📋 測試紀錄」打分數：</p>
+  <div class="verdict">
+    <div class="v-ok"><b>✅ 正確偵測</b><span>有火，有響</span></div>
+    <div class="v-ok"><b>✅ 正確不報</b><span>沒火，沒響</span></div>
+    <div class="v-bad"><b>❌ 漏報</b><span>有火，卻沒響（最危險）</span></div>
+    <div class="v-bad"><b>⚠️ 誤報</b><span>沒火，卻響了（大家會不再相信警報）</span></div>
+  </div>
+  <p class="small">情境可以選 1×、5×、10× 速度播放（預設 5×），上課時用快轉比較省時間。</p>
+</section>
+
+<!-- 6 -->
+<section>
+  <h2><span class="step">6</span>防誤報的兩個開關</h2>
+  <svg viewBox="0 0 640 200" role="img" aria-label="任一條件與交叉確認的差別，以及持續秒數">
+    <rect x="0" y="0" width="640" height="200" rx="12" fill="var(--bg)"/>
+    <g font-weight="700">
+      <text x="30" y="40" font-size="17" fill="var(--ink)">任一條件 (OR)</text>
+      <circle cx="56" cy="78" r="18" fill="var(--fire)"/><text x="56" y="84" font-size="14" text-anchor="middle" fill="#fff">熱</text>
+      <circle cx="100" cy="78" r="18" fill="var(--line)"/><text x="100" y="84" font-size="14" text-anchor="middle" fill="var(--muted)">煙</text>
+      <circle cx="144" cy="78" r="18" fill="var(--line)"/><text x="144" y="84" font-size="14" text-anchor="middle" fill="var(--muted)">CO</text>
+      <text x="180" y="84" font-size="16" fill="var(--fire)">→ 🔔 響</text>
+      <text x="30" y="128" font-size="17" fill="var(--ink)">交叉確認</text>
+      <circle cx="56" cy="164" r="18" fill="var(--fire)"/><text x="56" y="170" font-size="14" text-anchor="middle" fill="#fff">熱</text>
+      <circle cx="100" cy="164" r="18" fill="var(--line)"/><text x="100" y="170" font-size="14" text-anchor="middle" fill="var(--muted)">煙</text>
+      <circle cx="144" cy="164" r="18" fill="var(--line)"/><text x="144" y="170" font-size="14" text-anchor="middle" fill="var(--muted)">CO</text>
+      <text x="180" y="170" font-size="16" fill="var(--muted)">→ 要 2 項才響</text>
+    </g>
+    <line x1="330" y1="24" x2="330" y2="176" stroke="var(--line)" stroke-width="2"/>
+    <text x="360" y="40" font-size="17" font-weight="700" fill="var(--ink)">條件要持續幾秒</text>
+    <rect x="360" y="70" width="250" height="34" rx="6" fill="var(--card)" stroke="var(--line)"/>
+    <rect x="390" y="70" width="40" height="34" fill="var(--smoke)" opacity=".7"/>
+    <text x="410" y="124" font-size="13" text-anchor="middle" fill="var(--muted)">煙一下下</text>
+    <text x="410" y="142" font-size="13" text-anchor="middle" fill="var(--exit)" font-weight="700">不響 ✓</text>
+    <rect x="470" y="70" width="140" height="34" fill="var(--fire)" opacity=".75"/>
+    <text x="540" y="124" font-size="13" text-anchor="middle" fill="var(--muted)">一直都有</text>
+    <text x="540" y="142" font-size="13" text-anchor="middle" fill="var(--fire)" font-weight="700">響 🔔</text>
+    <text x="360" y="176" font-size="13" fill="var(--muted)">秒數越長越不會誤報，但真火也會晚一點響</text>
+  </svg>
+  <p class="say">🎯 小挑戰：找出一組設定，讓 5 個情境<b>全部</b>都是 ✅。</p>
+  <p class="small">提示：烤吐司試試把持續秒數調到 25 秒；暖爐只有熱沒有煙，想想哪種判定方式能擋下它。</p>
+</section>
+
+<!-- 7 -->
+<section>
+  <h2><span class="step">7</span>往下捲還有教材</h2>
+  <div class="look">
+    <span class="chip">1. 架構與硬體</span>
+    <span class="chip">2. Arduino 程式</span>
+    <span class="chip">3. Node-RED</span>
+    <span class="chip">4. 偵測器原理</span>
+    <span class="chip">5. 實務注意</span>
+  </div>
+  <p class="small">頁面最上方的連結可以直接跳到各節。做實體專題時，照第 2 節的程式燒進 Arduino，再到「實機連線」分頁接上。</p>
+</section>
+
+<footer>「實機連線」需要 Chrome 或 Edge 瀏覽器，並透過網站或 localhost 開啟。模擬數值僅供教學示意。</footer>
+
+</div>

@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+    <title>AIoT 消防安全模擬系統教學網</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #e74c3c; /* Fire Red */
+            --secondary-color: #2c3e50;
+            --accent-color: #f1c40f;
+            --light-bg: #ecf0f1;
+            --safe: #27ae60;
+            --warn: #f39c12;
+            --danger: #c0392b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', "Microsoft JhengHei", sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 20px 0 0;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 { margin: 0; font-size: 2.2rem; }
+        header p { margin: 6px 0 0; color: #bdc3c7; }
+        .top-nav {
+            margin-top: 15px;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 4px 18px;
+            padding: 8px 10px;
+            font-size: 0.9rem;
+        }
+        .top-nav a { color: #ecf0f1; text-decoration: none; }
+        .top-nav a:hover { color: var(--accent-color); }
+        .top-nav .home { color: var(--accent-color); font-weight: bold; }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        /* Sections */
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        h2 { border-left: 5px solid var(--primary-color); padding-left: 10px; color: var(--secondary-color); margin-top: 0; }
+        h3 { color: #555; margin: 20px 0 10px; }
+        .muted { color: #777; font-size: 0.9rem; }
+
+        /* Hardware List Style */
+        .hardware-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag {
+            background: var(--secondary-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .tag.new { background: var(--primary-color); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        th, td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; vertical-align: top; }
+        th { background: var(--light-bg); }
+        .table-wrap { overflow-x: auto; }
+
+        /* Code Block */
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .note {
+            background: #fff8e1;
+            border-left: 4px solid var(--accent-color);
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 0.92rem;
+        }
+
+        /* ===== 模擬實驗室 ===== */
+        .lab {
+            display: grid;
+            grid-template-columns: 1.7fr 1fr;
+            gap: 20px;
+        }
+        .lab > div { min-width: 0; }
+        .dashboard-demo { border: 2px solid var(--primary-color); }
+
+        .status-indicator {
+            text-align: center;
+            padding: 14px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: white;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            transition: background-color 0.3s;
+        }
+        .status-safe { background-color: var(--safe); }
+        .status-warning { background-color: var(--warn); }
+        .status-danger { background-color: var(--danger); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); box-shadow: 0 0 10px red; }
+            100% { transform: scale(1); }
+        }
+
+        .sensor-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .sensor-box { background: var(--light-bg); padding: 10px; border-radius: 5px; }
+        .sensor-val { font-size: 1.6rem; font-weight: bold; color: var(--secondary-color); }
+        .sensor-box small { color: #777; }
+
+        .detector-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.3fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .detector {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 0.85rem;
+        }
+        .detector-head { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 0.95rem; }
+        .lamp {
+            width: 16px; height: 16px; border-radius: 50%;
+            background: #bdc3c7; flex: none;
+            transition: all 0.2s;
+        }
+        .lamp.on { background: var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
+        .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+        .chip {
+            padding: 1px 9px; border-radius: 12px; font-size: 0.8rem;
+            background: #e0e0e0; color: #666;
+        }
+        .chip.hit { background: var(--primary-color); color: white; }
+
+        .linkage {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 18px;
+            align-items: center;
+            font-size: 0.88rem;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        .dev { display: flex; align-items: center; gap: 6px; opacity: 0.35; transition: opacity 0.2s; }
+        .dev.on { opacity: 1; font-weight: bold; }
+        .led { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .led.red { background: #e74c3c; }
+        .led.green { background: #2ecc71; }
+        .dev.on .led.red { box-shadow: 0 0 8px #e74c3c; }
+        .dev.on .led.green { box-shadow: 0 0 8px #2ecc71; }
+
+        .chart-box { position: relative; height: 260px; }
+        .chart-fallback {
+            display: none;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            background: var(--light-bg);
+            border-radius: 6px;
+            color: #777;
+            text-align: center;
+            padding: 10px;
+        }
+        .sim-time { display: flex; justify-content: space-between; font-size: 0.85rem; color: #777; margin-top: 6px; }
+
+        /* 控制台 */
+        .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--secondary-color); margin-bottom: 15px; }
+        .tab {
+            flex: 1;
+            border: none;
+            background: var(--light-bg);
+            padding: 9px 4px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 6px 6px 0 0;
+            color: #555;
+            font-family: inherit;
+        }
+        .tab.active { background: var(--secondary-color); color: white; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .slider-group { margin-bottom: 12px; }
+        .slider-group label { display: flex; justify-content: space-between; font-weight: bold; font-size: 0.92rem; }
+        input[type="range"] { width: 100%; }
+
+        .btn {
+            border: none;
+            border-radius: 5px;
+            padding: 9px 14px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 0.9rem;
+            background: var(--secondary-color);
+            color: white;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-danger { background: var(--primary-color); }
+        .btn-light { background: var(--light-bg); color: #333; }
+
+        .scn-list { display: flex; flex-direction: column; gap: 8px; }
+        .scn {
+            text-align: left;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .scn:hover { border-color: var(--primary-color); }
+        .scn.running { border-color: var(--primary-color); background: #fdecea; }
+        .scn b { display: block; font-size: 0.95rem; }
+        .scn span { font-size: 0.8rem; color: #666; }
+        .scn .fire-tag { float: right; font-size: 0.72rem; padding: 0 6px; border-radius: 8px; color: white; }
+        .fire-tag.yes { background: var(--primary-color); }
+        .fire-tag.no { background: #7f8c8d; }
+        .scn-bar { display: flex; gap: 8px; align-items: center; margin: 12px 0 6px; font-size: 0.88rem; flex-wrap: wrap; }
+        .progress { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
+        .progress > div { height: 100%; width: 0; background: var(--primary-color); transition: width 0.2s; }
+        #scnHint { font-size: 0.85rem; color: var(--danger); min-height: 1.3em; margin-top: 6px; }
+
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; font-size: 0.88rem; }
+        .settings-grid label { display: flex; flex-direction: column; font-weight: bold; }
+        .settings-grid input[type="number"] {
+            padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; margin-top: 2px;
+        }
+        .radio-row { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.88rem; margin: 10px 0 6px; }
+        .radio-row label { font-weight: normal; }
+
+        .result-summary { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .result-summary span { font-size: 0.8rem; padding: 2px 8px; border-radius: 10px; background: var(--light-bg); }
+        #resultTable { font-size: 0.8rem; }
+        #resultTable td, #resultTable th { padding: 4px 6px; }
+        .r-ok { color: var(--safe); font-weight: bold; }
+        .r-miss { color: var(--danger); font-weight: bold; }
+        .r-false { color: #d35400; font-weight: bold; }
+
+        /* 資料流 */
+        .flow { display: flex; align-items: center; margin: 15px 0 5px; }
+        .flow-node {
+            flex: none;
+            width: 128px;
+            text-align: center;
+            border: 2px solid var(--secondary-color);
+            border-radius: 8px;
+            padding: 8px 4px;
+            background: white;
+            transition: background 0.2s, opacity 0.3s;
+        }
+        .flow-node b { display: block; font-size: 0.92rem; }
+        .flow-node small {
+            display: block; font-family: Consolas, monospace; font-size: 0.7rem; color: #666;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .flow-node.flash { background: #fdf2d0; }
+        .flow-node.flash.alarm { background: #fadbd8; }
+        .flow-node.skipped { opacity: 0.3; }
+        .flow-arrow { flex: 1; height: 3px; background: #bbb; position: relative; min-width: 16px; }
+        .flow-arrow::after {
+            content: ''; position: absolute; right: -2px; top: -5px;
+            border: 6px solid transparent; border-left: 8px solid #bbb; border-right: none;
+        }
+        .pkt {
+            position: absolute; left: 0; top: -4px;
+            width: 11px; height: 11px; border-radius: 50%;
+            background: var(--safe); opacity: 0;
+        }
+        .pkt.alarm { background: var(--primary-color); }
+        .pkt.go { animation: travel 0.35s linear; }
+        @keyframes travel {
+            0% { left: 0; opacity: 1; }
+            100% { left: calc(100% - 11px); opacity: 1; }
+        }
+        #flowCaption { font-size: 0.85rem; color: #777; min-height: 1.3em; }
+
+        .serial-mon {
+            background: #111;
+            color: #2ecc71;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.8rem;
+            height: 180px;
+            overflow-y: auto;
+            padding: 8px 10px;
+            border-radius: 6px;
+        }
+        .serial-mon div { white-space: pre-wrap; word-break: break-all; }
+        .serial-mon .sys { color: #f1c40f; }
+        .serial-mon .err { color: #e67e22; }
+        .serial-mon .cmt { color: #7f8c8d; }
+        .serial-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #333;
+            color: white;
+            margin-top: 40px;
+        }
+        footer a { color: var(--accent-color); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .lab, .two-col { grid-template-columns: 1fr; }
+            .detector-row { grid-template-columns: 1fr 1fr; }
+            .detector-row .detector:last-child { grid-column: span 2; }
+        }
+        @media (max-width: 640px) {
+            header h1 { font-size: 1.6rem; }
+            .container { padding: 0 12px; }
+            .card { padding: 16px; }
+            .sensor-val { font-size: 1.25rem; }
+            .flow { flex-direction: column; align-items: stretch; }
+            .flow-node { width: auto; }
+            .flow-arrow { width: 3px; height: 18px; flex: none; min-width: 0; margin: 0 auto; }
+            .flow-arrow::after { right: -5px; top: auto; bottom: -2px; border: 6px solid transparent; border-top: 8px solid #bbb; border-bottom: none; }
+            .pkt { left: -4px; top: 0; }
+            .pkt.go { animation-name: travelV; }
+            @keyframes travelV {
+                0% { top: 0; opacity: 1; }
+                100% { top: calc(100% - 11px); opacity: 1; }
+            }
+            .settings-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g2">AIoT 消防偵測</span>
+    <span class="pb-sep">›</span><span class="pb-page">AIoT 消防安全模擬系統</span>
+    <span class="pb-right"><a class="pb-btn" href="aiot_guide.html" target="_blank" rel="noopener">📖 使用說明</a></span>
+</div>
+
+<header>
+    <h1>🔥 AIoT 消防安全模擬系統</h1>
+    <p>Arduino x Node-RED x Firebase | 智慧防災教學專題</p>
+    <nav class="top-nav">
+        <a href="#lab">🧪 模擬實驗室</a>
+        <a href="#arch">1. 架構與硬體</a>
+        <a href="#code">2. Arduino 程式</a>
+        <a href="#nodered">3. Node-RED</a>
+        <a href="#detector">4. 偵測器原理</a>
+        <a href="#practice">5. 實務注意</a>
+    </nav>
+</header>
+
+<div class="container">
+
+    <!-- ===================== 模擬實驗室 ===================== -->
+    <section id="lab" class="lab">
+        <div class="card dashboard-demo">
+            <h2>📊 即時儀表板</h2>
+            <p class="muted" style="margin-top:-6px;">Web 版模擬器：接線前先理解儀表板與判定邏輯。也可在「實機連線」分頁接上真正的 Arduino。</p>
+
+            <div id="statusBox" class="status-indicator status-safe">✅ 狀態：安全監控中</div>
+
+            <div class="sensor-display">
+                <div class="sensor-box">
+                    <div>溫度 (DHT22)</div>
+                    <div id="dispTemp" class="sensor-val">25.0</div>
+                    <small>°C</small>
+                </div>
+                <div class="sensor-box">
+                    <div>煙霧 (MQ-2)</div>
+                    <div id="dispSmoke" class="sensor-val">100</div>
+                    <small>類比值 0–1023</small>
+                </div>
+                <div class="sensor-box">
+                    <div>CO (MQ-7)</div>
+                    <div id="dispCO" class="sensor-val">60</div>
+                    <small>類比值 0–1023</small>
+                </div>
+            </div>
+
+            <div class="detector-row">
+                <div class="detector">
+                    <div class="detector-head"><span id="lampFixed" class="lamp"></span>定溫式</div>
+                    <div>門檻 ≥ <span id="lblFixed">60</span> °C</div>
+                    <div id="fixedFirst" class="muted">尚未動作</div>
+                </div>
+                <div class="detector">
+                    <div class="detector-head"><span id="lampRor" class="lamp"></span>差動式</div>
+                    <div>升溫 <b id="dispRate">0.0</b> °C/min（門檻 ≥ <span id="lblRor">10</span>）</div>
+                    <div id="rorFirst" class="muted">尚未動作</div>
+                </div>
+                <div class="detector">
+                    <div class="detector-head"><span id="lampAlarm" class="lamp"></span>綜合判定</div>
+                    <div id="ruleText">任一條件成立即警報</div>
+                    <div class="chips">
+                        <span id="chipHeat" class="chip">熱</span>
+                        <span id="chipSmoke" class="chip">煙霧</span>
+                        <span id="chipCO" class="chip">CO</span>
+                    </div>
+                    <div id="alarmFirst" class="muted">尚未警報</div>
+                </div>
+            </div>
+
+            <div class="linkage">
+                <span>Arduino 端輸出：</span>
+                <span id="devBuzzer" class="dev">🔔 蜂鳴器</span>
+                <span id="devRed" class="dev"><span class="led red"></span>紅 LED</span>
+                <span id="devGreen" class="dev on"><span class="led green"></span>綠 LED</span>
+            </div>
+
+            <div class="chart-box">
+                <canvas id="sensorChart"></canvas>
+                <div id="chartFallback" class="chart-fallback">⚠️ 圖表庫 (Chart.js) 未載入，請確認網路連線。<br>其餘模擬功能仍可正常使用。</div>
+            </div>
+            <div class="sim-time">
+                <span id="srcLabel">來源：手動模擬</span>
+                <span id="simTime">t = 0 s</span>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2>🎛️ 控制台</h2>
+                <div class="tabs">
+                    <button class="tab active" data-tab="manual">手動滑桿</button>
+                    <button class="tab" data-tab="scenario">情境劇本</button>
+                    <button class="tab" data-tab="serial">實機連線</button>
+                </div>
+
+                <div class="tab-panel active" id="panel-manual">
+                    <div class="slider-group">
+                        <label>溫度（打火機加熱）<span><span id="vTemp">25</span> °C</span></label>
+                        <input type="range" id="simTemp" min="0" max="80" value="25">
+                    </div>
+                    <div class="slider-group">
+                        <label>煙霧濃度 (MQ-2)<span id="vSmoke">100</span></label>
+                        <input type="range" id="simSmoke" min="0" max="1023" value="100">
+                    </div>
+                    <div class="slider-group">
+                        <label>CO 濃度 (MQ-7)<span id="vCO">60</span></label>
+                        <input type="range" id="simCO" min="0" max="1023" value="60">
+                    </div>
+                    <p class="muted">💡 試試把溫度<b>快速</b>拉高 15°C 以上：差動式會先動作，30 秒後升溫停止就恢復；定溫式則要等溫度超過門檻才會動作。</p>
+                </div>
+
+                <div class="tab-panel" id="panel-scenario">
+                    <div class="scn-list" id="scnList"></div>
+                    <div class="scn-bar">
+                        <label>播放速度
+                            <select id="speedSel">
+                                <option value="1">1x</option>
+                                <option value="5" selected>5x</option>
+                                <option value="10">10x</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-light" id="btnStopScn" disabled>■ 停止</button>
+                    </div>
+                    <div class="progress"><div id="scnProgress"></div></div>
+                    <div id="scnHint"></div>
+                </div>
+
+                <div class="tab-panel" id="panel-serial">
+                    <p style="margin-top:0;">用 USB 接上燒好<a href="#code">第 2 節程式</a>的 Arduino，按下連接後選擇序列埠。儀表板會直接讀取實體感測器的 JSON 數據。</p>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-danger" id="btnConnect">🔌 連接 Arduino</button>
+                        <button class="btn btn-light" id="btnDisconnect" disabled>中斷連線</button>
+                    </div>
+                    <p id="serialStatus" class="muted">尚未連線</p>
+                    <div class="note">需使用桌面版 <b>Chrome 或 Edge</b>（Web Serial API）。若按鈕無反應，請改用 <code>http://localhost</code> 開啟本頁。連線前請先關閉 Arduino IDE 的序列埠監控視窗，以免序列埠被佔用。</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🛡️ 判定設定（防誤報）</h2>
+                <div class="settings-grid">
+                    <label>定溫門檻 (°C)<input type="number" id="cfgFixed" value="60" min="30" max="80"></label>
+                    <label>差動門檻 (°C/min)<input type="number" id="cfgRor" value="10" min="1" max="60"></label>
+                    <label>煙霧門檻 (類比值)<input type="number" id="cfgSmoke" value="400" min="50" max="1023"></label>
+                    <label>CO 門檻 (類比值)<input type="number" id="cfgCO" value="300" min="50" max="1023"></label>
+                </div>
+                <div class="radio-row">
+                    <b>判定方式：</b>
+                    <label><input type="radio" name="cfgMode" value="or" checked> 任一條件 (OR)</label>
+                    <label><input type="radio" name="cfgMode" value="two"> 至少兩項交叉確認</label>
+                </div>
+                <div class="slider-group">
+                    <label>條件需持續 <span><span id="vDebounce">0</span> 秒才警報</span></label>
+                    <input type="range" id="cfgDebounce" min="0" max="30" value="0">
+                </div>
+                <label style="font-size:0.88rem;"><input type="checkbox" id="cfgSound"> 警報音效</label>
+                <p class="muted" style="margin-bottom:0;">「熱」= 定溫式 或 差動式 任一動作。差動式以最近 30 秒的升溫幅度換算成每分鐘速率。</p>
+            </div>
+
+            <div class="card">
+                <h2>📋 情境測試紀錄</h2>
+                <div class="result-summary" id="resultSummary"></div>
+                <div class="table-wrap">
+                    <table id="resultTable">
+                        <thead><tr><th>情境</th><th>設定</th><th>定溫</th><th>差動</th><th>警報</th><th>結果</th></tr></thead>
+                        <tbody><tr><td colspan="6" class="muted">尚無紀錄，請到「情境劇本」分頁播放情境。</td></tr></tbody>
+                    </table>
+                </div>
+                <button class="btn btn-light" id="btnClearResults" style="margin-top:8px;">清除紀錄</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>🔁 資料流動畫</h2>
+        <div class="flow" id="flow">
+            <div class="flow-node"><b>📡 感測器</b><small id="fn0">--</small></div>
+            <div class="flow-arrow"><span class="pkt"></span></div>
+            <div class="flow-node"><b>🔧 Arduino</b><small id="fn1">Serial.println()</small></div>
+            <div class="flow-arrow"><span class="pkt"></span></div>
+            <div class="flow-node" id="nodeRed"><b>🧩 Node-RED</b><small id="fn2">JSON → Function</small></div>
+            <div class="flow-arrow"><span class="pkt"></span></div>
+            <div class="flow-node" id="nodeFb"><b>☁️ Firebase</b><small id="fn3">/fire/latest</small></div>
+            <div class="flow-arrow"><span class="pkt"></span></div>
+            <div class="flow-node"><b>📊 儀表板</b><small id="fn4">--</small></div>
+        </div>
+        <div id="flowCaption">每筆數據從感測器出發，依序經過各節點；綠點表示正常，紅點表示該筆數據已判定為警報。</div>
+
+        <div class="serial-head" style="margin-top:15px;">
+            <b>🖥️ 序列埠監看視窗 (9600 baud)</b>
+            <button class="btn btn-light" id="btnClearSerial" style="padding:4px 10px;">清除</button>
+        </div>
+        <div class="serial-mon" id="serialMon"></div>
+    </section>
+
+    <!-- ===================== 教學內容 ===================== -->
+    <section class="card" id="arch">
+        <h2>1. 專題架構與硬體需求</h2>
+        <p>本課程將帶領學生運用 Arduino 結合環境感測器，模擬火災發生時的數據變化，並透過 Node-RED 建立可視化儀表板。</p>
+
+        <h3>所需硬體 (Hardware)</h3>
+        <div class="hardware-list">
+            <span class="tag">Arduino Uno / Nano</span>
+            <span class="tag">MQ-2 煙霧感測器</span>
+            <span class="tag">MQ-7 一氧化碳感測器</span>
+            <span class="tag new">DHT22 溫溼度感測器（取代 DHT11）</span>
+            <span class="tag">蜂鳴器 (Buzzer)</span>
+            <span class="tag">LED (紅/綠) + 220Ω 電阻 ×2</span>
+        </div>
+
+        <h3>接線對照</h3>
+        <div class="table-wrap">
+            <table>
+                <tr><th>元件</th><th>Arduino 腳位</th><th>備註</th></tr>
+                <tr><td>DHT22 DATA</td><td>D2</td><td>VCC 5V、GND；模組版通常已內建上拉電阻</td></tr>
+                <tr><td>MQ-2 AO</td><td>A0</td><td>VCC 5V、GND</td></tr>
+                <tr><td>MQ-7 AO</td><td>A1</td><td>VCC 5V、GND（加熱循環見第 5 節）</td></tr>
+                <tr><td>蜂鳴器</td><td>D8</td><td>有源蜂鳴器</td></tr>
+                <tr><td>紅 LED / 綠 LED</td><td>D9 / D10</td><td>各串一顆 220Ω 電阻</td></tr>
+            </table>
+        </div>
+
+        <h3>系統流程圖</h3>
+        <p><code>感測器 (Edge) ⮕ Arduino (Serial/Wi-Fi) ⮕ Node-RED (PC/Gateway) ⮕ Firebase (Cloud) ⮕ 儀表板</code></p>
+        <p class="muted">上方「資料流動畫」即呈現這條路徑；切到「實機連線」時，瀏覽器直接讀取序列埠，會略過 Node-RED 與 Firebase。</p>
+    </section>
+
+    <section class="card" id="code">
+        <h2>2. Arduino 核心程式碼</h2>
+        <p>將此程式碼上傳至開發板（需安裝 Adafruit「DHT sensor library」）。程式會讀取感測器數值，在本地端控制蜂鳴器與 LED，並把數據格式化為 JSON 透過序列埠傳送。以 <code>#</code> 開頭的行是說明訊息，Node-RED 與網頁都會略過。</p>
+        <pre>
+#include &lt;DHT.h&gt;
+
+#define DHTPIN   2      // DHT22 溫溼度感測器
+#define DHTTYPE  DHT22  // DHT11 只能量到 50°C，不適合火災偵測
+#define MQ2_PIN  A0     // MQ-2 煙霧感測器（類比值 0~1023）
+#define MQ7_PIN  A1     // MQ-7 一氧化碳感測器（類比值 0~1023）
+#define BUZZER   8      // 蜂鳴器
+#define LED_RED  9      // 紅色 LED：警報
+#define LED_GRN  10     // 綠色 LED：正常
+
+// 本地端（邊緣）警報門檻：與網頁模擬器預設值一致
+const float TEMP_LIMIT  = 60.0;  // 定溫門檻 (°C)
+const int   SMOKE_LIMIT = 400;   // 煙霧門檻（類比值）
+const int   CO_LIMIT    = 300;   // CO 門檻（類比值）
+
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+  pinMode(BUZZER, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  pinMode(LED_GRN, OUTPUT);
+
+  // MQ 感測器需要預熱，數值穩定前不送出資料
+  Serial.println("# MQ sensors warming up (20s)...");
+  delay(20000);
+}
+
+void loop() {
+  // 1. 讀取數據
+  float temp  = dht.readTemperature();
+  int   smoke = analogRead(MQ2_PIN);
+  int   co    = analogRead(MQ7_PIN);
+
+  // DHT 讀取失敗時跳過，避免送出 nan 造成 JSON 解析錯誤
+  if (isnan(temp)) {
+    Serial.println("# DHT read failed");
+    delay(2000);
+    return;
+  }
+
+  // 2. 本地端警報：網路或電腦斷線時仍能獨立發出警報
+  bool alarm = (temp &gt;= TEMP_LIMIT) || (smoke &gt;= SMOKE_LIMIT) || (co &gt;= CO_LIMIT);
+  digitalWrite(BUZZER,  alarm ? HIGH : LOW);
+  digitalWrite(LED_RED, alarm ? HIGH : LOW);
+  digitalWrite(LED_GRN, alarm ? LOW  : HIGH);
+
+  // 3. 傳送 JSON 給 Node-RED / 網頁
+  //    格式: {"temp":28.5,"smoke":120,"co":60}
+  Serial.print("{\"temp\":");  Serial.print(temp, 1);
+  Serial.print(",\"smoke\":"); Serial.print(smoke);
+  Serial.print(",\"co\":");    Serial.print(co);
+  Serial.println("}");
+
+  delay(2000);  // DHT22 取樣間隔至少 2 秒
+}
+        </pre>
+        <p class="muted">Arduino 端只做簡單的固定門檻判斷（邊緣保底）；差動式計算與防誤報等較複雜的判定交給 Node-RED 或儀表板處理。</p>
+    </section>
+
+    <section class="card" id="nodered">
+        <h2>3. Node-RED 與 Dashboard 設定</h2>
+        <p>在 Node-RED 中，我們需要建立「資料流」來接收 Arduino 的數據、進行判定並顯示。</p>
+        <ol>
+            <li><strong>[Serial In]</strong>（node-red-node-serialport）：9600 baud，以 <code>\n</code> 分割訊息。</li>
+            <li><strong>[Switch]</strong>：略過以 <code>#</code> 開頭的說明行；再接 <strong>[JSON]</strong> 節點把字串轉為物件。</li>
+            <li><strong>[Function]</strong>：計算升溫速率並做交叉確認與持續時間判定（範例如下）。</li>
+            <li><strong>Dashboard 2.0</strong>（<code>@flowfuse/node-red-dashboard</code>）：
+                <ul>
+                    <li><strong>Gauge</strong>：顯示溫度、煙霧數值。</li>
+                    <li><strong>Chart</strong>：顯示趨勢；<strong>Text</strong>：顯示警報狀態。</li>
+                </ul>
+                舊版 <code>node-red-dashboard</code> 已停止維護，新專題建議改用 Dashboard 2.0。
+            </li>
+            <li><strong>Firebase</strong>：以 HTTP Request 節點呼叫 Realtime Database REST API（如 <code>PUT …/fire/latest.json</code>）寫入最新數據。</li>
+            <li><strong>推播通知</strong>：LINE Notify 已於 2025 年 3 月 31 日終止服務，請改用 LINE Messaging API、Telegram Bot 或 Discord Webhook。</li>
+        </ol>
+        <h3>Function 節點範例：差動式 + 防誤報</h3>
+        <pre>
+// 輸入 msg.payload = {temp, smoke, co}
+const d = msg.payload;
+const now = Date.now() / 1000;
+
+// 保留最近 30 秒的溫度，計算每分鐘升溫速率
+let hist = context.get('hist') || [];
+hist.push({ t: now, temp: d.temp });
+hist = hist.filter(h =&gt; now - h.t &lt;= 30);
+context.set('hist', hist);
+const span = now - hist[0].t;
+const rate = span &gt;= 5 ? (d.temp - hist[0].temp) / span * 60 : 0;
+
+// 熱 / 煙霧 / CO 三項中至少兩項成立（交叉確認）
+const heat = d.temp &gt;= 60 || rate &gt;= 10;
+const hits = [heat, d.smoke &gt;= 400, d.co &gt;= 300].filter(Boolean).length;
+const cond = hits &gt;= 2;
+
+// 條件需持續 10 秒才發報，過濾短暫干擾
+let since = context.get('since') ?? null;
+since = cond ? (since ?? now) : null;
+context.set('since', since);
+
+d.rate  = Number(rate.toFixed(1));
+d.alarm = cond &amp;&amp; (now - since) &gt;= 10;
+return msg;
+        </pre>
+    </section>
+
+    <section class="card" id="detector">
+        <h2>4. 偵測器原理：定溫式、差動式與偵煙式</h2>
+        <div class="table-wrap">
+            <table>
+                <tr><th>類型</th><th>動作原理</th><th>優點</th><th>限制</th><th>常見設置場所</th></tr>
+                <tr>
+                    <td><b>定溫式</b></td>
+                    <td>周圍溫度達到公稱作動溫度時動作</td>
+                    <td>不受日常溫度起伏影響，誤報少</td>
+                    <td>火勢擴大後才動作；對陰燃幾乎無效</td>
+                    <td>廚房、鍋爐房、浴室等平時溫度變化劇烈的場所</td>
+                </tr>
+                <tr>
+                    <td><b>差動式</b></td>
+                    <td>溫度<b>上升速率</b>超過規定值時動作</td>
+                    <td>對快速成長的火災反應早</td>
+                    <td>開爐火、暖氣、日照等急遽升溫易誤報；對緩慢升溫反應差</td>
+                    <td>一般居室、辦公室、倉庫</td>
+                </tr>
+                <tr>
+                    <td><b>偵煙式</b></td>
+                    <td>偵測空氣中的煙粒子</td>
+                    <td>可在陰燃階段最早期發現</td>
+                    <td>油煙、水蒸氣、粉塵易誤報</td>
+                    <td>樓梯間、走廊、寢室、機房</td>
+                </tr>
+            </table>
+        </div>
+        <p>實際探測器的種別、作動規格與設置位置，請依《各類場所消防安全設備設置標準》及產品認證規範。本專題的「多感測器交叉確認」則示範 AIoT 如何結合多種訊號來兼顧<b>早期發現</b>與<b>降低誤報</b>。</p>
+        <h3>🧪 課堂實驗建議</h3>
+        <ol>
+            <li>預設設定（任一條件、持續 0 秒）下依序播放 5 個情境，記錄哪些是誤報、哪些偵測最快。</li>
+            <li>播放「廚房油鍋起火」：差動式比定溫式早幾秒動作？</li>
+            <li>播放「垃圾桶陰燃」：為什麼兩種熱偵測器都沒有動作？</li>
+            <li>改成「至少兩項交叉確認」再全部重播：誤報減少了嗎？偵測時間有什麼代價？</li>
+            <li>只調「持續秒數」：能消除哪一種誤報？為什麼對「暖爐熱氣」無效？</li>
+        </ol>
+    </section>
+
+    <section class="card" id="practice">
+        <h2>5. 實務注意事項</h2>
+        <ul>
+            <li><b>溫度感測器：</b>DHT11 量測範圍僅 0–50°C（誤差 ±2°C），永遠讀不到 60°C 的警報門檻；請改用 DHT22（−40–80°C，±0.5°C），並注意其取樣間隔需 ≥ 2 秒。需要量測更高溫度可改用熱電偶模組（如 MAX6675）。</li>
+            <li><b>MQ 系列氣體感測器：</b>初次使用建議通電燒機 24–48 小時，之後每次開機也需預熱。讀值會受溫溼度影響，<code>analogRead</code> 得到的類比值只反映<b>相對變化</b>；要換算成 ppm 必須依 datasheet 的 Rs/R0 曲線校正。</li>
+            <li><b>MQ-7 加熱循環：</b>datasheet 要求加熱器以 5V（60 秒）/ 1.4V（90 秒）交替運作，並在低電壓段結束前讀值。本專題直接以 5V 連續讀取，屬於簡化做法，數值僅供趨勢參考。</li>
+            <li><b>邊緣保底：</b>Arduino 本地端必須能獨立警報，不能只依賴網路與雲端。</li>
+            <li><b>教學用途：</b>本專題僅供教學示範，不能取代經認證的火警自動警報設備。</li>
+        </ul>
+    </section>
+
+    <section class="card">
+        <h2>🔗 學習資源</h2>
+        <div class="two-col">
+            <ul style="margin:0;">
+                <li><a href="https://docs.arduino.cc/" target="_blank" rel="noopener">Arduino 官方文件</a></li>
+                <li><a href="https://github.com/adafruit/DHT-sensor-library" target="_blank" rel="noopener">Adafruit DHT sensor library</a></li>
+                <li><a href="https://nodered.org/docs/" target="_blank" rel="noopener">Node-RED 官方文件</a></li>
+                <li><a href="https://dashboard.flowfuse.com/" target="_blank" rel="noopener">Node-RED Dashboard 2.0</a></li>
+            </ul>
+            <ul style="margin:0;">
+                <li><a href="https://firebase.google.com/docs/database" target="_blank" rel="noopener">Firebase Realtime Database</a></li>
+                <li><a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API" target="_blank" rel="noopener">Web Serial API (MDN)</a></li>
+                <li><a href="https://www.nfa.gov.tw/" target="_blank" rel="noopener">內政部消防署</a></li>
+            </ul>
+        </div>
+    </section>
+</div>
+
+<footer>
+    <p>AIoT 消防安全模擬系統專題教學資源 | Designed for Students | <a href="index.html">回平台首頁</a></p>
+</footer>
+
+<script>
+    // ================= 工具函式 =================
+    const $ = id => document.getElementById(id);
+    const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+    const ramp = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+    const smooth = (t, a, b) => { const x = ramp(t, a, b); return x * x * (3 - 2 * x); };
+
+    // ================= 情境劇本 =================
+    // fn(t) 回傳第 t 秒（模擬時間）的感測值；fire 為實際是否為火災（用於判定誤報/漏報）
+    const SCENARIOS = {
+        smolder: {
+            name: '🗑️ 垃圾桶陰燃', fire: true, duration: 180,
+            desc: '煙霧與 CO 緩慢累積，溫度幾乎不變。',
+            hint: '觀察：定溫式與差動式為什麼都沒有動作？',
+            fn: t => ({ temp: 25 + 6 * ramp(t, 10, 180), smoke: 100 + 420 * smooth(t, 20, 150), co: 60 + 320 * smooth(t, 40, 170) })
+        },
+        oilpan: {
+            name: '🍳 廚房油鍋起火', fire: true, duration: 120,
+            desc: '溫度急速上升，隨後冒出濃煙。',
+            hint: '觀察：差動式比定溫式早幾秒動作？',
+            fn: t => ({ temp: 26 + 56 * ramp(t, 15, 85), smoke: 110 + 540 * smooth(t, 25, 70), co: 60 + 100 * smooth(t, 40, 100) })
+        },
+        wire: {
+            name: '🔌 電線走火', fire: true, duration: 180,
+            desc: '絕緣層先悶燒冒煙，約 100 秒後起火。',
+            hint: '觀察：「任一條件」與「交叉確認」的偵測時間差多少？',
+            fn: t => ({ temp: 25 + 45 * ramp(t, 100, 150), smoke: 100 + 330 * smooth(t, 10, 90) + 270 * smooth(t, 100, 130), co: 60 + 160 * smooth(t, 30, 120) })
+        },
+        toast: {
+            name: '🍞 烤焦吐司', fire: false, duration: 90,
+            desc: '煙霧短暫飆高約 18 秒後散去。',
+            hint: '試試：把「持續秒數」調到 25 秒再播放一次。',
+            fn: t => { const k = smooth(t, 10, 18) - smooth(t, 28, 45); return { temp: 25 + 1.5 * k, smoke: 100 + 380 * k, co: 60 + 80 * k }; }
+        },
+        heater: {
+            name: '♨️ 開暖爐熱氣', fire: false, duration: 120,
+            desc: '40 秒內升溫 15°C 後持平，幾乎無煙。',
+            hint: '試試：調整持續秒數有用嗎？換成哪種判定方式才能避免誤報？',
+            fn: t => ({ temp: 25 + 15 * ramp(t, 10, 50), smoke: 100 + 30 * smooth(t, 10, 40), co: 60 + 20 * smooth(t, 10, 40) })
+        }
+    };
+
+    // ================= 狀態 =================
+    let source = 'manual';      // 'manual' | 'scenario' | 'serial'
+    let scnKey = null;
+    let speed = 1;
+    let ticker = null;
+    let t = 0;                  // 模擬時間（秒）
+    let history = [];           // 最近的 {t, temp}，用來計算升溫速率
+    let condSince = null;       // 綜合條件開始成立的時間
+    let run = {};               // 本次執行的首次動作時間
+    let packetNo = 0;
+    let lastBeep = 0;
+    const results = [];
+
+    // ================= 設定 =================
+    function cfg() {
+        const num = (id, def) => { const v = parseFloat($(id).value); return isFinite(v) ? v : def; };
+        return {
+            fixedTemp: num('cfgFixed', 60),
+            ror: num('cfgRor', 10),
+            smoke: num('cfgSmoke', 400),
+            co: num('cfgCO', 300),
+            mode: document.querySelector('input[name="cfgMode"]:checked').value,
+            debounce: num('cfgDebounce', 0)
+        };
+    }
+
+    // ================= 圖表 =================
+    const MAX_POINTS = 180;
+    let chart = null;
+    if (window.Chart) {
+        chart = new Chart($('sensorChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: '溫度 (°C)', data: [], borderColor: '#e74c3c', yAxisID: 'y', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                    { label: '煙霧 MQ-2', data: [], borderColor: '#7f8c8d', yAxisID: 'y1', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                    { label: 'CO MQ-7', data: [], borderColor: '#8e44ad', yAxisID: 'y1', borderWidth: 2, tension: 0.3, pointRadius: 0 },
+                    { label: '定溫門檻', data: [], borderColor: '#e74c3c', yAxisID: 'y', borderWidth: 1, borderDash: [6, 4], pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { boxWidth: 12, font: { size: 11 } } } },
+                scales: {
+                    x: { title: { display: true, text: '時間 (秒)' }, ticks: { maxTicksLimit: 10 } },
+                    y: { min: 0, max: 90, position: 'left', title: { display: true, text: '°C' } },
+                    y1: { min: 0, max: 1023, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '類比值' } }
+                }
+            }
+        });
+    } else {
+        $('sensorChart').style.display = 'none';
+        $('chartFallback').style.display = 'flex';
+    }
+
+    function chartPush(tt, s, c) {
+        if (!chart) return;
+        const d = chart.data;
+        d.labels.push(Math.round(tt));
+        d.datasets[0].data.push(s.temp);
+        d.datasets[1].data.push(s.smoke);
+        d.datasets[2].data.push(s.co);
+        d.datasets[3].data.push(c.fixedTemp);
+        if (d.labels.length > MAX_POINTS) {
+            d.labels.shift();
+            d.datasets.forEach(ds => ds.data.shift());
+        }
+        chart.update();
+    }
+
+    function chartClear() {
+        if (!chart) return;
+        chart.data.labels = [];
+        chart.data.datasets.forEach(ds => ds.data = []);
+        chart.update();
+    }
+
+    // ================= 核心判定 =================
+    function computeRate(tt) {
+        // 以最近 30 秒的升溫幅度換算為 °C/min
+        while (history.length > 1 && history[0].t < tt - 30) history.shift();
+        const old = history[0];
+        const span = tt - old.t;
+        if (span < 5) return 0;
+        return (history[history.length - 1].temp - old.temp) / span * 60;
+    }
+
+    function processSample(s, tt) {
+        const c = cfg();
+        history.push({ t: tt, temp: s.temp });
+        const rate = computeRate(tt);
+
+        const fixedHit = s.temp >= c.fixedTemp;
+        const rorHit = rate >= c.ror;
+        const heatHit = fixedHit || rorHit;
+        const smokeHit = s.smoke >= c.smoke;
+        const coHit = s.co >= c.co;
+        const hits = heatHit + smokeHit + coHit;
+        const cond = c.mode === 'or' ? hits >= 1 : hits >= 2;
+
+        if (cond) { if (condSince === null) condSince = tt; } else condSince = null;
+        const held = cond ? tt - condSince : 0;
+        const alarm = cond && held >= c.debounce;
+        const confirming = cond && !alarm;
+        const warn = s.temp >= c.fixedTemp - 20 || s.smoke >= c.smoke * 0.6 || s.co >= c.co * 0.6 || rate >= c.ror * 0.6;
+
+        if (fixedHit && run.fixedAt == null) run.fixedAt = tt;
+        if (rorHit && run.rorAt == null) run.rorAt = tt;
+        if (alarm && run.alarmAt == null) run.alarmAt = tt;
+
+        render({ s, tt, c, rate, fixedHit, rorHit, heatHit, smokeHit, coHit, alarm, confirming, warn, held });
+        chartPush(tt, s, c);
+        pulseFlow(s, rate, alarm);
+        if (alarm) beep();
+        return alarm;
+    }
+
+    // ================= 畫面更新 =================
+    const fmtT = v => `t=${Math.round(v)} s`;
+
+    function render(r) {
+        const { s, c } = r;
+        $('dispTemp').innerText = s.temp.toFixed(1);
+        $('dispSmoke').innerText = Math.round(s.smoke);
+        $('dispCO').innerText = Math.round(s.co);
+        $('dispRate').innerText = r.rate.toFixed(1);
+        $('lblFixed').innerText = c.fixedTemp;
+        $('lblRor').innerText = c.ror;
+        $('simTime').innerText = `t = ${Math.round(r.tt)} s`;
+
+        $('lampFixed').classList.toggle('on', r.fixedHit);
+        $('lampRor').classList.toggle('on', r.rorHit);
+        $('lampAlarm').classList.toggle('on', r.alarm);
+        $('chipHeat').classList.toggle('hit', r.heatHit);
+        $('chipSmoke').classList.toggle('hit', r.smokeHit);
+        $('chipCO').classList.toggle('hit', r.coHit);
+        $('ruleText').innerText = (c.mode === 'or' ? '任一條件成立' : '至少兩項成立') + (c.debounce > 0 ? `，持續 ${c.debounce} 秒` : '') + '即警報';
+
+        $('fixedFirst').innerText = run.fixedAt != null ? `首次動作：${fmtT(run.fixedAt)}` : '尚未動作';
+        $('rorFirst').innerText = run.rorAt != null ? `首次動作：${fmtT(run.rorAt)}` : '尚未動作';
+        $('alarmFirst').innerText = run.alarmAt != null ? `首次警報：${fmtT(run.alarmAt)}` : '尚未警報';
+
+        const box = $('statusBox');
+        if (r.alarm) {
+            box.className = 'status-indicator status-danger';
+            box.innerText = '🚨 警報：火災危險！';
+        } else if (r.confirming) {
+            box.className = 'status-indicator status-warning';
+            box.innerText = `⏳ 條件成立，確認中 (${Math.floor(r.held)}/${c.debounce} 秒)`;
+        } else if (r.warn) {
+            box.className = 'status-indicator status-warning';
+            box.innerText = '⚠️ 注意：數值偏高';
+        } else {
+            box.className = 'status-indicator status-safe';
+            box.innerText = '✅ 狀態：安全監控中';
+        }
+
+        $('devBuzzer').classList.toggle('on', r.alarm);
+        $('devRed').classList.toggle('on', r.alarm);
+        $('devGreen').classList.toggle('on', !r.alarm);
+    }
+
+    function resetDisplays() {
+        ['lampFixed', 'lampRor', 'lampAlarm'].forEach(id => $(id).classList.remove('on'));
+        ['chipHeat', 'chipSmoke', 'chipCO'].forEach(id => $(id).classList.remove('hit'));
+        $('fixedFirst').innerText = '尚未動作';
+        $('rorFirst').innerText = '尚未動作';
+        $('alarmFirst').innerText = '尚未警報';
+        $('dispRate').innerText = '0.0';
+        $('simTime').innerText = 't = 0 s';
+        $('statusBox').className = 'status-indicator status-safe';
+        $('statusBox').innerText = '✅ 狀態：安全監控中';
+        $('devBuzzer').classList.remove('on');
+        $('devRed').classList.remove('on');
+        $('devGreen').classList.add('on');
+    }
+
+    function resetRun() {
+        t = 0;
+        history = [];
+        condSince = null;
+        run = { fixedAt: null, rorAt: null, alarmAt: null };
+        chartClear();
+        resetDisplays();
+    }
+
+    // ================= 資料流動畫 =================
+    const arrows = [...document.querySelectorAll('.flow-arrow .pkt')];
+    const nodes = [...document.querySelectorAll('.flow-node')];
+
+    function pulseFlow(s, rate, alarm) {
+        packetNo++;
+        $('fn0').innerText = `${s.temp.toFixed(1)}°C / ${Math.round(s.smoke)} / ${Math.round(s.co)}`;
+        $('fn2').innerText = `rate ${rate.toFixed(1)} · alarm: ${alarm}`;
+        $('fn3').innerText = `/fire/latest ← #${packetNo}`;
+        $('fn4').innerText = alarm ? '🚨 警報' : '更新 #' + packetNo;
+
+        flash(nodes[0], alarm);
+        arrows.forEach((p, i) => {
+            setTimeout(() => {
+                p.classList.toggle('alarm', alarm);
+                p.classList.remove('go');
+                void p.offsetWidth; // 重新觸發動畫
+                p.classList.add('go');
+                setTimeout(() => flash(nodes[i + 1], alarm), 300);
+            }, i * 120);
+        });
+    }
+
+    function flash(node, alarm) {
+        node.classList.add('flash');
+        node.classList.toggle('alarm', alarm);
+        setTimeout(() => node.classList.remove('flash', 'alarm'), 250);
+    }
+
+    function setFlowSerialMode(on) {
+        $('nodeRed').classList.toggle('skipped', on);
+        $('nodeFb').classList.toggle('skipped', on);
+        $('fn1').innerText = on ? 'USB 序列埠（實機）' : 'Serial.println()';
+        $('flowCaption').innerText = on
+            ? '實機模式：瀏覽器透過 Web Serial 直接讀取 Arduino，略過 Node-RED 與 Firebase（判定改在網頁中進行）。'
+            : '每筆數據從感測器出發，依序經過各節點；綠點表示正常，紅點表示該筆數據已判定為警報。';
+    }
+
+    // ================= 序列埠監看 =================
+    function serialPrint(text, cls) {
+        const mon = $('serialMon');
+        const line = document.createElement('div');
+        line.textContent = text;
+        if (cls) line.className = cls;
+        mon.appendChild(line);
+        while (mon.childElementCount > 120) mon.firstChild.remove();
+        mon.scrollTop = mon.scrollHeight;
+    }
+
+    const toJsonLine = s => `{"temp":${s.temp.toFixed(1)},"smoke":${Math.round(s.smoke)},"co":${Math.round(s.co)}}`;
+
+    // ================= 音效 =================
+    let audioCtx = null;
+    function beep() {
+        if (!$('cfgSound').checked) return;
+        const now = performance.now();
+        if (now - lastBeep < 500) return;
+        lastBeep = now;
+        try {
+            audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+            const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'square';
+            o.frequency.value = 880;
+            g.gain.value = 0.05;
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + 0.15);
+        } catch (e) { /* 不支援音效時忽略 */ }
+    }
+
+    // ================= 模擬計時器 =================
+    function startTicker() {
+        stopTicker();
+        ticker = setInterval(tick, 1000 / speed);
+    }
+    function stopTicker() {
+        if (ticker) clearInterval(ticker);
+        ticker = null;
+    }
+
+    function readSliders() {
+        return { temp: +$('simTemp').value, smoke: +$('simSmoke').value, co: +$('simCO').value };
+    }
+
+    function withNoise(s) {
+        return {
+            temp: clamp(s.temp + (Math.random() - 0.5) * 0.4, -40, 80),   // DHT22 量測上限 80°C
+            smoke: clamp(Math.round(s.smoke + (Math.random() - 0.5) * 16), 0, 1023),
+            co: clamp(Math.round(s.co + (Math.random() - 0.5) * 10), 0, 1023)
+        };
+    }
+
+    function tick() {
+        let s;
+        if (source === 'manual') {
+            s = readSliders();
+        } else if (source === 'scenario') {
+            const sc = SCENARIOS[scnKey];
+            if (t > sc.duration) { finishScenario(); return; }
+            s = withNoise(sc.fn(t));
+            $('scnProgress').style.width = (t / sc.duration * 100) + '%';
+        } else {
+            return;
+        }
+        serialPrint(toJsonLine(s));
+        processSample(s, t);
+        t++;
+    }
+
+    // ================= 來源切換 =================
+    function setSource(src, label) {
+        source = src;
+        $('srcLabel').innerText = '來源：' + label;
+    }
+
+    function startManual() {
+        stopScenarioUI();
+        speed = 1;
+        setSource('manual', '手動模擬');
+        resetRun();
+        serialPrint('# 手動模擬開始', 'sys');
+        startTicker();
+    }
+
+    function startScenario(key) {
+        const sc = SCENARIOS[key];
+        scnKey = key;
+        speed = +$('speedSel').value;
+        setSource('scenario', '情境劇本 ' + sc.name);
+        resetRun();
+        document.querySelectorAll('.scn').forEach(b => b.classList.toggle('running', b.dataset.key === key));
+        $('btnStopScn').disabled = false;
+        $('scnHint').innerText = '💡 ' + sc.hint;
+        $('scnProgress').style.width = '0';
+        serialPrint(`# 情境開始：${sc.name}（${sc.duration} 秒，${speed}x）`, 'sys');
+        startTicker();
+    }
+
+    function stopScenarioUI() {
+        document.querySelectorAll('.scn').forEach(b => b.classList.remove('running'));
+        $('btnStopScn').disabled = true;
+    }
+
+    function finishScenario() {
+        stopTicker();
+        stopScenarioUI();
+        $('scnProgress').style.width = '100%';
+        const sc = SCENARIOS[scnKey];
+        const c = cfg();
+        const alarmed = run.alarmAt != null;
+        let verdict, cls;
+        if (sc.fire && alarmed) { verdict = '正確偵測'; cls = 'r-ok'; }
+        else if (sc.fire) { verdict = '漏報'; cls = 'r-miss'; }
+        else if (alarmed) { verdict = '誤報'; cls = 'r-false'; }
+        else { verdict = '正確不報'; cls = 'r-ok'; }
+        results.unshift({
+            name: sc.name,
+            setting: (c.mode === 'or' ? '任一' : '交叉') + (c.debounce > 0 ? ` / ${c.debounce}s` : ''),
+            fixedAt: run.fixedAt, rorAt: run.rorAt, alarmAt: run.alarmAt,
+            verdict, cls
+        });
+        renderResults();
+        serialPrint(`# 情境結束：${sc.name} → ${verdict}`, 'sys');
+        setSource('scenario', sc.name + '（已結束）');
+    }
+
+    function renderResults() {
+        const tbody = $('resultTable').querySelector('tbody');
+        if (!results.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="muted">尚無紀錄，請到「情境劇本」分頁播放情境。</td></tr>';
+            $('resultSummary').innerHTML = '';
+            return;
+        }
+        const cell = v => v != null ? Math.round(v) + 's' : '—';
+        tbody.innerHTML = results.map(r =>
+            `<tr><td>${r.name}</td><td>${r.setting}</td><td>${cell(r.fixedAt)}</td><td>${cell(r.rorAt)}</td><td>${cell(r.alarmAt)}</td><td class="${r.cls}">${r.verdict}</td></tr>`
+        ).join('');
+        const count = v => results.filter(r => r.verdict === v).length;
+        $('resultSummary').innerHTML =
+            `<span>✅ 正確偵測 ${count('正確偵測')}</span><span>✅ 正確不報 ${count('正確不報')}</span>` +
+            `<span class="r-miss">❌ 漏報 ${count('漏報')}</span><span class="r-false">⚠️ 誤報 ${count('誤報')}</span>`;
+    }
+
+    // ================= Web Serial（實機連線） =================
+    let port = null, reader = null, keepReading = false, serialStart = 0;
+    const serialSupported = 'serial' in navigator;
+
+    function serialStatus(msg) { $('serialStatus').innerText = msg; }
+
+    async function connectSerial() {
+        if (!serialSupported) return;
+        try {
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 9600 });
+        } catch (e) {
+            serialStatus('連線取消或失敗：' + e.message);
+            port = null;
+            return;
+        }
+        stopTicker();
+        setSource('serial', 'Arduino 實機');
+        resetRun();
+        setFlowSerialMode(true);
+        serialStart = performance.now();
+        $('btnConnect').disabled = true;
+        $('btnDisconnect').disabled = false;
+        serialStatus('✅ 已連線（9600 baud），等待資料…');
+        serialPrint('# 已連線到 Arduino', 'sys');
+        keepReading = true;
+        readLoop();
+    }
+
+    async function readLoop() {
+        const decoder = new TextDecoderStream();
+        const pipeDone = port.readable.pipeTo(decoder.writable).catch(() => {});
+        reader = decoder.readable.getReader();
+        let buf = '';
+        try {
+            while (keepReading) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buf += value;
+                let idx;
+                while ((idx = buf.indexOf('\n')) >= 0) {
+                    const line = buf.slice(0, idx).trim();
+                    buf = buf.slice(idx + 1);
+                    if (line) handleSerialLine(line);
+                }
+            }
+        } catch (e) {
+            serialPrint('# 讀取中斷：' + e.message, 'err');
+        } finally {
+            reader.releaseLock();
+            reader = null;
+        }
+        await pipeDone;
+        try { await port.close(); } catch (e) { /* 已關閉 */ }
+        port = null;
+        $('btnConnect').disabled = !serialSupported;
+        $('btnDisconnect').disabled = true;
+        setFlowSerialMode(false);
+        serialStatus('已中斷連線');
+        serialPrint('# 序列埠已關閉', 'sys');
+        if (source === 'serial') setSource('serial', 'Arduino 實機（已中斷）');
+    }
+
+    function handleSerialLine(line) {
+        if (line.startsWith('#')) { serialPrint(line, 'cmt'); return; }
+        let d;
+        try { d = JSON.parse(line); } catch (e) { d = null; }
+        const ok = d && [d.temp, d.smoke, d.co].every(v => typeof v === 'number' && isFinite(v));
+        if (!ok) { serialPrint(line + '   ← 略過：非預期格式', 'err'); return; }
+        serialPrint(line);
+        serialStatus('✅ 接收中：最後更新 ' + new Date().toLocaleTimeString('zh-TW', { hour12: false }));
+        processSample(d, (performance.now() - serialStart) / 1000);
+    }
+
+    async function disconnectSerial() {
+        keepReading = false;
+        if (reader) { try { await reader.cancel(); } catch (e) { /* 忽略 */ } }
+    }
+
+    // ================= 事件綁定 =================
+    // 分頁
+    document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+        if (tab !== 'serial' && port) disconnectSerial();
+        if (tab === 'manual') startManual();
+        if (tab === 'scenario') {
+            stopTicker();
+            setSource('scenario', '情境劇本（請選擇情境）');
+        }
+        if (tab === 'serial') {
+            stopTicker();
+            stopScenarioUI();
+            if (!port) setSource('serial', 'Arduino 實機（未連線）');
+        }
+    }));
+
+    // 滑桿數值顯示
+    [['simTemp', 'vTemp'], ['simSmoke', 'vSmoke'], ['simCO', 'vCO'], ['cfgDebounce', 'vDebounce']].forEach(([inp, out]) => {
+        $(inp).addEventListener('input', () => $(out).innerText = $(inp).value);
+    });
+
+    // 情境按鈕
+    $('scnList').innerHTML = Object.entries(SCENARIOS).map(([key, sc]) =>
+        `<button class="scn" data-key="${key}">
+            <span class="fire-tag ${sc.fire ? 'yes' : 'no'}">${sc.fire ? '火災' : '非火災'}</span>
+            <b>${sc.name}</b><span>${sc.desc}（${sc.duration} 秒）</span>
+        </button>`
+    ).join('');
+    document.querySelectorAll('.scn').forEach(b => b.addEventListener('click', () => startScenario(b.dataset.key)));
+
+    $('btnStopScn').addEventListener('click', () => {
+        stopTicker();
+        stopScenarioUI();
+        serialPrint('# 情境已手動停止（不列入紀錄）', 'sys');
+        setSource('scenario', '情境劇本（已停止）');
+    });
+
+    $('speedSel').addEventListener('change', () => {
+        if (source === 'scenario' && ticker) { speed = +$('speedSel').value; startTicker(); }
+    });
+
+    $('btnClearResults').addEventListener('click', () => { results.length = 0; renderResults(); });
+    $('btnClearSerial').addEventListener('click', () => $('serialMon').innerHTML = '');
+
+    $('btnConnect').addEventListener('click', connectSerial);
+    $('btnDisconnect').addEventListener('click', disconnectSerial);
+    if (!serialSupported) {
+        $('btnConnect').disabled = true;
+        serialStatus('⚠️ 此瀏覽器不支援 Web Serial，請改用桌面版 Chrome 或 Edge。');
+    }
+
+    // ================= 啟動 =================
+    serialPrint('# AIoT 消防模擬器已啟動', 'sys');
+    startManual();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="platform.css?v=3">
+    <title>醫院智慧消防監測中心 | Hospital AIoT Safety Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --success-color: #27ae60;
+            --text-color: #333;
+            --muted: #7f8c8d;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            background: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--accent-color);
+        }
+        .header h1 { margin: 0; font-size: 1.5rem; color: var(--primary-color); }
+        .header-right { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 0.9rem; }
+        #clock { font-family: Consolas, monospace; font-size: 1.05rem; }
+        .pbar { margin: -20px -20px 20px; }   /* 抵銷 body 的 padding，讓頂部列貼齊視窗 */
+        .home-link { color: var(--accent-color); text-decoration: none; font-weight: bold; }
+
+        .status-badge {
+            background: var(--success-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .top-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+        .top-nav a {
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .top-nav a:hover { background: var(--accent-color); }
+
+        section { margin-bottom: 30px; }
+        .section-title {
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            border-left: 5px solid var(--danger-color);
+            padding-left: 10px;
+            margin: 0 0 6px;
+        }
+        .section-desc { color: #666; margin: 0 0 15px; font-size: 0.95rem; }
+
+        /* Dashboard Grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+        .card.lvl-warning { border-color: var(--warning-color); }
+        .card.lvl-alarm { border-color: var(--danger-color); }
+        .card.blink-bg { animation: blinkRed 1s infinite; }
+        @keyframes blinkRed {
+            0% { background-color: var(--card-bg); }
+            50% { background-color: #fadbd8; }
+            100% { background-color: var(--card-bg); }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .card-title { font-size: 1.1rem; font-weight: bold; color: var(--primary-color); display: flex; align-items: center; gap: 8px; }
+        .icon { font-size: 1.2rem; }
+
+        .pill {
+            font-size: 0.82rem;
+            font-weight: bold;
+            padding: 2px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            background: #e8f8ef;
+            color: var(--success-color);
+        }
+        .pill.warning { background: #fef5e7; color: #d68910; }
+        .pill.alarm { background: var(--danger-color); color: white; }
+        .pill.acked { background: #fadbd8; color: var(--danger-color); }
+
+        .metric-group { display: flex; justify-content: space-around; margin: 8px 0; }
+        .metric { text-align: center; }
+        .metric-value { font-size: 1.7rem; font-weight: bold; color: var(--primary-color); }
+        .metric-label { font-size: 0.85rem; color: var(--muted); }
+        .unit { font-size: 0.85rem; color: #95a5a6; }
+        .trend { font-size: 0.8rem; color: var(--muted); text-align: center; }
+
+        .spark { width: 100%; height: 70px; display: block; margin: 6px 0; background: #fafbfc; border-radius: 6px; }
+        .spark-legend { display: flex; gap: 12px; font-size: 0.75rem; color: var(--muted); justify-content: center; flex-wrap: wrap; }
+        .spark-legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+
+        .logic-box {
+            background: #f8f9fa;
+            border: 1px dashed #ccc;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: #666;
+            margin-top: 8px;
+        }
+        .logic-box .eval { margin-top: 4px; font-family: Consolas, monospace; font-size: 0.78rem; }
+        .ok { color: var(--success-color); }
+        .ng { color: var(--danger-color); font-weight: bold; }
+
+        .alarm-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .alarm-actions .btn { flex: 1; padding: 6px 8px; font-size: 0.82rem; }
+
+        /* Thermal */
+        .thermal-wrap { position: relative; }
+        .thermal-canvas { width: 100%; aspect-ratio: 4 / 3; display: block; border-radius: 8px; background: #000; image-rendering: auto; }
+        .thermal-canvas.pixel { image-rendering: pixelated; }
+        .camera-overlay {
+            position: absolute; top: 8px; left: 8px;
+            background: rgba(0,0,0,0.6); color: #0f0;
+            padding: 2px 6px; font-size: 0.72rem; font-family: monospace;
+        }
+        .thermal-scale { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--muted); margin-top: 6px; }
+        .thermal-scale .bar { flex: 1; height: 8px; border-radius: 4px;
+            background: linear-gradient(90deg, #000020, #3b0f70, #8c2981, #de4968, #fe9f6d, #fcfdbf); }
+        .thermal-opts { font-size: 0.8rem; color: #555; margin-top: 4px; }
+
+        /* Controls & Log */
+        .two-col { display: grid; grid-template-columns: 1fr 1.3fr; gap: 20px; }
+        .panel { background: var(--card-bg); border-radius: 12px; padding: 18px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .panel h3 { margin: 0 0 10px; color: var(--primary-color); font-size: 1.05rem; }
+
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 0.88rem;
+            background: var(--primary-color);
+            color: white;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn-danger { background: var(--danger-color); }
+        .btn-warning { background: var(--warning-color); }
+        .btn-success { background: var(--success-color); }
+        .btn-light { background: #e8ecf1; color: #333; }
+
+        .scn-list { display: grid; gap: 8px; }
+        .scn {
+            text-align: left; border: 1px solid #ddd; background: white; border-radius: 8px;
+            padding: 8px 10px; cursor: pointer; font-family: inherit;
+        }
+        .scn:hover { border-color: var(--danger-color); }
+        .scn.running { border-color: var(--danger-color); background: #fdecea; }
+        .scn b { display: block; font-size: 0.92rem; }
+        .scn span { font-size: 0.8rem; color: #666; }
+        .tag-fire { float: right; font-size: 0.7rem; padding: 0 6px; border-radius: 8px; color: white; background: var(--danger-color); }
+        .tag-fire.no { background: #95a5a6; }
+        .ctrl-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.88rem; }
+        .progress { height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+        .progress > div { height: 100%; width: 0; background: var(--danger-color); transition: width 0.2s; }
+        .hint { font-size: 0.85rem; color: #a04000; min-height: 1.2em; margin-top: 6px; }
+
+        .log-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .log-stats { font-size: 0.8rem; color: var(--muted); }
+        .log-section {
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: Consolas, monospace;
+            font-size: 0.84rem;
+            margin-top: 8px;
+        }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+        .log-time { color: #999; margin-right: 8px; }
+        .log-zone { color: var(--accent-color); margin-right: 6px; }
+        .log-alert { color: var(--danger-color); font-weight: bold; }
+        .log-warn { color: #d68910; }
+        .log-ack { color: var(--success-color); }
+
+        /* Floor drill */
+        .floor-grid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 20px; }
+        .floor-grid > div { min-width: 0; }
+        #floorSvg { width: 100%; height: auto; display: block; background: #fbfbfb; border-radius: 8px; border: 1px solid #e0e0e0; }
+        #floorSvg text { font-family: 'Microsoft JhengHei', sans-serif; pointer-events: none; }
+        .pt { transition: transform 1s ease-in-out; }
+        .pt.moving circle.body { stroke: #f1c40f; stroke-width: 3; }
+        .pt.threat circle.body { stroke: var(--danger-color); stroke-width: 3; }
+        .floor-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.8rem; color: #555; margin-top: 8px; }
+        .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
+        .floor-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+        .fstat { background: #f4f6f8; border-radius: 8px; padding: 8px; text-align: center; }
+        .fstat b { display: block; font-size: 1.2rem; color: var(--primary-color); }
+        .fstat span { font-size: 0.75rem; color: var(--muted); }
+
+        .settings label { display: block; font-size: 0.86rem; margin: 5px 0; }
+        .settings select { font-family: inherit; padding: 3px; }
+        .preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+        .estimate { font-size: 0.82rem; background: #eef6fc; border-radius: 6px; padding: 8px; margin-top: 8px; }
+
+        .race { display: grid; gap: 6px; }
+        .race-btn {
+            display: flex; align-items: center; gap: 10px;
+            text-align: left; border: 1px solid #ddd; background: white; border-radius: 8px;
+            padding: 7px 10px; cursor: pointer; font-family: inherit; font-size: 0.86rem;
+        }
+        .race-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+        .race-btn.done { background: #e8f8ef; border-color: var(--success-color); opacity: 1; }
+        .race-letter {
+            flex: none; width: 30px; height: 30px; border-radius: 50%;
+            background: var(--danger-color); color: white; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; font-size: 1.05rem;
+        }
+        .race-btn.done .race-letter { background: var(--success-color); }
+        .race-btn small { display: block; color: var(--muted); }
+        .race-time { margin-left: auto; font-family: Consolas, monospace; font-size: 0.8rem; color: var(--success-color); white-space: nowrap; }
+
+        .link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.82rem; }
+        .link-item { display: flex; align-items: center; gap: 6px; background: #f4f6f8; border-radius: 6px; padding: 5px 8px; }
+        .lamp { width: 11px; height: 11px; border-radius: 50%; background: #bdc3c7; flex: none; }
+        .lamp.on { background: var(--success-color); box-shadow: 0 0 6px var(--success-color); }
+        .lamp.bad { background: var(--danger-color); box-shadow: 0 0 6px var(--danger-color); }
+        .link-item .btn { margin-left: auto; padding: 2px 8px; font-size: 0.75rem; }
+        .valve-warn { display: none; background: #fdecea; border: 1px solid var(--danger-color); border-radius: 6px; padding: 8px; font-size: 0.82rem; margin-top: 6px; }
+
+        .drill-log { max-height: 160px; overflow-y: auto; font-family: Consolas, monospace; font-size: 0.8rem; background: #f8f9fa; border-radius: 6px; padding: 6px 8px; margin-top: 8px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        th, td { border: 1px solid #e0e0e0; padding: 6px 8px; text-align: left; }
+        th { background: #f4f6f8; }
+
+        /* Case timeline */
+        .case-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+        .timeline { position: relative; padding-left: 22px; }
+        .timeline::before { content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 3px; background: #dfe6e9; }
+        .tl-item { position: relative; margin-bottom: 12px; padding: 8px 10px; border-radius: 8px; transition: background 0.3s; }
+        .tl-item::before {
+            content: ''; position: absolute; left: -20px; top: 13px;
+            width: 11px; height: 11px; border-radius: 50%; background: #b2bec3; border: 2px solid white;
+        }
+        .tl-item.key::before { background: var(--danger-color); }
+        .tl-item.active { background: #fff3cd; }
+        .tl-time { font-family: Consolas, monospace; font-weight: bold; color: var(--primary-color); }
+        .tl-rel { font-size: 0.78rem; color: var(--muted); margin-left: 6px; }
+        .tl-text { font-size: 0.9rem; }
+        .tl-aiot { font-size: 0.82rem; color: #1e6fa8; background: #eef6fc; border-radius: 6px; padding: 4px 8px; margin-top: 4px; }
+        .fact-list { font-size: 0.9rem; padding-left: 18px; }
+        .fact-list li { margin-bottom: 6px; }
+        .source { font-size: 0.8rem; color: var(--muted); }
+        .source a { color: var(--accent-color); }
+
+        footer { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 30px; }
+        footer a { color: var(--accent-color); }
+
+        @media (max-width: 960px) {
+            .two-col, .floor-grid, .case-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .pbar { margin: -12px -12px 12px; }
+            .header { padding: 12px 15px; }
+            .header h1 { font-size: 1.2rem; }
+            .floor-stats { grid-template-columns: 1fr 1fr; }
+            .link-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g2">AIoT 消防偵測</span>
+    <span class="pb-sep">›</span><span class="pb-page">醫院智慧消防戰情中心</span>
+    <span class="pb-right"><a class="pb-btn" href="hospital-aiot_guide.html" target="_blank" rel="noopener">📖 使用說明</a></span>
+</div>
+
+    <div class="header">
+        <div>
+            <h1>🏥 醫院 AIoT 智慧消防戰情中心</h1>
+            <small>即時監測：普通病房 | 氧氣室 | 加護病房 (ICU) ・ 樓層避難演練 ・ 案例回顧</small>
+        </div>
+        <div class="header-right">
+            <span id="clock">--:--:--</span>
+            <label><input type="checkbox" id="soundOn"> 警報音</label>
+            <div id="system-status" class="status-badge">系統正常運作中</div>
+        </div>
+    </div>
+
+    <nav class="top-nav">
+        <a href="#monitor">📡 監控總覽</a>
+        <a href="#floor">🗺️ 7F 樓層避難演練</a>
+        <a href="#case">📼 案例回顧：2018 臺北醫院護理之家火災</a>
+    </nav>
+
+    <!-- ===================== 監控總覽 ===================== -->
+    <section id="monitor">
+        <h2 class="section-title">📡 監控總覽</h2>
+        <p class="section-desc">每區依照各自的 AI 規則判斷。警報需要人員「確認」後才會停止閃爍，條件解除後再「復歸」；若查明是誤判，可以「標記誤報」。</p>
+
+        <div class="dashboard">
+            <div class="card" id="card-ward">
+                <div class="card-header">
+                    <div class="card-title"><span class="icon">🛏️</span> 5F 普通病房區</div>
+                    <span class="pill" id="pill-ward">● 正常</span>
+                </div>
+                <div class="metric-group">
+                    <div class="metric">
+                        <div class="metric-value" id="val-pm25">12</div>
+                        <div class="metric-label">PM2.5 <span class="unit">μg/m³</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="val-co">3.0</div>
+                        <div class="metric-label">CO <span class="unit">ppm</span></div>
+                    </div>
+                </div>
+                <div class="trend">PM2.5 變化：<b id="val-slope">0</b> μg/m³/min</div>
+                <canvas class="spark" id="spark-ward"></canvas>
+                <div class="spark-legend"><span><i style="background:#8e44ad"></i>PM2.5（門檻 50）</span><span><i style="background:#e67e22"></i>CO（門檻 30）</span></div>
+                <div class="logic-box">
+                    AI 規則：PM2.5 ≥ 50、CO ≥ 30 ppm，且 PM2.5 <b>持續上升 ≥ 10 秒</b>（≥ 10 μg/m³/min）→ 初期陰燃。
+                    <div class="eval" id="eval-ward"></div>
+                </div>
+                <div class="alarm-actions">
+                    <button class="btn btn-danger" data-zone="ward" data-act="ack" disabled>確認</button>
+                    <button class="btn btn-success" data-zone="ward" data-act="reset" disabled>復歸</button>
+                    <button class="btn btn-light" data-zone="ward" data-act="false" disabled>標記誤報</button>
+                </div>
+            </div>
+
+            <div class="card" id="card-oxygen">
+                <div class="card-header">
+                    <div class="card-title"><span class="icon">🧪</span> B1 氧氣供應室</div>
+                    <span class="pill" id="pill-oxygen">● 正常</span>
+                </div>
+                <div class="metric-group">
+                    <div class="metric">
+                        <div class="metric-value" id="val-o2">20.9</div>
+                        <div class="metric-label">O₂ 濃度 <span class="unit">%</span></div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="val-temp">24.0</div>
+                        <div class="metric-label">環境溫度 <span class="unit">°C</span></div>
+                    </div>
+                </div>
+                <div class="trend">正常空氣含氧約 20.9%</div>
+                <canvas class="spark" id="spark-oxygen"></canvas>
+                <div class="spark-legend"><span><i style="background:#2980b9"></i>O₂（門檻 23.5%）</span><span><i style="background:#c0392b"></i>溫度（門檻 35°C）</span></div>
+                <div class="logic-box">
+                    AI 規則：O₂ ≥ 23.5%（<b>富氧</b>，可燃物更易起火、燃燒更劇烈）或溫度 ≥ 35°C → 警報；O₂ ≥ 22.5% 或溫度 ≥ 32°C → 注意。
+                    <div class="eval" id="eval-oxygen"></div>
+                </div>
+                <div class="alarm-actions">
+                    <button class="btn btn-danger" data-zone="oxygen" data-act="ack" disabled>確認</button>
+                    <button class="btn btn-success" data-zone="oxygen" data-act="reset" disabled>復歸</button>
+                    <button class="btn btn-light" data-zone="oxygen" data-act="false" disabled>標記誤報</button>
+                </div>
+            </div>
+
+            <div class="card" id="card-icu">
+                <div class="card-header">
+                    <div class="card-title"><span class="icon">🌡️</span> 3F 加護病房 (ICU)</div>
+                    <span class="pill" id="pill-icu">● 正常</span>
+                </div>
+                <div class="thermal-wrap">
+                    <canvas class="thermal-canvas" id="thermal" width="320" height="240"></canvas>
+                    <div class="camera-overlay">CAM-ICU-02 16×12 ・ T-MAX: <span id="val-thermal">36.0</span>°C</div>
+                </div>
+                <div class="thermal-scale"><span>20°C</span><div class="bar"></div><span>100°C</span></div>
+                <div class="thermal-opts">
+                    <label><input type="checkbox" id="pixelMode"> 顯示原始像素（16×12）</label>
+                    ・ 最高溫位置：<b id="val-hotloc">病床</b>
+                </div>
+                <canvas class="spark" id="spark-icu"></canvas>
+                <div class="spark-legend"><span><i style="background:#d35400"></i>T-MAX（門檻 60°C）</span></div>
+                <div class="logic-box">
+                    AI 規則：畫面最高溫 ≥ 60°C 持續 3 秒 → 熱點警報；≥ 50°C → 注意。人體表面約 34–36°C，不會誤判。
+                    <div class="eval" id="eval-icu"></div>
+                </div>
+                <div class="alarm-actions">
+                    <button class="btn btn-danger" data-zone="icu" data-act="ack" disabled>確認</button>
+                    <button class="btn btn-success" data-zone="icu" data-act="reset" disabled>復歸</button>
+                    <button class="btn btn-light" data-zone="icu" data-act="false" disabled>標記誤報</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <div class="panel">
+                <h3>🎛️ 情境模擬控制器</h3>
+                <div class="scn-list" id="scnList"></div>
+                <div class="ctrl-row">
+                    <label>播放速度
+                        <select id="speedSel">
+                            <option value="1">1x</option>
+                            <option value="5" selected>5x</option>
+                            <option value="10">10x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn-light" id="btnEndScn" disabled>結束情境（數值恢復）</button>
+                    <button class="btn" id="btnResetAll">全部重置</button>
+                </div>
+                <div class="progress"><div id="scnProgress"></div></div>
+                <div class="hint" id="scnHint"></div>
+            </div>
+
+            <div class="panel">
+                <div class="log-head">
+                    <h3 style="margin:0;">📝 事件日誌</h3>
+                    <span class="log-stats" id="logStats"></span>
+                    <button class="btn btn-light" id="btnExport" style="padding:4px 10px;">匯出 CSV</button>
+                </div>
+                <div class="log-section" id="log-container"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== 樓層避難演練 ===================== -->
+    <section id="floor">
+        <h2 class="section-title">🗺️ 7F 樓層避難演練：水平避難與 R.A.C.E.</h2>
+        <p class="section-desc">醫院與護理之家的病人多數無法自行逃生，因此採「<b>水平避難</b>」：先把起火區劃的病人移到同一層、以防火門隔開的相鄰區劃，而不是一開始就往樓梯疏散。你扮演值班人員，警報響起後依序執行 R.A.C.E.。</p>
+
+        <div class="floor-grid">
+            <div class="panel">
+                <svg id="floorSvg" viewBox="0 0 800 430" xmlns="http://www.w3.org/2000/svg"></svg>
+                <div class="floor-legend">
+                    <span><span class="dot" style="background:#27ae60"></span>步：可自行行走</span>
+                    <span><span class="dot" style="background:#2980b9"></span>輪：輪椅（需 1 人協助）</span>
+                    <span><span class="dot" style="background:#e67e22"></span>床：臥床（需 2 人搬運）</span>
+                    <span>黃框＝搬運中・紅框＝受濃煙威脅</span>
+                </div>
+                <div class="floor-stats">
+                    <div class="fstat"><b id="fsTime">0:00</b><span>演練時間</span></div>
+                    <div class="fstat"><b id="fsStaff">3/3</b><span>可用人力</span></div>
+                    <div class="fstat"><b id="fsSafe">0/14</b><span>已水平避難（區劃 A）</span></div>
+                    <div class="fstat"><b id="fsThreat">0</b><span>受濃煙威脅</span></div>
+                </div>
+                <div class="drill-log" id="drillLog"></div>
+            </div>
+
+            <div>
+                <div class="panel settings" id="drillSettings">
+                    <h3>⚙️ 演練條件</h3>
+                    <div class="preset-row">
+                        <button class="btn btn-light" id="presetCase">📼 案例條件</button>
+                        <button class="btn btn-light" id="presetGood">✅ 改善後條件</button>
+                    </div>
+                    <label>起火病房
+                        <select id="optFire">
+                            <option value="701">701</option><option value="702">702</option>
+                            <option value="703" selected>703</option><option value="704">704</option>
+                        </select>
+                    </label>
+                    <label>班別人力
+                        <select id="optShift">
+                            <option value="6">日班（6 人）</option>
+                            <option value="3" selected>夜班（3 人：護理師 1、照服員 2）</option>
+                        </select>
+                    </label>
+                    <label><input type="checkbox" id="optWall"> 病房隔間牆<b>到頂</b>（與樓板密接，天花板上方不相通）</label>
+                    <label>防火門
+                        <select id="optFireDoor">
+                            <option value="auto">偵煙連動自動關閉</option>
+                            <option value="blocked">被雜物卡住（需人工排除）</option>
+                        </select>
+                    </label>
+                    <label><input type="checkbox" id="opt119"> 119 火災通報裝置（自動連線消防局）</label>
+                    <label><input type="checkbox" id="optLink"> 排煙、空調、電梯<b>自動連動</b></label>
+                    <label>操作方式
+                        <select id="optMode">
+                            <option value="student">學生操作（自己按 R.A.C.E.）</option>
+                            <option value="ideal">自動演示：理想應變</option>
+                            <option value="case">自動演示：依案例時序</option>
+                        </select>
+                    </label>
+                    <div class="estimate" id="estimate"></div>
+                    <div class="ctrl-row">
+                        <label>速度
+                            <select id="drillSpeed">
+                                <option value="2">2x</option>
+                                <option value="5" selected>5x</option>
+                                <option value="10">10x</option>
+                            </select>
+                        </label>
+                        <button class="btn btn-danger" id="btnDrillStart">🔥 開始演練</button>
+                        <button class="btn btn-light" id="btnDrillStop" disabled>停止</button>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top:20px;">
+                    <h3>🚒 R.A.C.E. 應變步驟</h3>
+                    <div class="race">
+                        <button class="race-btn" data-race="R" disabled><span class="race-letter">R</span><span><b>Rescue 救援</b><small>先把起火病房內的病人移出</small></span><span class="race-time"></span></button>
+                        <button class="race-btn" data-race="A" disabled><span class="race-letter">A</span><span><b>Alarm 通報</b><small>撥打 119、院內廣播</small></span><span class="race-time"></span></button>
+                        <button class="race-btn" data-race="C" disabled><span class="race-letter">C</span><span><b>Contain 侷限</b><small>起火房病人移出後，關閉房門與防火門</small></span><span class="race-time"></span></button>
+                        <button class="race-btn" data-race="E" disabled><span class="race-letter">E</span><span><b>Evacuate 疏散</b><small>區劃 A 全員水平避難至區劃 B</small></span><span class="race-time"></span></button>
+                    </div>
+
+                    <h3 style="margin-top:15px;">🔗 設備連動狀態</h3>
+                    <div class="link-grid">
+                        <div class="link-item"><span class="lamp" id="lkAlarm"></span>火警警報</div>
+                        <div class="link-item"><span class="lamp" id="lk119"></span>119 已通報</div>
+                        <div class="link-item"><span class="lamp" id="lkDoor"></span><span id="lkDoorText">防火門 開啟</span></div>
+                        <div class="link-item"><span class="lamp" id="lkRoomDoor"></span>起火房門 關閉</div>
+                        <div class="link-item"><span class="lamp" id="lkExhaust"></span>排煙<button class="btn btn-light" data-link="exhaust" disabled>啟動</button></div>
+                        <div class="link-item"><span class="lamp" id="lkAC"></span>空調停止<button class="btn btn-light" data-link="ac" disabled>停止</button></div>
+                        <div class="link-item"><span class="lamp" id="lkElev"></span>電梯迫降<button class="btn btn-light" data-link="elevator" disabled>迫降</button></div>
+                        <div class="link-item"><span class="lamp" id="lkValve"></span>氧氣區域閥<button class="btn btn-light" id="btnValve" disabled>關閉</button></div>
+                    </div>
+                    <div class="valve-warn" id="valveWarn">
+                        ⚠️ <b>關閉前請先確認：</b>本區是否有病人正在使用氧氣或呼吸器？需由醫護人員改接備用氧氣鋼瓶後再關閉，否則會危及病人生命。<br>
+                        <button class="btn btn-danger" id="btnValveConfirm" style="margin-top:6px;">已確認病人改用備用氧氣，關閉區域閥</button>
+                        <button class="btn btn-light" id="btnValveCancel" style="margin-top:6px;">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+            <h3>📋 演練結果比較</h3>
+            <div class="table-wrap">
+                <table id="drillTable">
+                    <thead><tr><th>條件</th><th>人力</th><th>119 通報</th><th>防火門關閉</th><th>水平避難完成</th><th>受濃煙威脅</th></tr></thead>
+                    <tbody><tr><td colspan="6" style="color:#999;">尚無紀錄。建議先跑「案例條件 + 依案例時序」，再跑「改善後條件 + 理想應變」做比較。</td></tr></tbody>
+                </table>
+            </div>
+            <p class="source">＊本演練為教學用簡化模型：煙流擴散、搬運時間（臥床 90 秒／輪椅 60 秒／步行 40 秒，濃煙中 ×1.5）與「濃煙中累積 60 秒即視為受威脅」皆為示意參數，非工程計算。所有時間都從警報響起起算；警報後 4 分鐘會有他樓層支援 3 人。</p>
+        </div>
+    </section>
+
+    <!-- ===================== 案例回顧 ===================== -->
+    <section id="case">
+        <h2 class="section-title">📼 案例回顧：2018 年衛福部臺北醫院護理之家火災</h2>
+        <p class="section-desc">2018 年 8 月 13 日清晨，新北市新莊區衛福部臺北醫院 7 樓護理之家 7A23 病房起火。以下時間依監察院糾正案文所載（已校正監視器時間誤差），並對照「若導入 AIoT 與連動設備，能在哪裡爭取時間」。</p>
+
+        <div class="case-grid">
+            <div class="panel">
+                <div class="ctrl-row" style="margin-top:0; margin-bottom:12px;">
+                    <button class="btn btn-danger" id="btnCasePlay">▶ 重播時間軸</button>
+                    <span class="source" id="caseClock"></span>
+                </div>
+                <div class="timeline" id="timeline"></div>
+            </div>
+            <div class="panel">
+                <h3>🔎 關鍵事實</h3>
+                <ul class="fact-list">
+                    <li><b>起火原因：</b>住民自備的電磁波床墊因電氣因素起火。院方未經專業評估、檢查即讓住民使用，近一年間也未再確認其安全性。</li>
+                    <li><b>夜間人力：</b>護理人員 1 名、照服員 2 名（符合當時人力標準）。</li>
+                    <li><b>延遲通報：</b>火警受信總機 4:28:59 就已作動，消防局卻到 4:36:03 才接獲報案，延遲逾 7 分鐘。院內緊急專線為 4 碼（5999），值勤人員慌亂中誤撥。</li>
+                    <li><b>煙流擴散：</b>起火病室在發現火源約 2 分 59 秒後即濃煙密布。罹難住民絕大多數位於<b>起火病房以外</b>的病房：濃煙經由「未到頂」的隔間牆上方天花板空間及房門竄流。</li>
+                    <li><b>傷亡：</b>共造成 15 人死亡。</li>
+                </ul>
+                <h3>📜 後續法規修正</h3>
+                <ul class="fact-list">
+                    <li>內政部於 2018 年 10 月 17 日修正發布《各類場所消防安全設備設置標準》（增訂第 22 條之 1 等條文）：護理之家等收治避難弱者的場所，<b>不論面積大小</b>，都應設置與消防機關自動連線的 <b>119 火災通報裝置</b>，自 2019 年 1 月 1 日施行。</li>
+                    <li>監察院並要求檢討病房、寢室隔間牆「與樓板密接」及門窗防火性能等規範，以阻絕煙流擴散。</li>
+                </ul>
+                <h3>🧪 對照演練</h3>
+                <p style="font-size:0.9rem;">到上方「樓層避難演練」，先套用「📼 案例條件」，操作方式選「依案例時序」跑一次；再套用「✅ 改善後條件」、選「理想應變」跑一次，比較受濃煙威脅的人數。</p>
+                <p class="source">資料來源：<a href="https://cybsbox.cy.gov.tw/CYBSBoxSSL/edoc/download/60301" target="_blank" rel="noopener">監察院糾正案文（臺北醫院護理之家火災）</a>、<a href="https://mohw.gov.tw/cp-16-43276-1.html" target="_blank" rel="noopener">衛生福利部新聞稿（2018/8/13）</a>。本頁為教學整理，詳細內容請以原始文件為準。</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>醫院 AIoT 智慧消防戰情中心 ｜ 教學示範用途，不可取代經認證的火警自動警報設備 ｜ <a href="index.html">回平台首頁</a></footer>
+
+<script>
+// ================= 工具 =================
+const $ = id => document.getElementById(id);
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const ramp = (t, a, b) => clamp((t - a) / (b - a), 0, 1);
+const smooth = (t, a, b) => { const x = ramp(t, a, b); return x * x * (3 - 2 * x); };
+const noise = amp => (Math.random() - 0.5) * 2 * amp;
+const nowStr = () => new Date().toLocaleTimeString('zh-TW', { hour12: false });
+const mmss = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+// ================= 音效 =================
+let audioCtx = null, lastBeep = 0;
+function beep() {
+    if (!$('soundOn').checked) return;
+    const n = performance.now();
+    if (n - lastBeep < 700) return;
+    lastBeep = n;
+    try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'square'; o.frequency.value = 900; g.gain.value = 0.05;
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + 0.18);
+    } catch (e) { /* 不支援時忽略 */ }
+}
+
+// ================= 事件日誌 =================
+const logRows = [];
+const stats = { alarms: 0, falses: 0 };
+function addLog(zone, msg, type = 'info') {
+    const time = nowStr();
+    logRows.push({ time, zone, type, msg });
+    const div = document.createElement('div');
+    div.className = 'log-entry';
+    const cls = { alert: 'log-alert', warn: 'log-warn', ack: 'log-ack' }[type] || '';
+    div.innerHTML = `<span class="log-time">${time}</span><span class="log-zone">[${zone}]</span>`;
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = msg;
+    div.appendChild(span);
+    const box = $('log-container');
+    box.prepend(div);
+    while (box.childElementCount > 100) box.lastChild.remove();
+    $('logStats').innerText = `警報 ${stats.alarms} 次・誤報 ${stats.falses} 次`;
+}
+
+$('btnExport').addEventListener('click', () => {
+    const esc = v => '"' + String(v).replace(/"/g, '""') + '"';
+    const csv = '﻿' + ['時間,區域,類型,內容', ...logRows.map(r => [r.time, r.zone, r.type, r.msg].map(esc).join(','))].join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = '醫院消防事件日誌.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+});
+
+// ================= 熱影像 (ICU) =================
+const TW = 16, TH = 12;
+const HOT = { bed: { x: 5, y: 6, label: '病床' }, monitor: { x: 10, y: 3, label: '監視器' }, outlet: { x: 13, y: 9, label: '插座/延長線' } };
+let thermal = new Float32Array(TW * TH);
+const COLOR_STOPS = [[0, [0, 0, 32]], [0.2, [59, 15, 112]], [0.4, [140, 41, 129]], [0.6, [222, 73, 104]], [0.8, [254, 159, 109]], [1, [252, 253, 191]]];
+function heatColor(t) {
+    const x = clamp((t - 20) / 80, 0, 1);
+    for (let i = 1; i < COLOR_STOPS.length; i++) {
+        const [p1, c1] = COLOR_STOPS[i], [p0, c0] = COLOR_STOPS[i - 1];
+        if (x <= p1) { const k = (x - p0) / (p1 - p0); return c0.map((v, j) => Math.round(v + (c1[j] - v) * k)); }
+    }
+    return COLOR_STOPS[COLOR_STOPS.length - 1][1];
+}
+const gauss = (x, y, cx, cy, s) => Math.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * s * s));
+
+function computeThermal(rise, sigma) {
+    let max = -1, mx = 0, my = 0;
+    for (let y = 0; y < TH; y++) for (let x = 0; x < TW; x++) {
+        let v = 23
+            + 12 * gauss(x, y, HOT.bed.x, HOT.bed.y, 1.6)          // 病人體溫 ≈ 35°C
+            + 8 * gauss(x, y, HOT.monitor.x, HOT.monitor.y, 0.9)   // 醫療儀器 ≈ 31°C
+            + (5 + rise) * gauss(x, y, HOT.outlet.x, HOT.outlet.y, sigma)
+            + noise(0.25);
+        thermal[y * TW + x] = v;
+        if (v > max) { max = v; mx = x; my = y; }
+    }
+    return { max, mx, my };
+}
+
+const thermalCanvas = $('thermal');
+const tctx = thermalCanvas.getContext('2d');
+const offscreen = document.createElement('canvas');
+offscreen.width = TW; offscreen.height = TH;
+const octx = offscreen.getContext('2d');
+function renderThermal(info) {
+    const img = octx.createImageData(TW, TH);
+    for (let i = 0; i < TW * TH; i++) {
+        const [r, g, b] = heatColor(thermal[i]);
+        img.data[i * 4] = r; img.data[i * 4 + 1] = g; img.data[i * 4 + 2] = b; img.data[i * 4 + 3] = 255;
+    }
+    octx.putImageData(img, 0, 0);
+    const W = thermalCanvas.width, H = thermalCanvas.height, cw = W / TW, ch = H / TH;
+    tctx.imageSmoothingEnabled = !$('pixelMode').checked;
+    tctx.drawImage(offscreen, 0, 0, W, H);
+    tctx.font = '12px Microsoft JhengHei, sans-serif';
+    tctx.fillStyle = 'rgba(255,255,255,0.75)';
+    Object.values(HOT).forEach(h => tctx.fillText(h.label, h.x * cw - 10, h.y * ch + ch + 14));
+    // 最高溫十字框
+    tctx.strokeStyle = info.max >= 60 ? '#ff4d4d' : '#00ff66';
+    tctx.lineWidth = 2;
+    tctx.strokeRect(info.mx * cw - 2, info.my * ch - 2, cw + 4, ch + 4);
+    tctx.fillStyle = tctx.strokeStyle;
+    tctx.fillText(info.max.toFixed(1) + '°C', Math.min(info.mx * cw + cw + 4, W - 50), info.my * ch + 10);
+}
+
+// ================= 趨勢小圖 =================
+function drawSpark(canvas, series) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w) return;
+    if (canvas.width !== Math.round(w * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+    const c = canvas.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    const N = 120;
+    series.forEach(s => {
+        const yOf = v => h - 4 - (clamp(v, s.min, s.max) - s.min) / (s.max - s.min) * (h - 8);
+        if (s.th != null) {
+            c.setLineDash([4, 3]); c.strokeStyle = s.color; c.globalAlpha = 0.45; c.lineWidth = 1;
+            c.beginPath(); c.moveTo(0, yOf(s.th)); c.lineTo(w, yOf(s.th)); c.stroke();
+            c.setLineDash([]); c.globalAlpha = 1;
+        }
+        c.strokeStyle = s.color; c.lineWidth = 2; c.beginPath();
+        const d = s.data, off = N - d.length;
+        d.forEach((v, i) => { const x = (off + i) / (N - 1) * w; i ? c.lineTo(x, yOf(v)) : c.moveTo(x, yOf(v)); });
+        c.stroke();
+    });
+}
+
+// ================= 區域定義 =================
+const ZONE_NAME = { ward: '5F 病房', oxygen: 'B1 氧氣室', icu: '3F ICU' };
+const zs = {};
+function initZoneState() {
+    ['ward', 'oxygen', 'icu'].forEach(k => {
+        zs[k] = { alarm: null, needRearm: false, warn: false, warnOffFor: 0, dangerFor: 0, hist: { a: [], b: [] }, v: {} };
+    });
+    zs.ward.pmHist = [];
+    zs.ward.risingFor = 0;
+    zs.ward.sustainedAt = -999;
+}
+initZoneState();
+
+const SCENARIOS = {
+    smolder: { zone: 'ward', name: '🛏️ 情境 1：病房陰燃', fire: true, duration: 180, desc: '床墊電線悶燒，PM2.5 與 CO 緩慢上升。', hint: '觀察：「注意」比「警報」早多久出現？' },
+    spray: { zone: 'ward', name: '🧴 情境 2：病房噴霧清潔', fire: false, duration: 80, desc: 'PM2.5 短暫飆高，但 CO 不變。', hint: '觀察：為什麼只有「注意」而沒有警報？（CO 沒有上升）' },
+    o2leak: { zone: 'oxygen', name: '🫁 情境 3：氧氣管線洩漏', fire: true, duration: 150, desc: '氧氣濃度逐漸升高，形成富氧環境。', hint: '富氧不是火災，卻會讓任何火源變得非常危險，所以同樣要警報。' },
+    icu: { zone: 'icu', name: '🔌 情境 4：ICU 延長線過熱', fire: true, duration: 150, desc: '插座／延長線區溫度逐漸升高、熱區擴大。', hint: '觀察：熱影像上熱點位置與擴大過程；可勾選「顯示原始像素」看感測器原始解析度。' }
+};
+
+let zoneScn = null;   // { key, t }
+let simT = 0;
+
+function sampleZones() {
+    const k = zoneScn ? zoneScn.key : null;
+    const st = zoneScn ? Math.min(zoneScn.t, SCENARIOS[k].duration) : 0;
+
+    // 普通病房
+    let pm25 = 12, co = 3;
+    if (k === 'smolder') { pm25 = 12 + 108 * smooth(st, 20, 150); co = 3 + 52 * smooth(st, 40, 160); }
+    if (k === 'spray') { const s = smooth(st, 5, 12) - smooth(st, 25, 60); pm25 = 12 + 78 * s; }
+    zs.ward.v = { pm25: Math.max(0, pm25 + noise(1.5)), co: Math.max(0, co + noise(0.5)) };
+
+    // 氧氣室
+    let o2 = 20.9, temp = 24;
+    if (k === 'o2leak') { o2 += 3.6 * smooth(st, 15, 120); temp += 1.5 * smooth(st, 15, 120); }
+    zs.oxygen.v = { o2: o2 + noise(0.03), temp: temp + noise(0.15) };
+
+    // ICU 熱影像
+    let rise = 0, sigma = 0.8;
+    if (k === 'icu') { rise = 70 * smooth(st, 10, 130); sigma = 0.8 + 1.4 * smooth(st, 10, 130); }
+    const info = computeThermal(rise, sigma);
+    zs.icu.v = { tmax: info.max, info };
+}
+
+// 每區規則：回傳 { warn, danger, trigger, evalText, alarmMsg }
+function evalWard() {
+    const z = zs.ward, v = z.v;
+    z.pmHist.push({ t: simT, v: v.pm25 });
+    while (z.pmHist.length > 1 && z.pmHist[0].t < simT - 30) z.pmHist.shift();
+    const span = simT - z.pmHist[0].t;
+    const slope = span >= 5 ? (v.pm25 - z.pmHist[0].v) / span * 60 : 0;
+    z.risingFor = slope >= 10 ? z.risingFor + 1 : 0;
+    if (z.risingFor >= 10) z.sustainedAt = simT;
+    const rising = simT - z.sustainedAt <= 60;
+    const danger = v.pm25 >= 50 && v.co >= 30;
+    $('val-slope').innerText = (slope >= 0 ? '+' : '') + slope.toFixed(0);
+    const mark = b => b ? '<span class="ng">✔</span>' : '<span class="ok">✘</span>';
+    return {
+        warn: v.pm25 >= 35 || v.co >= 15,
+        danger,
+        trigger: danger && rising,
+        evalText: `PM2.5≥50 ${mark(v.pm25 >= 50)}　CO≥30 ${mark(v.co >= 30)}　持續上升 ${mark(rising)}`,
+        alarmMsg: '偵測到 PM2.5 與 CO 同步持續上升，判定為初期陰燃！請前往查看並準備 R.A.C.E.',
+        warnMsg: v.co < 15 ? 'PM2.5 升高但 CO 正常：可能為噴霧、粉塵，持續觀察。' : 'PM2.5 / CO 數值偏高，持續觀察。'
+    };
+}
+function evalOxygen() {
+    const v = zs.oxygen.v;
+    const mark = b => b ? '<span class="ng">✔</span>' : '<span class="ok">✘</span>';
+    return {
+        warn: v.o2 >= 22.5 || v.temp >= 32,
+        danger: v.o2 >= 23.5 || v.temp >= 35,
+        trigger: v.o2 >= 23.5 || v.temp >= 35,
+        evalText: `O₂≥23.5% ${mark(v.o2 >= 23.5)}　溫度≥35°C ${mark(v.temp >= 35)}`,
+        alarmMsg: v.o2 >= 23.5
+            ? `氧氣濃度 ${v.o2.toFixed(1)}% 已達富氧！禁止一切火源，檢查管線洩漏並加強通風。`
+            : `氧氣室溫度 ${v.temp.toFixed(1)}°C 超過閥值 (35°C)，請立即檢查！`,
+        warnMsg: '氧氣濃度或溫度偏高，請留意管線與空調狀況。'
+    };
+}
+function evalICU() {
+    const z = zs.icu, v = z.v;
+    z.dangerFor = v.tmax >= 60 ? z.dangerFor + 1 : 0;
+    const info = v.info;
+    const near = Object.values(HOT).reduce((a, h) => {
+        const d = (h.x - info.mx) ** 2 + (h.y - info.my) ** 2;
+        return d < a.d ? { d, label: h.label } : a;
+    }, { d: Infinity, label: '' });
+    $('val-hotloc').innerText = near.label;
+    const mark = b => b ? '<span class="ng">✔</span>' : '<span class="ok">✘</span>';
+    return {
+        warn: v.tmax >= 50,
+        danger: v.tmax >= 60,
+        trigger: z.dangerFor >= 3,
+        evalText: `T-MAX≥60°C ${mark(v.tmax >= 60)}　持續 ${Math.min(z.dangerFor, 3)}/3 秒`,
+        alarmMsg: `${near.label}區偵測到異常熱點 ${v.tmax.toFixed(1)}°C，請預防電氣火災（勿任意拔除維生設備電源）。`,
+        warnMsg: `${near.label}區溫度偏高 (${v.tmax.toFixed(1)}°C)，請檢查用電設備。`
+    };
+}
+const EVAL = { ward: evalWard, oxygen: evalOxygen, icu: evalICU };
+
+function updateZone(key) {
+    const z = zs[key];
+    const r = EVAL[key]();
+    $('eval-' + key).innerHTML = r.evalText;
+
+    if (z.needRearm && !r.danger) z.needRearm = false;
+    if (r.trigger && !z.alarm && !z.needRearm) {
+        z.alarm = 'unacked';
+        stats.alarms++;
+        addLog(ZONE_NAME[key], '🚨 ' + r.alarmMsg, 'alert');
+    }
+
+    // 注意狀態（含遲滯：連續 5 秒低於門檻才解除）
+    if (r.warn) {
+        z.warnOffFor = 0;
+        if (!z.warn) { z.warn = true; if (!z.alarm) addLog(ZONE_NAME[key], '⚠️ ' + r.warnMsg, 'warn'); }
+    } else if (z.warn && ++z.warnOffFor >= 5) {
+        z.warn = false;
+        if (!z.alarm) addLog(ZONE_NAME[key], '數值恢復正常。');
+    }
+    z.danger = r.danger;
+    renderZone(key);
+}
+
+function renderZone(key) {
+    const z = zs[key];
+    const card = $('card-' + key), pill = $('pill-' + key);
+    card.classList.toggle('blink-bg', z.alarm === 'unacked');
+    card.classList.toggle('lvl-alarm', !!z.alarm);
+    card.classList.toggle('lvl-warning', !z.alarm && z.warn);
+    if (z.alarm === 'unacked') { pill.className = 'pill alarm'; pill.innerText = '🚨 警報（未確認）'; }
+    else if (z.alarm === 'acked') { pill.className = 'pill acked'; pill.innerText = z.danger ? '🚨 處理中' : '✓ 條件已解除，可復歸'; }
+    else if (z.warn) { pill.className = 'pill warning'; pill.innerText = '⚠ 注意'; }
+    else { pill.className = 'pill'; pill.innerText = '● 正常'; }
+
+    const btn = act => document.querySelector(`[data-zone="${key}"][data-act="${act}"]`);
+    btn('ack').disabled = z.alarm !== 'unacked';
+    btn('reset').disabled = !(z.alarm === 'acked' && !z.danger);
+    btn('false').disabled = !z.alarm;
+}
+
+document.querySelectorAll('.alarm-actions .btn').forEach(b => b.addEventListener('click', () => {
+    const key = b.dataset.zone, z = zs[key];
+    if (b.dataset.act === 'ack') {
+        z.alarm = 'acked';
+        addLog(ZONE_NAME[key], '值班人員已確認警報，停止閃爍與音響，前往現場處置。', 'ack');
+    } else if (b.dataset.act === 'reset') {
+        z.alarm = null;
+        addLog(ZONE_NAME[key], '現場處置完成，警報已復歸。', 'ack');
+    } else {
+        z.alarm = null;
+        z.needRearm = true;   // 條件解除前不再重複發報
+        stats.falses++;
+        addLog(ZONE_NAME[key], '已標記為誤報並復歸（請記錄誤報原因，作為調整門檻的依據）。', 'warn');
+    }
+    renderZone(key);
+    updateSystemStatus();
+}));
+
+function updateSystemStatus() {
+    const list = Object.values(zs);
+    const unacked = list.filter(z => z.alarm === 'unacked').length;
+    const acked = list.filter(z => z.alarm === 'acked').length;
+    const warn = list.filter(z => !z.alarm && z.warn).length;
+    const badge = $('system-status');
+    if (unacked) { badge.style.background = 'var(--danger-color)'; badge.innerText = `🚨 ${unacked} 區警報未確認`; }
+    else if (acked) { badge.style.background = '#c0392b'; badge.innerText = `⚠️ 異常事件處理中（${acked} 區）`; }
+    else if (warn) { badge.style.background = 'var(--warning-color)'; badge.innerText = `⚠️ ${warn} 區數值偏高`; }
+    else { badge.style.background = 'var(--success-color)'; badge.innerText = '系統正常運作中'; }
+    if (unacked) beep();
+}
+
+function renderValues() {
+    const w = zs.ward.v, o = zs.oxygen.v, i = zs.icu.v;
+    $('val-pm25').innerText = w.pm25.toFixed(0);
+    $('val-co').innerText = w.co.toFixed(1);
+    $('val-o2').innerText = o.o2.toFixed(1);
+    $('val-temp').innerText = o.temp.toFixed(1);
+    $('val-thermal').innerText = i.tmax.toFixed(1);
+    renderThermal(i.info);
+
+    const push = (arr, v) => { arr.push(v); if (arr.length > 120) arr.shift(); };
+    push(zs.ward.hist.a, w.pm25); push(zs.ward.hist.b, w.co);
+    push(zs.oxygen.hist.a, o.o2); push(zs.oxygen.hist.b, o.temp);
+    push(zs.icu.hist.a, i.tmax);
+    drawSpark($('spark-ward'), [
+        { data: zs.ward.hist.a, min: 0, max: 160, th: 50, color: '#8e44ad' },
+        { data: zs.ward.hist.b, min: 0, max: 60, th: 30, color: '#e67e22' }]);
+    drawSpark($('spark-oxygen'), [
+        { data: zs.oxygen.hist.a, min: 20, max: 26, th: 23.5, color: '#2980b9' },
+        { data: zs.oxygen.hist.b, min: 20, max: 45, th: 35, color: '#c0392b' }]);
+    drawSpark($('spark-icu'), [{ data: zs.icu.hist.a, min: 20, max: 100, th: 60, color: '#d35400' }]);
+}
+
+function zoneTick() {
+    if (zoneScn) {
+        const sc = SCENARIOS[zoneScn.key];
+        zoneScn.t++;
+        $('scnProgress').style.width = Math.min(100, zoneScn.t / sc.duration * 100) + '%';
+        if (zoneScn.t === sc.duration) $('scnHint').innerText = '情境已發展完成，數值維持在最終狀態。處置後請按「結束情境」讓數值恢復，再復歸警報。';
+    }
+    simT++;
+    sampleZones();
+    ['ward', 'oxygen', 'icu'].forEach(updateZone);
+    renderValues();
+    updateSystemStatus();
+}
+
+let zoneTimer = null;
+function startZoneTimer() {
+    if (zoneTimer) clearInterval(zoneTimer);
+    zoneTimer = setInterval(zoneTick, 1000 / +$('speedSel').value);
+}
+
+// 情境按鈕
+$('scnList').innerHTML = Object.entries(SCENARIOS).map(([k, s]) =>
+    `<button class="scn" data-key="${k}"><span class="tag-fire ${s.fire ? '' : 'no'}">${s.fire ? '需警報' : '不應警報'}</span><b>${s.name}</b><span>${s.desc}</span></button>`
+).join('');
+document.querySelectorAll('.scn').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.key;
+    zoneScn = { key: k, t: 0 };
+    document.querySelectorAll('.scn').forEach(x => x.classList.toggle('running', x === b));
+    $('btnEndScn').disabled = false;
+    $('scnHint').innerText = '💡 ' + SCENARIOS[k].hint;
+    addLog(ZONE_NAME[SCENARIOS[k].zone], `啟動模擬：${SCENARIOS[k].name}`);
+}));
+
+function endScenario(silent) {
+    if (zoneScn && !silent) addLog(ZONE_NAME[SCENARIOS[zoneScn.key].zone], '情境結束，感測數值恢復常態。');
+    zoneScn = null;
+    document.querySelectorAll('.scn').forEach(x => x.classList.remove('running'));
+    $('btnEndScn').disabled = true;
+    $('scnProgress').style.width = '0';
+    $('scnHint').innerText = '';
+}
+$('btnEndScn').addEventListener('click', () => endScenario(false));
+$('btnResetAll').addEventListener('click', () => {
+    endScenario(true);
+    initZoneState();
+    ['ward', 'oxygen', 'icu'].forEach(renderZone);
+    updateSystemStatus();
+    addLog('系統', '系統已全部重置，恢復常規監測。');
+});
+$('speedSel').addEventListener('change', startZoneTimer);
+$('pixelMode').addEventListener('change', () => renderThermal(zs.icu.v.info));
+
+// ================= 樓層避難模擬（核心，不含畫面） =================
+// FLOOR-CORE-START
+const ROOMS = {
+    '701': { comp: 'A', x: 80, y: 40, w: 160, h: 140 },
+    '702': { comp: 'A', x: 240, y: 40, w: 160, h: 140 },
+    '703': { comp: 'A', x: 80, y: 250, w: 160, h: 140 },
+    '704': { comp: 'A', x: 240, y: 250, w: 160, h: 140 },
+    '705': { comp: 'B', x: 400, y: 40, w: 160, h: 140 },
+    '706': { comp: 'B', x: 560, y: 40, w: 160, h: 140 },
+    '707': { comp: 'B', x: 400, y: 250, w: 160, h: 140 },
+    'NS': { comp: 'B', x: 560, y: 250, w: 160, h: 140, name: '護理站' }
+};
+const CORR = { corrA: { comp: 'A', x: 20, y: 180, w: 380, h: 70 }, corrB: { comp: 'B', x: 400, y: 180, w: 380, h: 70 } };
+const ROOM_PATIENTS = {
+    '701': ['bed', 'bed', 'wheel', 'bed'], '702': ['bed', 'wheel', 'walk'],
+    '703': ['bed', 'bed', 'bed', 'wheel'], '704': ['walk', 'wheel', 'bed'],
+    '705': ['bed', 'bed', 'wheel'], '706': ['walk', 'bed', 'bed'], '707': ['bed', 'wheel', 'bed']
+};
+const NEED = { walk: 0, wheel: 1, bed: 2 };
+const DUR = { walk: 40, wheel: 60, bed: 90 };
+const REINFORCE_AT = 240, REINFORCE_N = 3;
+const BRIGADE_DELAY = 300, CONTROL_DELAY = 120;
+const SCRIPT = {
+    ideal: [[15, 'R'], [20, 'exhaust'], [20, 'ac'], [20, 'elevator'], [25, 'A'], [30, 'E']],   // C：起火房病人全部移出後立即關門
+    // 依監察院糾正案文時序（相對 4:28:59 警報）：關空調 +100s、排煙 +126s、第 1 位住民移出 +148s、支援抵達 +241s、119 報案 +424s
+    case: [[100, 'ac'], [126, 'exhaust'], [148, 'R'], [241, 'E'], [424, 'A']]
+};
+
+class FloorSim {
+    constructor(o) {
+        this.o = o;                       // { fire, staff, wallSealed, fireDoor:'auto'|'blocked', auto119, autoLink, mode }
+        this.t = 0;
+        this.S = {};
+        Object.keys(ROOMS).concat(Object.keys(CORR)).forEach(id => this.S[id] = 0);
+        this.alarmT = this.notifiedT = this.brigadeT = this.controlledT = null;
+        this.fireDoorClosed = false; this.fireDoorT = null; this.clearingUntil = null;
+        this.roomDoorClosed = false; this.exhaust = false; this.acOn = true; this.elevator = false; this.valve = false;
+        this.race = {};
+        this.staffTotal = o.staff; this.staffFree = o.staff; this.reinforced = false;
+        this.events = [];
+        this.evacDoneT = null; this.done = false;
+        this.patients = [];
+        Object.entries(ROOM_PATIENTS).forEach(([room, types]) => types.forEach((type, i) => {
+            this.patients.push({ id: room + '-' + i, room, idx: i, type, comp: ROOMS[room].comp, state: 'wait', exposure: 0, threat: false, remain: 0, need: 0 });
+        }));
+        this.groupA = this.patients.filter(p => p.comp === 'A');
+    }
+    rel(t = this.t) { return this.alarmT == null ? t : t - this.alarmT; }
+    ev(msg, type = 'info') { this.events.push({ t: this.t, msg, type }); }
+
+    action(a) {
+        if (this.alarmT == null) return false;
+        if (a === 'R' || a === 'A' || a === 'C' || a === 'E') {
+            if (this.race[a] != null) return false;
+            this.race[a] = this.t;
+        }
+        if (a === 'R') this.ev(`R 救援：開始移出 ${this.o.fire} 房病人`);
+        if (a === 'E') this.ev('E 疏散：區劃 A 開始水平避難至區劃 B');
+        if (a === 'A') {
+            if (this.notifiedT == null) { this.notifiedT = this.t; this.ev('A 通報：撥打 119 並啟動院內廣播', 'alert'); }
+            else this.ev('A 通報：院內廣播（119 已由通報裝置自動通報）');
+        }
+        if (a === 'C') {
+            this.roomDoorClosed = true;
+            this.ev(`C 侷限：關閉 ${this.o.fire} 房門`);
+            if (!this.fireDoorClosed) {
+                if (this.o.fireDoor === 'blocked') { this.clearingUntil = this.t + 20; this.ev('C 侷限：防火門被雜物卡住，排除中（約 20 秒）'); }
+                else this.closeFireDoor('人工關閉');
+            }
+        }
+        if (a === 'exhaust' && !this.exhaust) { this.exhaust = true; this.ev('啟動排煙設備'); }
+        if (a === 'ac' && this.acOn) { this.acOn = false; this.ev('停止空調（避免煙經回風擴散）'); }
+        if (a === 'elevator' && !this.elevator) { this.elevator = true; this.ev('電梯迫降至避難層，停止使用'); }
+        if (a === 'valve' && !this.valve) { this.valve = true; this.ev('確認病人改用備用氧氣後，關閉氧氣區域閥'); }
+        return true;
+    }
+    closeFireDoor(how) {
+        if (this.fireDoorClosed) return;
+        this.fireDoorClosed = true; this.fireDoorT = this.t;
+        this.ev(`防火門關閉（${how}）`);
+    }
+
+    step() {
+        if (this.done) return;
+        this.t++;
+        const S = this.S, fire = this.o.fire, corrF = 'corr' + ROOMS[fire].comp;
+
+        // 1. 火勢與煙流
+        if (this.controlledT == null) S[fire] = Math.min(1, S[fire] + 1 / 150);
+        const flows = [];
+        const ac = this.acOn ? 1.6 : 1;
+        flows.push([fire, corrF, this.roomDoorClosed ? 0.002 : 0.035]);
+        Object.keys(ROOMS).forEach(r => {
+            if (r === fire) return;
+            flows.push([r, 'corr' + ROOMS[r].comp, 0.012]);
+            if (!this.o.wallSealed && ROOMS[r].comp === ROOMS[fire].comp) flows.push([fire, r, 0.015 * ac]);
+        });
+        flows.push(['corrA', 'corrB', this.fireDoorClosed ? 0.0008 : 0.03 * ac]);
+        const d = {};
+        flows.forEach(([a, b, k]) => {
+            const f = k * (S[a] - S[b]);
+            d[a] = (d[a] || 0) - f * 0.4;
+            d[b] = (d[b] || 0) + f;
+        });
+        Object.keys(d).forEach(id => S[id] = clamp(S[id] + d[id], 0, 1));
+        if (this.exhaust) { S.corrA *= 0.985; S.corrB *= 0.985; }
+        if (this.controlledT != null) Object.keys(S).forEach(id => S[id] *= 0.99);
+
+        // 2. 偵煙探測器
+        if (this.alarmT == null && S[fire] >= 0.08) {
+            this.alarmT = this.t;
+            this.ev(`${fire} 房偵煙探測器動作，火警受信總機發出警報`, 'alert');
+            if (this.o.auto119) { this.notifiedT = this.t + 10; }
+        }
+        if (this.alarmT == null) return;
+        const rel = this.t - this.alarmT;
+
+        // 3. 自動連動
+        if (rel === 5) {
+            if (this.o.fireDoor === 'auto') this.closeFireDoor('偵煙連動');
+            else this.ev('防火門被雜物卡住，連動關閉失敗！', 'alert');
+            if (this.o.autoLink) { this.action('exhaust'); this.action('ac'); this.action('elevator'); }
+        }
+        if (this.o.auto119 && this.t === this.notifiedT) this.ev('119 火災通報裝置已自動連線通報消防局', 'alert');
+        if (this.clearingUntil != null && this.t >= this.clearingUntil) { this.closeFireDoor('人工排除後關閉'); this.clearingUntil = null; }
+
+        // 4. 腳本化操作（自動演示）
+        (SCRIPT[this.o.mode] || []).forEach(([dt, a]) => { if (rel === dt) this.action(a); });
+
+        // 5. 支援人力、消防隊
+        if (!this.reinforced && rel >= REINFORCE_AT) {
+            this.reinforced = true; this.staffTotal += REINFORCE_N; this.staffFree += REINFORCE_N;
+            this.ev(`他樓層支援人力 ${REINFORCE_N} 人抵達`);
+        }
+        if (this.notifiedT != null && this.brigadeT == null && this.t >= this.notifiedT + BRIGADE_DELAY) {
+            this.brigadeT = this.t; this.ev('消防隊抵達現場，展開搶救', 'alert');
+        }
+        if (this.brigadeT != null && this.controlledT == null && this.t >= this.brigadeT + CONTROL_DELAY) {
+            this.controlledT = this.t; this.ev('火勢已控制');
+        }
+
+        // 6. 搬運任務
+        this.patients.forEach(p => {
+            if (p.state !== 'moving') return;
+            if (--p.remain <= 0) { p.state = 'safe'; this.staffFree += p.need; }
+        });
+        const enabled = p => p.comp === 'A' && p.state === 'wait' &&
+            ((p.room === fire && this.race.R != null) || (p.room !== fire && this.race.E != null));
+        const queue = this.groupA.filter(enabled).sort((a, b) => (b.room === fire) - (a.room === fire));
+        queue.forEach(p => {
+            const need = NEED[p.type];
+            if (need > this.staffFree) return;
+            this.staffFree -= need;
+            p.need = need;
+            p.state = 'moving';
+            p.remain = Math.round(DUR[p.type] * (S[p.room] >= 0.6 ? 1.5 : 1));
+        });
+
+        if (this.o.mode === 'ideal' && this.race.C == null &&
+            this.patients.filter(p => p.room === fire).every(p => p.state === 'safe')) this.action('C');
+
+        // 7. 濃煙暴露
+        this.patients.forEach(p => {
+            if (p.state !== 'wait') return;
+            if (S[p.room] >= 0.6) p.exposure++;
+            if (!p.threat && p.exposure >= 60) { p.threat = true; this.ev(`${p.room} 房病人受濃煙威脅`, 'alert'); }
+        });
+
+        // 8. 結束判定
+        if (this.evacDoneT == null && this.groupA.every(p => p.state === 'safe')) {
+            this.evacDoneT = this.t; this.ev('區劃 A 水平避難完成');
+        }
+        if ((this.evacDoneT != null && (this.controlledT != null || this.t - this.evacDoneT >= 60)) || rel >= 1200) {
+            this.done = true;
+            this.ev('演練結束');
+        }
+    }
+    summary() {
+        const rel = t => t == null ? null : t - this.alarmT;
+        return {
+            notified: rel(this.notifiedT), fireDoor: rel(this.fireDoorT), evacDone: rel(this.evacDoneT),
+            threats: this.patients.filter(p => p.threat).length, total: this.patients.length
+        };
+    }
+}
+
+// 無煙理想情況下的水平避難時間估算（警報當下全部開始）
+function estimateEvac(staff, fire) {
+    const sim = new FloorSim({ fire, staff, wallSealed: true, fireDoor: 'auto', auto119: false, autoLink: false, mode: 'none' });
+    sim.alarmT = 0; sim.race.R = 0; sim.race.E = 0;
+    for (let i = 0; i < 3000 && sim.evacDoneT == null; i++) {
+        sim.S[fire] = 0;
+        sim.step();
+    }
+    return sim.evacDoneT;
+}
+// FLOOR-CORE-END
+
+// ================= 樓層演練畫面 =================
+const SVGNS = 'http://www.w3.org/2000/svg';
+const svg = $('floorSvg');
+const el = (tag, attrs, parent = svg) => {
+    const e = document.createElementNS(SVGNS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    parent.appendChild(e);
+    return e;
+};
+const smokeRects = {};
+let fireIcon, fireDoorLine, fireDoorLabel, roomDoorMark;
+const PT_COLOR = { walk: '#27ae60', wheel: '#2980b9', bed: '#e67e22' };
+const PT_LABEL = { walk: '步', wheel: '輪', bed: '床' };
+const ptEls = {};
+
+function buildFloor() {
+    svg.innerHTML = '';
+    el('text', { x: 210, y: 25, 'text-anchor': 'middle', 'font-size': 14, fill: '#c0392b', 'font-weight': 'bold' }).textContent = '防火區劃 A';
+    el('text', { x: 590, y: 25, 'text-anchor': 'middle', 'font-size': 14, fill: '#2980b9', 'font-weight': 'bold' }).textContent = '防火區劃 B（避難安全區）';
+    // 樓梯、電梯
+    [[20, 40, '樓梯'], [720, 40, '樓梯'], [20, 250, '污物間'], [720, 250, '電梯']].forEach(([x, y, t]) => {
+        el('rect', { x, y, width: 60, height: 140, fill: '#ecf0f1', stroke: '#7f8c8d' });
+        el('text', { x: x + 30, y: y + 75, 'text-anchor': 'middle', 'font-size': 12, fill: '#555' }).textContent = t;
+    });
+    Object.entries(CORR).forEach(([id, c]) => {
+        el('rect', { x: c.x, y: c.y, width: c.w, height: c.h, fill: '#fdfdfd', stroke: '#bdc3c7' });
+        smokeRects[id] = el('rect', { x: c.x, y: c.y, width: c.w, height: c.h, fill: '#333', opacity: 0 });
+    });
+    el('text', { x: 140, y: 220, 'font-size': 11, fill: '#999' }).textContent = '走廊';
+    Object.entries(ROOMS).forEach(([id, r]) => {
+        el('rect', { x: r.x, y: r.y, width: r.w, height: r.h, fill: r.name ? '#eaf2f8' : '#fff', stroke: '#7f8c8d', 'stroke-width': 1.5 });
+        smokeRects[id] = el('rect', { x: r.x, y: r.y, width: r.w, height: r.h, fill: '#333', opacity: 0 });
+        el('text', { x: r.x + 8, y: r.y + 18, 'font-size': 13, fill: '#2c3e50', 'font-weight': 'bold' }).textContent = r.name || id;
+        // 房門
+        const dy = r.y < 180 ? r.y + r.h - 3 : r.y - 3;
+        el('rect', { x: r.x + r.w / 2 - 15, y: dy, width: 30, height: 6, fill: '#bdc3c7' });
+    });
+    // 區劃牆與防火門
+    el('line', { x1: 400, y1: 40, x2: 400, y2: 180, stroke: '#c0392b', 'stroke-width': 5 });
+    el('line', { x1: 400, y1: 250, x2: 400, y2: 390, stroke: '#c0392b', 'stroke-width': 5 });
+    fireDoorLine = el('line', { x1: 400, y1: 180, x2: 400, y2: 250, stroke: '#27ae60', 'stroke-width': 6, 'stroke-dasharray': '6 6' });
+    fireDoorLabel = el('text', { x: 400, y: 410, 'text-anchor': 'middle', 'font-size': 12, fill: '#27ae60' });
+    fireDoorLabel.textContent = '防火門：開';
+    fireIcon = el('text', { x: 0, y: 0, 'font-size': 28, opacity: 0 });
+    fireIcon.textContent = '🔥';
+    roomDoorMark = el('rect', { x: 0, y: 0, width: 30, height: 6, fill: '#c0392b', opacity: 0 });
+
+    // 病人
+    Object.entries(ROOM_PATIENTS).forEach(([room, types]) => types.forEach((type, i) => {
+        const g = el('g', { class: 'pt' });
+        el('circle', { class: 'body', cx: 0, cy: 0, r: 11, fill: PT_COLOR[type] }, g);
+        const tx = el('text', { x: 0, y: 4, 'text-anchor': 'middle', 'font-size': 11, fill: 'white', 'font-weight': 'bold' }, g);
+        tx.textContent = PT_LABEL[type];
+        ptEls[room + '-' + i] = g;
+    }));
+}
+
+function homePos(room, i) {
+    const r = ROOMS[room];
+    const slots = [[45, 55], [115, 55], [45, 105], [115, 105]];
+    return [r.x + slots[i][0], r.y + slots[i][1]];
+}
+let safeSlot = 0;
+function placePatient(p, x, y) { ptEls[p.id].style.transform = `translate(${x}px, ${y}px)`; }
+
+function resetFloorView(fire) {
+    safeSlot = 0;
+    Object.entries(ROOM_PATIENTS).forEach(([room, types]) => types.forEach((_, i) => {
+        const g = ptEls[room + '-' + i];
+        g.classList.remove('moving', 'threat');
+        g.dataset.safe = '';
+        const [x, y] = homePos(room, i);
+        g.style.transition = 'none';
+        g.style.transform = `translate(${x}px, ${y}px)`;
+        void g.getBoundingClientRect();
+        g.style.transition = '';
+    }));
+    Object.values(smokeRects).forEach(r => r.setAttribute('opacity', 0));
+    const r = ROOMS[fire];
+    fireIcon.setAttribute('x', r.x + r.w - 40); fireIcon.setAttribute('y', r.y + 40);
+    fireIcon.setAttribute('opacity', 0);
+    const dy = r.y < 180 ? r.y + r.h - 3 : r.y - 3;
+    roomDoorMark.setAttribute('x', r.x + r.w / 2 - 15); roomDoorMark.setAttribute('y', dy);
+    roomDoorMark.setAttribute('opacity', 0);
+    setFireDoorView(false);
+}
+function setFireDoorView(closed) {
+    fireDoorLine.setAttribute('stroke', closed ? '#c0392b' : '#27ae60');
+    fireDoorLine.setAttribute('stroke-dasharray', closed ? '' : '6 6');
+    fireDoorLabel.setAttribute('fill', closed ? '#c0392b' : '#27ae60');
+    fireDoorLabel.textContent = closed ? '防火門：關' : '防火門：開';
+}
+
+let sim = null, drillTimer = null, evShown = 0;
+const drillResults = [];
+
+function drillOpts() {
+    return {
+        fire: $('optFire').value,
+        staff: +$('optShift').value,
+        wallSealed: $('optWall').checked,
+        fireDoor: $('optFireDoor').value,
+        auto119: $('opt119').checked,
+        autoLink: $('optLink').checked,
+        mode: $('optMode').value
+    };
+}
+
+function updateEstimate() {
+    const fire = $('optFire').value;
+    const day = estimateEvac(6, fire), night = estimateEvac(3, fire);
+    $('estimate').innerHTML = `⏱️ 區劃 A 共 14 人（臥床 8、輪椅 4、步行 2）。無煙理想情況下，警報後立即開始水平避難的預估完成時間：<br>` +
+        `日班 6 人 ≈ <b>${mmss(day)}</b>　｜　夜班 3 人 ≈ <b>${mmss(night)}</b>（含 4 分鐘後支援 3 人）`;
+}
+
+function renderDrill() {
+    if (!sim) return;
+    const S = sim.S;
+    Object.entries(smokeRects).forEach(([id, r]) => r.setAttribute('opacity', (S[id] * 0.75).toFixed(2)));
+    fireIcon.setAttribute('opacity', sim.controlledT != null ? 0.3 : 1);
+    roomDoorMark.setAttribute('opacity', sim.roomDoorClosed ? 1 : 0);
+    setFireDoorView(sim.fireDoorClosed);
+
+    sim.patients.forEach(p => {
+        const g = ptEls[p.id];
+        g.classList.toggle('moving', p.state === 'moving');
+        g.classList.toggle('threat', p.threat);
+        if (p.state === 'safe' && !g.dataset.safe) {
+            g.dataset.safe = '1';
+            placePatient(p, 425 + (safeSlot % 15) * 23, safeSlot < 15 ? 205 : 228);
+            safeSlot++;
+        }
+    });
+
+    const rel = sim.alarmT == null ? null : sim.t - sim.alarmT;
+    $('fsTime').innerText = rel == null ? '偵測中' : mmss(rel);
+    $('fsStaff').innerText = `${sim.staffFree}/${sim.staffTotal}`;
+    $('fsSafe').innerText = `${sim.groupA.filter(p => p.state === 'safe').length}/${sim.groupA.length}`;
+    $('fsThreat').innerText = sim.patients.filter(p => p.threat).length;
+
+    // 日誌
+    const box = $('drillLog');
+    for (; evShown < sim.events.length; evShown++) {
+        const e = sim.events[evShown];
+        const div = document.createElement('div');
+        div.className = e.type === 'alert' ? 'log-alert' : '';
+        div.textContent = `[${sim.alarmT == null || e.t < sim.alarmT ? '--:--' : mmss(e.t - sim.alarmT)}] ${e.msg}`;
+        box.prepend(div);
+    }
+
+    // R.A.C.E. 按鈕
+    document.querySelectorAll('.race-btn').forEach(b => {
+        const k = b.dataset.race, done = sim.race[k] != null;
+        b.classList.toggle('done', done);
+        b.disabled = done || sim.alarmT == null || sim.done || sim.o.mode !== 'student';
+        b.querySelector('.race-time').innerText = done ? '+' + mmss(sim.race[k] - sim.alarmT) : '';
+    });
+    const on = (id, v, bad) => { $(id).classList.toggle('on', !!v && !bad); $(id).classList.toggle('bad', !!bad); };
+    on('lkAlarm', sim.alarmT != null);
+    on('lk119', sim.notifiedT != null && sim.t >= sim.notifiedT);
+    on('lkDoor', sim.fireDoorClosed, sim.alarmT != null && !sim.fireDoorClosed && sim.o.fireDoor === 'blocked');
+    $('lkDoorText').innerText = sim.fireDoorClosed ? '防火門 已關閉' : (sim.clearingUntil ? '防火門 排除中…' : '防火門 開啟');
+    on('lkRoomDoor', sim.roomDoorClosed);
+    on('lkExhaust', sim.exhaust);
+    on('lkAC', !sim.acOn);
+    on('lkElev', sim.elevator);
+    on('lkValve', sim.valve);
+    const manualOk = sim.alarmT != null && !sim.done && sim.o.mode === 'student';
+    document.querySelectorAll('[data-link]').forEach(b => {
+        const k = b.dataset.link;
+        b.disabled = !manualOk || (k === 'exhaust' ? sim.exhaust : k === 'ac' ? !sim.acOn : sim.elevator);
+    });
+    $('btnValve').disabled = !(sim.alarmT != null && !sim.done) || sim.valve;
+}
+
+function drillTick() {
+    for (let i = 0; i < 1; i++) sim.step();
+    renderDrill();
+    if (sim.done) finishDrill();
+}
+
+function startDrill() {
+    const o = drillOpts();
+    sim = new FloorSim(o);
+    evShown = 0;
+    $('drillLog').innerHTML = '';
+    resetFloorView(o.fire);
+    $('valveWarn').style.display = 'none';
+    document.querySelectorAll('#drillSettings select, #drillSettings input, #presetCase, #presetGood').forEach(x => x.disabled = true);
+    $('btnDrillStart').disabled = true;
+    $('btnDrillStop').disabled = false;
+    if (drillTimer) clearInterval(drillTimer);
+    drillTimer = setInterval(drillTick, 1000 / +$('drillSpeed').value);
+    renderDrill();
+}
+
+function stopDrillUI() {
+    if (drillTimer) clearInterval(drillTimer);
+    drillTimer = null;
+    document.querySelectorAll('#drillSettings select, #drillSettings input, #presetCase, #presetGood').forEach(x => x.disabled = false);
+    $('btnDrillStart').disabled = false;
+    $('btnDrillStop').disabled = true;
+    document.querySelectorAll('.race-btn, [data-link], #btnValve').forEach(b => b.disabled = true);
+}
+
+function finishDrill() {
+    stopDrillUI();
+    const s = sim.summary(), o = sim.o;
+    const cond = [o.wallSealed ? '隔間到頂' : '隔間未到頂', o.fireDoor === 'auto' ? '防火門連動' : '防火門卡住',
+        o.auto119 ? '119 自動' : '119 人工', o.autoLink ? '設備連動' : '設備手動',
+        { student: '學生操作', ideal: '理想應變', case: '案例時序' }[o.mode]].join('・');
+    drillResults.unshift({ cond, staff: o.staff === 3 ? '夜班 3' : '日班 6', ...s });
+    const fmt = v => v == null ? '<span class="ng">未完成</span>' : '+' + mmss(v);
+    $('drillTable').querySelector('tbody').innerHTML = drillResults.map(r =>
+        `<tr><td>${r.cond}</td><td>${r.staff}</td><td>${fmt(r.notified)}</td><td>${fmt(r.fireDoor)}</td><td>${fmt(r.evacDone)}</td><td class="${r.threats ? 'ng' : 'ok'}">${r.threats} / ${r.total}</td></tr>`
+    ).join('');
+}
+
+$('btnDrillStart').addEventListener('click', startDrill);
+$('btnDrillStop').addEventListener('click', () => {
+    if (sim && !sim.done) { sim.ev('演練已手動停止（不列入紀錄）'); renderDrill(); }
+    stopDrillUI();
+});
+$('drillSpeed').addEventListener('change', () => {
+    if (drillTimer) { clearInterval(drillTimer); drillTimer = setInterval(drillTick, 1000 / +$('drillSpeed').value); }
+});
+document.querySelectorAll('.race-btn').forEach(b => b.addEventListener('click', () => { if (sim) { sim.action(b.dataset.race); renderDrill(); } }));
+document.querySelectorAll('[data-link]').forEach(b => b.addEventListener('click', () => { if (sim) { sim.action(b.dataset.link); renderDrill(); } }));
+$('btnValve').addEventListener('click', () => { $('valveWarn').style.display = 'block'; });
+$('btnValveCancel').addEventListener('click', () => { $('valveWarn').style.display = 'none'; });
+$('btnValveConfirm').addEventListener('click', () => {
+    $('valveWarn').style.display = 'none';
+    if (sim) { sim.action('valve'); renderDrill(); }
+});
+$('optFire').addEventListener('change', () => { updateEstimate(); resetFloorView($('optFire').value); });
+
+function applyPreset(kind) {
+    const isCase = kind === 'case';
+    $('optShift').value = isCase ? '3' : $('optShift').value;
+    $('optWall').checked = !isCase;
+    $('optFireDoor').value = 'auto';
+    $('opt119').checked = !isCase;
+    $('optLink').checked = !isCase;
+    $('optMode').value = isCase ? 'case' : 'ideal';
+}
+$('presetCase').addEventListener('click', () => applyPreset('case'));
+$('presetGood').addEventListener('click', () => applyPreset('good'));
+
+// ================= 案例時間軸 =================
+const TIMELINE = [
+    { t: '04:28:59', rel: 0, key: true, text: '火警受信總機（R 型）偵測到 7A23 房定址偵煙探測器動作，警報響起。', aiot: '119 火災通報裝置可在此刻自動連線消防局；連動設備（防火門、排煙、停空調）同步動作。' },
+    { t: '04:29:27', rel: 28, text: '值班護理師聽到警報，起身前往 7A23 房查看。' },
+    { t: '04:29:42', rel: 43, key: true, text: '發現 5 號床床簾起火，大聲呼喊並衝回護理站。', aiot: '若有病房熱影像／CO 監測，可在明火前的陰燃階段就預警。' },
+    { t: '04:29:49', rel: 50, text: '按下護理站的手動火警警報設備後，返回失火處。' },
+    { t: '04:30:08', rel: 69, key: true, text: '兩度撥打 4 碼緊急專線「5999」通報總機，均無反應（事後查明為誤撥）；改撥總機也無人接聽。', aiot: '一鍵通報按鈕／自動通報，避免人員在慌亂中撥號出錯。' },
+    { t: '04:30:10', rel: 71, text: '照服員與外籍看護陸續拿滅火器協助滅火。' },
+    { t: '04:30:39', rel: 100, text: '護理師關閉空調。', aiot: '空調可由火警訊號自動連動停止。' },
+    { t: '04:30:58', rel: 119, text: '終於與總機值班人員通上電話，總機通知技工、保全與值班護理長。' },
+    { t: '04:31:05', rel: 126, text: '護理師按壓排煙裝置。', aiot: '排煙設備可自動連動啟動。' },
+    { t: '04:31:27', rel: 148, text: '第 1 位住民（自備電磁波床墊者）由照服員與外籍看護協力徒手摸黑搬出起火病房。' },
+    { t: '約 04:32:41', rel: 222, key: true, text: '起火病室濃煙密布（距發現火源約 2 分 59 秒），之後搬運只能「尋聲救人」。', aiot: '關閉起火房門可把煙火侷限在房內，爭取其他房間的避難時間。' },
+    { t: '約 04:33', rel: 241, text: '其他樓層照服員與醫護人員陸續趕到支援。' },
+    { t: '04:36:03', rel: 424, key: true, text: '新北市消防局 119 才首次接獲臺北醫院總機報案——距警報響起已逾 7 分鐘。', aiot: '自動通報可把這 7 分鐘縮短為數秒。' },
+    { t: '04:41', rel: 721, text: '第 1 批消防搶救人員及車輛抵達現場。' },
+    { t: '05:15', rel: 2761, text: '控制火勢；05:27 撲滅，殘火至 07:25 處理完畢。' }
+];
+$('timeline').innerHTML = TIMELINE.map((e, i) =>
+    `<div class="tl-item${e.key ? ' key' : ''}" id="tl-${i}">
+        <span class="tl-time">${e.t}</span><span class="tl-rel">警報後 ${mmss(e.rel)}</span>
+        <div class="tl-text">${e.text}</div>
+        ${e.aiot ? `<div class="tl-aiot">💡 若導入 AIoT：${e.aiot}</div>` : ''}
+    </div>`).join('');
+
+let caseTimer = null;
+$('btnCasePlay').addEventListener('click', () => {
+    if (caseTimer) clearInterval(caseTimer);
+    let rel = 0;
+    const end = 760;          // 播放到消防隊抵達後
+    caseTimer = setInterval(() => {
+        rel += 4;             // 每 0.1 秒前進 4 秒（約 40 倍速）
+        const base = new Date(2018, 7, 13, 4, 28, 59 + rel);
+        $('caseClock').innerText = `模擬時間 ${base.toLocaleTimeString('zh-TW', { hour12: false })}（警報後 ${mmss(rel)}）`;
+        let cur = -1;
+        TIMELINE.forEach((e, i) => { if (e.rel <= rel) cur = i; });
+        TIMELINE.forEach((_, i) => $('tl-' + i).classList.toggle('active', i === cur));
+        if (rel >= end) { clearInterval(caseTimer); caseTimer = null; }
+    }, 100);
+});
+
+// ================= 啟動 =================
+setInterval(() => $('clock').innerText = nowStr(), 1000);
+$('clock').innerText = nowStr();
+buildFloor();
+resetFloorView($('optFire').value);
+updateEstimate();
+addLog('系統', '系統啟動，開始監測 5F 病房、B1 氧氣室、3F ICU。');
+sampleZones();
+renderValues();
+startZoneTimer();
+</script>
+</body>
+</html>

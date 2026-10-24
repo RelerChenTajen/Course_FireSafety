@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../platform.css?v=3">
+<title>問答轉盤使用說明</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<style>
+/* Layout: one narrow column of big picture cards, like a safety-instruction placard read top to bottom */
+:root {
+  --bg: #eef2f0;
+  --card: #ffffff;
+  --ink: #18231f;
+  --muted: #5a6964;
+  --line: #d3ddd9;
+  --exit: #1e8449;      /* 出口標示綠 */
+  --exit-ink: #ffffff;
+  --warn: #f2b705;      /* 公安黃 */
+  --warn-ink: #1d1a0a;
+  --fire: #d9432b;
+  --smoke: #4a4f55;
+  --screen: #1b2735;
+  --screen-ink: #e8eef2;
+  --f-display: "Huninn", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --f-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+    --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+  --exit: #27a35c; --warn: #f5c432; --fire: #ef6247; --smoke: #8a929b; --screen: #0c141d; --screen-ink: #e8eef2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.6; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 22px; }
+
+header { display: grid; gap: 10px; }
+.sign { display: inline-flex; align-items: center; gap: 10px; background: var(--exit); color: var(--exit-ink); font-family: var(--f-display); font-size: 15px; padding: 6px 14px; border-radius: 4px; width: fit-content; letter-spacing: .08em; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(32px, 7vw, 48px); line-height: 1.15; margin: 0; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); font-size: 18px; }
+.lead a { color: var(--exit); font-weight: 700; }
+
+section { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; }
+h2 { font-family: var(--f-display); font-weight: 400; font-size: 28px; margin: 0; display: flex; align-items: center; gap: 12px; text-wrap: balance; }
+.step { flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--warn); color: var(--warn-ink); display: grid; place-items: center; font-family: var(--f-body); font-weight: 900; font-size: 20px; }
+p { margin: 0; }
+.say { font-size: 19px; }
+.small { font-size: 14px; color: var(--muted); }
+
+svg { display: block; width: 100%; height: auto; max-width: 100%; }
+svg text { font-family: var(--f-body); }
+
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { display: grid; gap: 6px; justify-items: center; text-align: center; padding: 12px 6px; border-radius: 10px; background: var(--bg); min-width: 0; }
+.tile b { font-family: var(--f-display); font-weight: 400; font-size: 21px; }
+.tile span { font-size: 14px; color: var(--muted); line-height: 1.4; }
+.tile svg { width: 100%; max-width: 140px; }
+
+.keys { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.keycol { display: grid; gap: 10px; justify-items: center; text-align: center; min-width: 0; }
+.keycol h3 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 20px; }
+.kbd-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+kbd { display: inline-grid; place-items: center; min-width: 46px; height: 46px; padding: 0 8px; border: 2px solid var(--ink); border-bottom-width: 5px; border-radius: 8px; font-family: var(--f-body); font-weight: 900; font-size: 18px; background: var(--card); color: var(--ink); }
+kbd.hot { background: var(--warn); color: var(--warn-ink); border-color: var(--warn-ink); }
+.legend { display: grid; gap: 4px; font-size: 15px; }
+
+.rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rule { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px; border-radius: 10px; background: var(--bg); }
+.rule b { display: block; font-size: 17px; }
+.rule span { font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+.look { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 2px dashed var(--warn); font-weight: 700; font-size: 16px; }
+
+.flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; text-align: center; }
+.flow div { display: grid; gap: 4px; justify-items: center; }
+.flow span { font-size: 15px; }
+
+footer { font-size: 13px; color: var(--muted); text-align: center; }
+
+@media (max-width: 560px) {
+  .rules, .keys { grid-template-columns: 1fr; }
+  .tile b { font-size: 18px; }
+  .tile span { font-size: 12.5px; }
+  h2 { font-size: 24px; }
+}
+</style>
+<style>
+.flow4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; text-align: center; }
+.flow4 div { display: grid; gap: 6px; justify-items: center; padding: 10px 4px; background: var(--bg); border-radius: 10px; min-width: 0; }
+.flow4 b { font-family: var(--f-display); font-weight: 400; font-size: 19px; }
+.flow4 span { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.flow4 .em { font-size: 40px; line-height: 1; }
+table.keys2 { width: 100%; border-collapse: collapse; font-size: 16px; }
+table.keys2 td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.keys2 td:first-child { white-space: nowrap; width: 1%; }
+kbd.k { display: inline-block; min-width: 0; height: auto; padding: 1px 8px; border-width: 2px 2px 4px; font-size: 15px; }
+@media (max-width: 560px) { .flow4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+
+<div class="pbar">
+    <a class="pb-home" href="../index.html">🏠 平台首頁</a>
+    <span class="pb-sep g">›</span><span class="pb-group g1">教育互動推廣</span>
+    <span class="pb-sep">›</span><span class="pb-page">職業安全問答轉盤・使用說明</span>
+    <span class="pb-right"><a class="pb-btn ghost" href="lottery.html">▶ 開始模擬</a></span>
+</div>
+
+<div class="wrap">
+
+<header>
+  <div class="sign">🎡 使用說明</div>
+  <h1>職業安全問答轉盤，這樣玩</h1>
+  <p class="lead">分組輪流轉轉盤，限時在圖中圈出危害，電腦自動算分，最後老師一處一處講解答案。開啟：<a href="lottery.html">lottery.html</a></p>
+</header>
+
+<section>
+  <h2><span class="step">1</span>一輪怎麼玩</h2>
+  <div class="flow4">
+    <div><span class="em">🎡</span><b>轉轉盤</b><span>輪到的組按「開始」</span></div>
+    <div><span class="em">⏱️</span><b>限時找</b><span>圈出或點選危害</span></div>
+    <div><span class="em">💡</span><b>看答案</b><span>一處一處講解</span></div>
+    <div><span class="em">➡️</span><b>下一組</b><span>回轉盤自動換組</span></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="step">2</span>上課前先設定</h2>
+  <svg viewBox="0 0 640 250" role="img" aria-label="轉盤頁右側的計分板與設定">
+    <rect x="0" y="0" width="640" height="250" rx="12" fill="var(--bg)"/>
+    <rect x="20" y="20" width="290" height="210" rx="12" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="40" y="52" font-size="18" font-weight="700" fill="var(--ink)">🏆 計分板</text>
+    <rect x="34" y="66" width="262" height="36" rx="8" fill="var(--warn)" opacity=".35"/>
+    <text x="46" y="90" font-size="15" fill="var(--fire)" font-weight="900">▶</text>
+    <text x="70" y="90" font-size="16" font-weight="700" fill="var(--ink)">第1組</text>
+    <text x="210" y="92" font-size="22" font-weight="900" fill="var(--fire)" text-anchor="end">5</text>
+    <circle cx="240" cy="84" r="12" fill="var(--card)" stroke="var(--muted)"/><text x="240" y="89" font-size="15" text-anchor="middle" fill="var(--ink)">−</text>
+    <circle cx="275" cy="84" r="12" fill="var(--card)" stroke="var(--muted)"/><text x="275" y="89" font-size="15" text-anchor="middle" fill="var(--ink)">+</text>
+    <text x="70" y="134" font-size="16" font-weight="700" fill="var(--ink)">第2組</text>
+    <text x="210" y="136" font-size="22" font-weight="900" fill="var(--fire)" text-anchor="end">3</text>
+    <text x="70" y="176" font-size="16" font-weight="700" fill="var(--ink)">第3組</text>
+    <text x="210" y="178" font-size="22" font-weight="900" fill="var(--fire)" text-anchor="end">0</text>
+    <text x="40" y="214" font-size="13" fill="var(--muted)">▶ 指定輪到誰・點組名改名・± 手動調分</text>
+    <rect x="330" y="20" width="290" height="210" rx="12" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="350" y="52" font-size="18" font-weight="700" fill="var(--ink)">⚙️ 設定</text>
+    <g font-size="15" fill="var(--ink)">
+      <text x="350" y="90">組數</text><rect x="500" y="72" width="100" height="28" rx="6" fill="var(--bg)"/><text x="550" y="91" text-anchor="middle">4</text>
+      <text x="350" y="130">作答時間</text><rect x="500" y="112" width="100" height="28" rx="6" fill="var(--bg)"/><text x="550" y="131" text-anchor="middle">90 秒</text>
+      <text x="350" y="170">題庫</text>
+      <text x="400" y="170">☑ 職業安全</text>
+      <text x="400" y="196">☑ 建築物公共安全</text>
+    </g>
+  </svg>
+  <p class="small">設定和分數會記在這台電腦的瀏覽器裡，換頁、重新整理都不會不見。換班上課時，按「分數歸零」和「重新抽題」。</p>
+</section>
+
+<section>
+  <h2><span class="step">3</span>轉轉盤</h2>
+  <div class="trio">
+    <div class="tile">
+      <svg viewBox="0 0 120 100" aria-hidden="true">
+        <circle cx="60" cy="54" r="42" fill="var(--warn)"/>
+        <path d="M60 54 L60 12 A42 42 0 0 1 96 33 Z" fill="var(--exit)"/>
+        <path d="M60 54 L96 75 A42 42 0 0 1 24 75 Z" fill="var(--line)"/>
+        <circle cx="60" cy="54" r="13" fill="var(--fire)"/>
+        <path d="M52 2 h16 l-8 14 z" fill="var(--fire)"/>
+      </svg>
+      <b>按「開始」</b><span>或按空白鍵</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 100" aria-hidden="true">
+        <path d="M60 50 L60 8 A42 42 0 0 1 100 38 Z" fill="var(--line)"/>
+        <text x="74" y="32" font-size="16" font-weight="900" fill="var(--muted)">✓</text>
+        <path d="M60 50 L100 38 A42 42 0 0 1 80 88 Z" fill="var(--exit)"/>
+      </svg>
+      <b>灰色＝抽過</b><span>不會再抽到，全部抽完才重來</span>
+    </div>
+    <div class="tile">
+      <svg viewBox="0 0 120 100" aria-hidden="true">
+        <rect x="14" y="20" width="92" height="62" rx="6" fill="none" stroke="var(--ink)" stroke-width="5"/>
+        <path d="M14 36 v-16 h16 M90 20 h16 v16 M106 66 v16 h-16 M30 82 h-16 v-16" fill="none" stroke="var(--fire)" stroke-width="6"/>
+      </svg>
+      <b>⛶ 投影模式</b><span>全螢幕（F 鍵）・🔊 音效開關</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="step">4</span>限時找危害</h2>
+  <svg viewBox="0 0 640 280" role="img" aria-label="作答畫面：上方顯示組別、倒數與找到數量，圖上綠圈是找到的危害，紅叉是點錯">
+    <rect x="0" y="0" width="640" height="280" rx="12" fill="var(--screen)"/>
+    <rect x="0" y="0" width="640" height="40" rx="12" fill="#263238"/>
+    <g font-size="16" font-weight="700">
+      <text x="24" y="26" fill="#ffd54f">職業安全｜營造業</text>
+      <rect x="196" y="9" width="72" height="24" rx="12" fill="#ffc107"/><text x="232" y="26" text-anchor="middle" fill="#000">第2組</text>
+      <text x="320" y="28" fill="#ff5252" font-size="22">00:08</text>
+      <text x="420" y="26" fill="#fff">找到 <tspan fill="#69f0ae" font-size="20">3</tspan> / 6</text>
+      <rect x="530" y="9" width="90" height="24" rx="12" fill="#fff"/><text x="575" y="26" text-anchor="middle" fill="#bf360c" font-size="14">結束作答</text>
+    </g>
+    <rect x="70" y="56" width="500" height="210" fill="#e1f5fe"/>
+    <rect x="110" y="130" width="140" height="110" fill="#bcaaa4"/>
+    <rect x="300" y="90" width="200" height="150" fill="#b0bec5"/>
+    <circle cx="180" cy="120" r="34" fill="none" stroke="#00c853" stroke-width="6"/>
+    <circle cx="206" cy="94" r="12" fill="#00c853"/><text x="206" y="99" font-size="13" font-weight="900" fill="#fff" text-anchor="middle">1</text>
+    <circle cx="420" cy="170" r="34" fill="none" stroke="#00c853" stroke-width="6"/>
+    <circle cx="446" cy="144" r="12" fill="#00c853"/><text x="446" y="149" font-size="13" font-weight="900" fill="#fff" text-anchor="middle">3</text>
+    <path d="M520 220 l20 20 M540 220 l-20 20" stroke="#ff1744" stroke-width="7" stroke-linecap="round"/>
+    <path d="M150 200 q30 -40 60 0 q-30 40 -60 0" fill="none" stroke="#FFD700" stroke-width="5"/>
+  </svg>
+  <div class="rules">
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><circle cx="38" cy="30" r="22" fill="none" stroke="#00c853" stroke-width="6"/><text x="38" y="37" font-size="20" text-anchor="middle" font-weight="900" fill="#00c853">+1</text></svg>
+      <div><b>圈一圈或點一下</b><span>找到了出現綠圈，每處得 1 分</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><path d="M22 14 l32 32 M54 14 l-32 32" stroke="#ff1744" stroke-width="8" stroke-linecap="round"/></svg>
+      <div><b>紅叉＝不是這裡</b><span>不扣分，再找找看</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><circle cx="38" cy="30" r="26" fill="none" stroke="var(--fire)" stroke-width="5"/><circle cx="26" cy="30" r="6" fill="var(--ink)"/><circle cx="50" cy="30" r="6" fill="var(--ink)"/></svg>
+      <div><b>一次圈一處</b><span>圈太大、同時包住好幾處不算</span></div>
+    </div>
+    <div class="rule">
+      <svg viewBox="0 0 76 60" aria-hidden="true"><text x="38" y="40" font-size="24" text-anchor="middle" font-weight="900" fill="var(--fire)">00:00</text></svg>
+      <div><b>時間到或全部找到</b><span>自動結算，分數加到計分板</span></div>
+    </div>
+  </div>
+  <p class="small">按「▶ 開始作答」後才開始計時，在那之前圖片是遮住的。作答中不能看答案；按「結束作答」可以提早結算。</p>
+</section>
+
+<section>
+  <h2><span class="step">5</span>一處一處講解答案</h2>
+  <svg viewBox="0 0 640 200" role="img" aria-label="答案說明卡：第幾處、有沒有找到、標題、說明、相關法規">
+    <rect x="0" y="0" width="640" height="200" rx="12" fill="var(--bg)"/>
+    <rect x="40" y="16" width="560" height="168" rx="14" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+    <text x="64" y="46" font-size="15" font-weight="700" fill="var(--muted)">第 2 / 6 處</text>
+    <rect x="470" y="28" width="110" height="26" rx="13" fill="#ffebee"/><text x="525" y="46" font-size="14" font-weight="700" fill="#b71c1c" text-anchor="middle">✘ 沒找到</text>
+    <text x="64" y="80" font-size="22" font-weight="900" fill="var(--ink)">高處作業未使用安全帶</text>
+    <rect x="64" y="94" width="420" height="10" rx="5" fill="var(--line)"/>
+    <rect x="64" y="114" width="300" height="10" rx="5" fill="var(--line)"/>
+    <text x="64" y="146" font-size="14" fill="var(--muted)">📖 相關法規：……</text>
+    <g font-size="14" font-weight="700" text-anchor="middle">
+      <rect x="330" y="152" width="100" height="26" rx="13" fill="var(--card)" stroke="var(--fire)"/><text x="380" y="170" fill="var(--fire)">◀ 上一處</text>
+      <rect x="440" y="152" width="140" height="26" rx="13" fill="var(--fire)"/><text x="510" y="170" fill="#fff">下一處 ▶</text>
+    </g>
+  </svg>
+  <p class="say">按 <kbd class="k">→</kbd> <kbd class="k">←</kbd>（簡報筆也可以）換下一處。綠圈是有找到的，紅色虛線圈是沒找到的。</p>
+  <p class="small">「全部顯示」一次標出所有答案；「原始答案圖」疊上原本的紅圈答案圖。建築物公共安全題目另外附上 VR 公安導覽的連結。</p>
+</section>
+
+<section>
+  <h2><span class="step">6</span>快捷鍵</h2>
+  <table class="keys2">
+    <tr><td><kbd class="k">空白鍵</kbd></td><td>轉盤頁：轉動轉盤；作答頁：開始作答</td></tr>
+    <tr><td><kbd class="k">F</kbd></td><td>全螢幕開關</td></tr>
+    <tr><td><kbd class="k">→</kbd> <kbd class="k">←</kbd></td><td>看答案時切換上一處／下一處</td></tr>
+    <tr><td><kbd class="k">Ctrl</kbd>+<kbd class="k">Z</kbd> / <kbd class="k">Y</kbd></td><td>復原／重做筆畫</td></tr>
+    <tr><td><kbd class="k">Esc</kbd></td><td>關閉視窗</td></tr>
+  </table>
+</section>
+
+<footer>題目與答案位置在 js/topics.js、js/hazards.js、js/hazards-public.js，可以自行增修。直接雙擊開啟檔案時無法存圖，請透過網站開啟。</footer>
+
+</div>

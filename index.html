@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>消防與公共安全模擬教學平台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+    <link rel="stylesheet" href="platform.css?v=3">
+    <style>
+        /* 與各頁「使用說明」同一套色彩與字型：出口綠、公安黃、火焰紅 */
+        :root {
+            --bg: #eef2f0;
+            --card: #ffffff;
+            --ink: #18231f;
+            --muted: #5a6964;
+            --line: #d3ddd9;
+            --exit: #1e8449;
+            --warn: #f2b705;
+            --warn-ink: #1d1a0a;
+            --fire: #d9432b;
+            --g1: #f2b705;   /* 教育推廣 */
+            --g2: #d9432b;   /* AIoT 消防偵測 */
+            --g3: #1e8449;   /* 大巨蛋公安 */
+            --g1-soft: #fdf3d0;
+            --g2-soft: #fbe3de;
+            --g3-soft: #dcefe3;
+            --f-display: "Huninn", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            --f-body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+                --exit: #27a35c; --warn: #f5c432; --fire: #ef6247;
+                --g1: #f5c432; --g2: #ef6247; --g3: #27a35c;
+                --g1-soft: #3a3214; --g2-soft: #3d2019; --g3-soft: #17331f;
+                color-scheme: dark;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg: #111816; --card: #1a2321; --ink: #e6efec; --muted: #9db0aa; --line: #2c3a36;
+            --exit: #27a35c; --warn: #f5c432; --fire: #ef6247;
+            --g1: #f5c432; --g2: #ef6247; --g3: #27a35c;
+            --g1-soft: #3a3214; --g2-soft: #3d2019; --g3-soft: #17331f;
+            color-scheme: dark;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.65; }
+        a { color: inherit; }
+        .wrap { max-width: 1140px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 56px; display: grid; gap: 40px; }
+
+        /* 頁首 */
+        .hero { display: grid; gap: 12px; }
+        .sign { display: inline-flex; align-items: center; gap: 8px; background: var(--exit); color: #fff; font-family: var(--f-display); font-size: 15px; padding: 5px 14px; border-radius: 4px; width: fit-content; letter-spacing: .08em; }
+        h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 5.5vw, 46px); line-height: 1.2; margin: 0; text-wrap: balance; }
+        .lead { margin: 0; max-width: 46em; color: var(--muted); font-size: 17px; }
+
+        /* 建議上課順序 */
+        .route { display: grid; gap: 12px; }
+        .route h2 { margin: 0; font-size: 15px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+        .steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; counter-reset: s; }
+        .steps li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 12px 52px; position: relative; min-width: 0; }
+        .steps li::before { content: counter(s); position: absolute; left: 12px; top: 12px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--warn); color: var(--warn-ink); font-weight: 900; }
+        .steps b { display: block; font-size: 16px; }
+        .steps span { font-size: 13.5px; color: var(--muted); line-height: 1.5; display: block; }
+        .steps a { font-weight: 700; text-decoration-color: var(--line); text-underline-offset: 3px; }
+
+        /* 類群 */
+        .group { display: grid; gap: 16px; }
+        .group-head { display: flex; align-items: flex-start; gap: 12px; }
+        .group-dot { flex: none; width: 14px; height: 14px; border-radius: 50%; margin-top: 10px; background: var(--c); }
+        .group-head h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 26px; line-height: 1.3; }
+        .group-head p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+        .g1 { --c: var(--g1); --soft: var(--g1-soft); }
+        .g2 { --c: var(--g2); --soft: var(--g2-soft); }
+        .g3 { --c: var(--g3); --soft: var(--g3-soft); }
+
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; transition: border-color .2s, box-shadow .2s; }
+        .card:hover { border-color: var(--c); box-shadow: 0 8px 22px rgba(0,0,0,.08); }
+        .card-top { display: flex; align-items: center; gap: 12px; }
+        .icon { flex: none; width: 48px; height: 48px; border-radius: 12px; background: var(--soft); display: grid; place-items: center; font-size: 26px; }
+        .card h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+        .card h3 a { text-decoration: none; }
+        .card p { margin: 0; font-size: 14.5px; color: var(--muted); flex: 1; }
+        .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag { font-size: 12.5px; padding: 2px 10px; border-radius: 999px; background: var(--soft); color: var(--ink); }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 999px; font-weight: 700; font-size: 14.5px; text-decoration: none; white-space: nowrap; }
+        .btn.go { background: var(--ink); color: var(--bg); }
+        .btn.guide { background: var(--warn); color: var(--warn-ink); }
+        .btn:hover { filter: brightness(1.1); }
+        a:focus-visible { outline: 3px solid var(--warn); outline-offset: 2px; border-radius: 6px; }
+
+        footer { text-align: center; color: var(--muted); font-size: 13.5px; padding: 0 16px 32px; }
+
+        @media (max-width: 900px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 520px) { .steps { grid-template-columns: 1fr; } .cards { grid-template-columns: 1fr; } }
+        @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+    </style>
+</head>
+<body>
+
+<div class="pbar">
+    <a class="pb-home" href="index.html">🏠 消防與公共安全模擬教學平台</a>
+</div>
+
+<div class="wrap">
+
+    <header class="hero">
+        <div class="sign">🚒 教學平台</div>
+        <h1>消防與公共安全模擬教學平台</h1>
+        <p class="lead">七個可以直接在瀏覽器操作的模擬：從職安看圖找危害、大型場館的公安設備與避難人流，到 AIoT 智慧火警偵測。每一個都附有圖解「使用說明」，第一次使用的學生也能自己上手。</p>
+    </header>
+
+    <section class="route" aria-labelledby="routeTitle">
+        <h2 id="routeTitle">建議上課順序</h2>
+        <ol class="steps">
+            <li><b>暖身</b><span>分組玩 <a href="Lottery/lottery.html">問答轉盤</a>，先找出生活中的危害</span></li>
+            <li><b>大型場館</b><span>大巨蛋 <a href="simulate0.html">VR 導覽</a> → <a href="simulate1.html">動線</a> → <a href="simulate2.html">人流</a></span></li>
+            <li><b>偵測原理</b><span>用 <a href="aiot.html">AIoT 消防模擬</a> 認識偵測器與誤報</span></li>
+            <li><b>場所應用</b><span><a href="hospital-aiot.html">醫院</a>與<a href="warehouse_aiot.html">倉儲</a>的監測、連動與案例</span></li>
+        </ol>
+    </section>
+
+    <!-- 類群 1 -->
+    <section class="group g1" aria-labelledby="g1Title">
+        <div class="group-head">
+            <span class="group-dot" aria-hidden="true"></span>
+            <div>
+                <h2 id="g1Title">消防與職業安全教育互動推廣</h2>
+                <p>用遊戲的方式，讓學生自己找出危害</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <div class="card-top"><span class="icon" aria-hidden="true">🎡</span><h3><a href="Lottery/lottery.html">職業安全問答轉盤</a></h3></div>
+                <p>分組輪流轉盤抽題，限時在圖中圈出危害，電腦自動判定計分，最後一處一處揭曉答案與相關法規。共 10 題：8 個行業職安，加上商場通道、地下停車場 2 題建築物公共安全。</p>
+                <div class="tags"><span class="tag">分組競賽</span><span class="tag">看圖找危害</span><span class="tag">投影模式</span></div>
+                <div class="actions"><a class="btn go" href="Lottery/lottery.html">▶ 開始</a><a class="btn guide" href="Lottery/lottery_guide.html">📖 使用說明</a></div>
+            </article>
+        </div>
+    </section>
+
+    <!-- 類群 3 -->
+    <section class="group g3" aria-labelledby="g3Title">
+        <div class="group-head">
+            <span class="group-dot" aria-hidden="true"></span>
+            <div>
+                <h2 id="g3Title">臺北大巨蛋公安模擬系列</h2>
+                <p>大型場館的防災設備、避難動線與群眾安全</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <div class="card-top"><span class="icon" aria-hidden="true">🥽</span><h3><a href="simulate0.html">VR 防災安全導覽</a></h3></div>
+                <p>走進球場層、通道商場與地下停車場：導覽消防設備並作答、扮演檢查員找出公安缺失，或在濃煙下降前找到正確出口。支援 VR 眼鏡與手機。</p>
+                <div class="tags"><span class="tag">3D 場景</span><span class="tag">公安檢查</span><span class="tag">避難體驗</span></div>
+                <div class="actions"><a class="btn go" href="simulate0.html">▶ 開始</a><a class="btn guide" href="simulate0_guide.html">📖 使用說明</a></div>
+            </article>
+            <article class="card">
+                <div class="card-top"><span class="icon" aria-hidden="true">🗺️</span><h3><a href="simulate1.html">疏散動線與避難時間</a></h3></div>
+                <p>在動線圖上計算避難時間，看疏散進度卡在哪個瓶頸；用剖面圖理解為什麼要「向上避難」，最後回答思考題。</p>
+                <div class="tags"><span class="tag">避難計算</span><span class="tag">瓶頸分析</span><span class="tag">思考題</span></div>
+                <div class="actions"><a class="btn go" href="simulate1.html">▶ 開始</a><a class="btn guide" href="simulate1-guide.html">📖 使用說明</a></div>
+            </article>
+            <article class="card">
+                <div class="card-top"><span class="icon" aria-hidden="true">👥</span><h3><a href="simulate2.html">大規模集客動態模擬</a></h3></div>
+                <p>數萬名觀眾的人流模擬：緊急疏散、散場搭捷運、進場三種模式，比較全場同時撤離與分區分批廣播的差別，觀察密度與服務水準。</p>
+                <div class="tags"><span class="tag">人流模擬</span><span class="tag">群眾密度</span><span class="tag">分批疏散</span></div>
+                <div class="actions"><a class="btn go" href="simulate2.html">▶ 開始</a><a class="btn guide" href="simulate2_guide.html">📖 使用說明</a></div>
+            </article>
+        </div>
+    </section>
+
+    <!-- 類群 2 -->
+    <section class="group g2" aria-labelledby="g2Title">
+        <div class="group-head">
+            <span class="group-dot" aria-hidden="true"></span>
+            <div>
+                <h2 id="g2Title">AIoT 消防偵測系列</h2>
+                <p>感測數據 × AI 判斷 × 設備連動，從原理到場所應用</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <div class="card-top"><span class="icon" aria-hidden="true">🔥</span><h3><a href="aiot.html">AIoT 消防安全模擬系統</a></h3></div>
+                <p>拉滑桿或播放 5 種情境，比較定溫式、差動式與煙霧／CO 偵測什麼時候響；調整判定方式與持續秒數，挑戰零誤報。附 Arduino、Node-RED 教材，也能接上實體 Arduino。</p>
+                <div class="tags"><span class="tag">偵測器原理</span><span class="tag">防誤報</span><span class="tag">實作專題</span></div>
+                <div class="actions"><a class="btn go" href="aiot.html">▶ 開始</a><a class="btn guide" href="aiot_guide.html">📖 使用說明</a></div>
+            </article>
+            <article class="card">
+                <div class="card-top"><span class="icon" aria-hidden="true">🏥</span><h3><a href="hospital-aiot.html">醫院智慧消防戰情中心</a></h3></div>
+                <p>同時監測病房、氧氣室與 ICU 熱影像，練習確認、復歸與誤報處理；在 7F 演練中依 R.A.C.E. 把病人水平避難，並回顧 2018 年臺北醫院護理之家火災。</p>
+                <div class="tags"><span class="tag">水平避難</span><span class="tag">R.A.C.E.</span><span class="tag">案例回顧</span></div>
+                <div class="actions"><a class="btn go" href="hospital-aiot.html">▶ 開始</a><a class="btn guide" href="hospital-aiot_guide.html">📖 使用說明</a></div>
+            </article>
+            <article class="card">
+                <div class="card-top"><span class="icon" aria-hidden="true">📦</span><h3><a href="warehouse_aiot.html">智慧倉儲物流中心戰情室</a></h3></div>
+                <p>全倉熱力地圖搭配「兩項異常才發火警」的判定；比較高天花板下四種偵測方式，觀察撒水連動、人員清點與搶救資訊卡，並回顧 2023 年屏東明揚火災。</p>
+                <div class="tags"><span class="tag">多感測器判定</span><span class="tag">煙層分層</span><span class="tag">搶救資訊</span></div>
+                <div class="actions"><a class="btn go" href="warehouse_aiot.html">▶ 開始</a><a class="btn guide" href="warehouse_aiot_guide.html">📖 使用說明</a></div>
+            </article>
+        </div>
+    </section>
+
+</div>
+
+<footer>消防與公共安全模擬教學平台 ｜ 教學示範用途，模擬數值皆為示意，不能取代經認證的消防設備與正式訓練</footer>
+
+</body>
+</html>
