@@ -74,7 +74,10 @@
         <div class="card">
             <h2>學習成效：前後測（配對樣本）</h2>
             <table id="tTest"></table>
-            <p class="msg">每題 1 分，滿分 14 分。只計算前測、後測都有填答的代碼；同一代碼重複填答時取最後一筆。</p>
+            <p class="msg">每題 1 分，滿分 14 分。以「身分＋代碼」配對，只計算前測、後測都有填答者；重複填答時取最後一筆。</p>
+            <h3>依身分比較</h3>
+            <table id="byRole"></table>
+            <p class="msg">各組人數少於 30 人時 p 值採 Wilcoxon 檢定，30 人以上採配對 t 檢定。</p>
             <h3>報告用文字</h3>
             <div class="report" id="reportText"></div>
         </div>
@@ -227,12 +230,14 @@ $('local').onclick = () => {
 };
 $('reset').onclick = () => { records = []; $('loadMsg').textContent = '已清空。'; $('out').hidden = true; };
 
-// 同一表單同一代碼只留最後一筆（依時間）
+// 配對鍵用「身分＋代碼」：國中與五專的學號末四碼可能重複
+const pkey = r => `${r.身分 || ''}|${r.代碼}`;
+// 同一表單同一配對鍵只留最後一筆（依時間）
 function latest(form) {
     const m = new Map();
     for (const r of records.filter(r => r._form === form)) {
-        const old = m.get(r.代碼);
-        if (!old || String(r.時間) >= String(old.時間)) m.set(r.代碼, r);
+        const old = m.get(pkey(r));
+        if (!old || String(r.時間) >= String(old.時間)) m.set(pkey(r), r);
     }
     return [...m.values()];
 }
@@ -245,8 +250,9 @@ function render() {
     if (!pre.length && !post.length) { $('out').hidden = true; return; }
     $('out').hidden = false;
     pre.forEach(r => r.分數 = score(r)); post.forEach(r => r.分數 = score(r));
-    const preMap = new Map(pre.map(r => [r.代碼, r]));
-    const pairs = post.filter(r => preMap.has(r.代碼)).map(r => [preMap.get(r.代碼).分數, r.分數]);
+    const preMap = new Map(pre.map(r => [pkey(r), r]));
+    const paired = post.filter(r => preMap.has(pkey(r))).map(r => ({ role: r.身分 || '未填', pre: preMap.get(pkey(r)).分數, post: r.分數 }));
+    const pairs = paired.map(x => [x.pre, x.post]);
     const a = pairs.map(p => p[0]), b = pairs.map(p => p[1]);
     const dups = records.length - pre.length - post.length;
     summary = [];
@@ -281,6 +287,20 @@ function render() {
     } else {
         $('tTest').innerHTML = '<tr><td class="warn">配對成功的人數不足 2 人，無法進行檢定。請確認前測與後測的代碼一致。</td></tr>';
     }
+
+    // 依身分比較
+    const roles = [...ROLES, '未填'].filter(k => paired.some(x => x.role === k));
+    $('byRole').innerHTML = '<tr><th>身分</th><th>配對人數</th><th>前測平均</th><th>後測平均</th><th>進步</th><th>p</th></tr>' + roles.map(k => {
+        const g = paired.filter(x => x.role === k), g0 = g.map(x => x.pre), g1 = g.map(x => x.post);
+        const tt = g.length >= 2 ? (g.length < 30 ? wilcoxon(g0, g1) : pairedT(g0, g1)) : { p: NaN };
+        summary.push(['依身分', `${k} 人數`, g.length], ['依身分', `${k} 前測平均`, f2(mean(g0))], ['依身分', `${k} 後測平均`, f2(mean(g1))]);
+        return `<tr><td>${esc(k)}</td><td class="n">${g.length}</td><td class="n">${f2(mean(g0))}</td><td class="n">${f2(mean(g1))}</td>
+            <td class="n">${f2(mean(g1) - mean(g0))}</td><td class="n">${fp(tt.p)}</td></tr>`;
+    }).join('');
+    if (roles.length > 1) report += '\n依身分分組：' + roles.map(k => {
+        const g = paired.filter(x => x.role === k);
+        return `${k} ${g.length} 人，前測 ${f2(mean(g.map(x => x.pre)))} 分、後測 ${f2(mean(g.map(x => x.post)))} 分`;
+    }).join('；') + '。';
 
     // 各題
     let best = null;
@@ -343,7 +363,8 @@ function render() {
     $('o2').innerHTML = countTable(count(post, 'O2', DEVICES), post.length);
     o1.forEach(([k, v]) => summary.push(['最喜歡的模組', k, v]));
     const bg = [['消防訓練經驗', '曾參加消防訓練'], ['VR經驗', '曾使用 VR']];
-    $('bg').innerHTML = '<tr><th>項目</th><th>是</th><th>否</th></tr>' + bg.map(([k, label]) => {
+    $('bg').innerHTML = countTable(count(pre, '身分', ROLES).filter(([, v]) => v), pre.length) +
+        '<tr><th>項目</th><th>是</th><th>否</th></tr>' + bg.map(([k, label]) => {
         const y = pre.filter(r => r[k] === '是').length, n = pre.filter(r => r[k] === '否').length;
         return `<tr><td>${label}</td><td class="n">${y}</td><td class="n">${n}</td></tr>`;
     }).join('');

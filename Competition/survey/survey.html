@@ -105,7 +105,7 @@
         <div class="card">
             <h2>基本資料</h2>
             <div class="field" data-key="代碼">
-                <label class="label req" for="code">配對代碼：學號末四碼（前測、後測請填相同代碼）</label>
+                <label class="label req" for="code">配對代碼：學號末四碼，或老師指定的 4 位數字（前測、後測請填相同代碼）</label>
                 <input type="text" id="code" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="例如 0123">
             </div>
             <div id="bgFields"></div>
@@ -187,9 +187,13 @@ function build() {
 
     if (form === 'pre') {
         $('bgFields').innerHTML =
-            block('科系年級', '科系年級', '<input type="text" name="科系年級" placeholder="例如 資訊管理系 二年級">') +
+            block('身分', '你目前是？', radios('身分', ROLES.map(t => [t, esc(t)]), 'opts row')) +
+            block('科別或社團', '科別（五專生）或社團、課程名稱（國中生）', '<input type="text" name="科別或社團" placeholder="例如 消防安全科、環境與安全衛生科、消防體驗社">', false) +
             block('消防訓練經驗', '過去是否參加過消防演練或消防安全課程？', radios('消防訓練經驗', [['是', '是'], ['否', '否']], 'opts row')) +
             block('VR經驗', '過去是否用過 VR 眼鏡或 VR 網頁？', radios('VR經驗', [['是', '是'], ['否', '否']], 'opts row'));
+    } else {
+        // 後測也填身分：國中與五專的代碼可能重複，配對時用「身分＋代碼」
+        $('bgFields').innerHTML = block('身分', '你目前是？（請和前測相同）', radios('身分', ROLES.map(t => [t, esc(t)]), 'opts row'));
     }
 
     // 選項順序每次打亂，送出時記原始字母
