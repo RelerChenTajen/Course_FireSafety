@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>問卷統計</title>
+<link rel="stylesheet" href="../../platform.css?v=3">
+<style>
+    :root {
+        --bg: #f4f6f8; --card: #ffffff; --ink: #1f2933; --muted: #5f6b7a; --line: #d9dee4;
+        --accent: #1e8449; --accent-soft: #e8f5e9; --pre: #9aa5b1; --warn: #c0392b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif; }
+    main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 60px; }
+    h1 { font-size: 24px; margin: 8px 0 4px; }
+    h2 { font-size: 19px; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 2px solid var(--accent); }
+    .sub { color: var(--muted); margin: 0 0 12px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; margin: 16px 0; overflow-x: auto; }
+    .drop { border: 2px dashed var(--accent); border-radius: 12px; padding: 24px; text-align: center; background: var(--accent-soft); }
+    .drop.over { background: #c8e6c9; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 700; padding: 10px 18px; border-radius: 999px; border: 0; cursor: pointer; background: var(--accent); color: #fff; }
+    .btn.ghost { background: #fff; color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+    .btn:focus-visible { outline: 3px solid #f2b705; outline-offset: 2px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 12px; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+    .tile .v { font-size: 30px; font-weight: 900; color: var(--accent); font-variant-numeric: tabular-nums; }
+    .tile .k { color: var(--muted); font-size: 14px; }
+    table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+    th, td { border-bottom: 1px solid var(--line); padding: 7px 8px; text-align: left; vertical-align: middle; }
+    th { background: #f0f3f6; white-space: nowrap; }
+    td.n { text-align: right; white-space: nowrap; }
+    .bars { min-width: 160px; }
+    .bar { height: 9px; border-radius: 5px; margin: 2px 0; }
+    .bar.pre { background: var(--pre); }
+    .bar.post { background: var(--accent); }
+    .legend { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+    .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin: 0 4px 0 10px; }
+    .report { background: #fffbe6; border-left: 4px solid #f2b705; padding: 12px 14px; border-radius: 8px; white-space: pre-wrap; }
+    .msg { color: var(--muted); font-size: 14px; }
+    .warn { color: var(--warn); }
+    ul.open { margin: 0; padding-left: 20px; }
+    ul.open li { margin: 4px 0; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="pbar">
+    <a class="pb-home" href="../../index.html">🏠 平台首頁</a>
+    <span class="pb-sep">›</span><span class="pb-group g1">專題競賽</span>
+    <span class="pb-sep">›</span><span class="pb-page">教學實測問卷・統計</span>
+    <span class="pb-right"><a class="pb-btn ghost" href="survey.html">📝 問卷</a></span>
+</div>
+
+<main>
+    <h1>教學實測問卷統計</h1>
+    <p class="sub">匯入學生繳交的 CSV（可一次選多個檔案），自動合併、計分與統計。資料只在這個網頁內處理，不會上傳。</p>
+
+    <div class="drop" id="drop">
+        <p>把 CSV 檔拖曳到這裡，或</p>
+        <div class="actions">
+            <label class="btn">📂 選擇 CSV 檔<input type="file" id="files" accept=".csv,text/csv" multiple hidden></label>
+            <button class="btn ghost" id="local">載入本機填答</button>
+            <button class="btn ghost" id="reset">清空重來</button>
+        </div>
+        <p class="msg" id="loadMsg"></p>
+    </div>
+
+    <div id="out" hidden>
+        <div class="tiles" id="tiles"></div>
+
+        <div class="card">
+            <h2>學習成效：前後測（配對樣本）</h2>
+            <table id="tTest"></table>
+            <p class="msg">每題 1 分，滿分 14 分。只計算前測、後測都有填答的代碼；同一代碼重複填答時取最後一筆。</p>
+            <h3>報告用文字</h3>
+            <div class="report" id="reportText"></div>
+        </div>
+
+        <div class="card">
+            <h2>各題答對率</h2>
+            <div class="legend"><i style="background:var(--pre)"></i>前測<i style="background:var(--accent)"></i>後測</div>
+            <table id="items"></table>
+        </div>
+
+        <div class="card">
+            <h2>各模組答對率</h2>
+            <table id="mods"></table>
+        </div>
+
+        <div class="card">
+            <h2>使用回饋：構面平均與信度</h2>
+            <table id="dims"></table>
+            <p class="msg">5 點量表；Cronbach's α ≥ 0.7 表示量表信度可接受。</p>
+            <h3>各題平均</h3>
+            <table id="likertItems"></table>
+        </div>
+
+        <div class="grid2">
+            <div class="card"><h2>最喜歡的模組（O1）</h2><table id="o1"></table></div>
+            <div class="card"><h2>使用裝置（O2）</h2><table id="o2"></table></div>
+            <div class="card"><h2>受測者背景（前測）</h2><table id="bg"></table></div>
+        </div>
+
+        <div class="grid2">
+            <div class="card"><h2>印象最深刻、最有收穫（O3）</h2><ul class="open" id="o3"></ul></div>
+            <div class="card"><h2>可以改進的地方（O4）</h2><ul class="open" id="o4"></ul></div>
+        </div>
+
+        <div class="card">
+            <h2>匯出</h2>
+            <div class="actions" style="justify-content:flex-start">
+                <button class="btn" id="exPre">合併前測 CSV（含分數）</button>
+                <button class="btn" id="exPost">合併後測 CSV（含分數）</button>
+                <button class="btn ghost" id="exSum">統計摘要 CSV</button>
+            </div>
+            <p class="msg">建議存到 Competition/data/survey/。上傳 GitHub 前請確認沒有姓名或完整學號。</p>
+        </div>
+    </div>
+</main>
+
+<script src="questions.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const f2 = (x, d = 2) => Number.isFinite(x) ? x.toFixed(d) : '—';
+const pct = x => Number.isFinite(x) ? (x * 100).toFixed(1) + '%' : '—';
+const fp = p => !Number.isFinite(p) ? '—' : p < .001 ? '< .001' : p.toFixed(3).replace(/^0/, '');
+
+// ── 統計函式
+const mean = a => a.reduce((s, x) => s + x, 0) / a.length;
+const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((s, x) => s + (x - m) ** 2, 0) / (a.length - 1)); };
+const variance = a => sd(a) ** 2;
+function lgamma(x) {
+    const c = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+    let y = x, t = x + 5.5; t -= (x + 0.5) * Math.log(t);
+    let s = 1.000000000190015; for (const k of c) s += k / ++y;
+    return -t + Math.log(2.5066282746310005 * s / x);
+}
+function betacf(a, b, x) {
+    let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < 1e-30) d = 1e-30; d = 1 / d; let h = d;
+    for (let m = 1; m <= 200; m++) {
+        const m2 = 2 * m;
+        let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+        d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; d = 1 / d; h *= d * c;
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+        d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; d = 1 / d;
+        const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-12) break;
+    }
+    return h;
+}
+function ibeta(x, a, b) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+    return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b;
+}
+const tTwoTail = (t, df) => ibeta(df / (df + t * t), df / 2, 0.5);
+function normCdf(z) {   // Abramowitz-Stegun 7.1.26
+    const s = z < 0 ? -1 : 1, x = Math.abs(z) / Math.SQRT2, t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return 0.5 * (1 + s * y);
+}
+function pairedT(pre, post) {
+    const d = post.map((x, i) => x - pre[i]), n = d.length, md = mean(d), sdd = sd(d);
+    const t = md / (sdd / Math.sqrt(n));
+    return { n, md, sdd, t, df: n - 1, p: sdd > 0 ? tTwoTail(t, n - 1) : NaN, dz: md / sdd };
+}
+function wilcoxon(pre, post) {
+    const d = post.map((x, i) => x - pre[i]).filter(x => x !== 0), n = d.length;
+    if (n < 1) return { n, z: NaN, p: NaN };
+    const order = d.map((x, i) => [Math.abs(x), i]).sort((a, b) => a[0] - b[0]);
+    const rank = Array(n); let tie = 0;
+    for (let i = 0; i < n;) {
+        let j = i; while (j + 1 < n && order[j + 1][0] === order[i][0]) j++;
+        const r = (i + j + 2) / 2, k = j - i + 1; tie += k ** 3 - k;
+        for (let m = i; m <= j; m++) rank[order[m][1]] = r;
+        i = j + 1;
+    }
+    const W = d.reduce((s, x, i) => s + (x > 0 ? rank[i] : 0), 0);
+    const mu = n * (n + 1) / 4, sig = Math.sqrt(n * (n + 1) * (2 * n + 1) / 24 - tie / 48);
+    const z = sig > 0 ? (W - mu - Math.sign(W - mu) * 0.5) / sig : NaN;
+    return { n, W, z, p: Number.isFinite(z) ? 2 * (1 - normCdf(Math.abs(z))) : NaN };
+}
+function cronbach(rows, ids) {
+    const full = rows.map(r => ids.map(k => +r[k])).filter(v => v.every(x => x >= 1 && x <= 5));
+    const k = ids.length;
+    if (full.length < 2 || k < 2) return { n: full.length, alpha: NaN };
+    const itemVar = ids.reduce((s, _, j) => s + variance(full.map(v => v[j])), 0);
+    const totVar = variance(full.map(v => v.reduce((a, b) => a + b, 0)));
+    return { n: full.length, alpha: totVar > 0 ? k / (k - 1) * (1 - itemVar / totVar) : NaN };
+}
+
+// ── 資料匯入
+let records = [];
+function addRows(rows, source) {
+    let added = 0, skipped = 0;
+    for (const r of rows) {
+        const form = r.表單 === '前測' ? 'pre' : r.表單 === '後測' ? 'post' : null;
+        if (!form || !r.代碼) { skipped++; continue; }
+        records.push({ ...r, _form: form }); added++;
+    }
+    return `${source}：讀入 ${added} 筆` + (skipped ? `，略過 ${skipped} 筆格式不符` : '');
+}
+async function readFiles(fileList) {
+    const msgs = [];
+    for (const f of fileList) {
+        try { msgs.push(addRows(parseCSV(await f.text()), f.name)); }
+        catch (e) { msgs.push(`${f.name}：無法讀取`); }
+    }
+    $('loadMsg').innerHTML = msgs.map(esc).join('<br>');
+    render();
+}
+// 先複製清單：清空 input 會連帶清空原本的 FileList
+$('files').onchange = e => { readFiles([...e.target.files]); e.target.value = ''; };
+const drop = $('drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); readFiles(e.dataTransfer.files); });
+$('local').onclick = () => {
+    let list = [];
+    try { list = JSON.parse(localStorage.getItem('fsSurveyResponses')) || []; } catch (e) {}
+    $('loadMsg').textContent = list.length ? addRows(list, '本機填答') : '這台裝置的瀏覽器沒有保存的填答。';
+    render();
+};
+$('reset').onclick = () => { records = []; $('loadMsg').textContent = '已清空。'; $('out').hidden = true; };
+
+// 同一表單同一代碼只留最後一筆（依時間）
+function latest(form) {
+    const m = new Map();
+    for (const r of records.filter(r => r._form === form)) {
+        const old = m.get(r.代碼);
+        if (!old || String(r.時間) >= String(old.時間)) m.set(r.代碼, r);
+    }
+    return [...m.values()];
+}
+const score = r => QUIZ.reduce((s, q) => s + (String(r[q.id]).trim().toUpperCase() === q.ans ? 1 : 0), 0);
+const correct = (rows, q) => rows.length ? rows.filter(r => String(r[q.id]).trim().toUpperCase() === q.ans).length / rows.length : NaN;
+
+let summary = [];
+function render() {
+    const pre = latest('pre'), post = latest('post');
+    if (!pre.length && !post.length) { $('out').hidden = true; return; }
+    $('out').hidden = false;
+    pre.forEach(r => r.分數 = score(r)); post.forEach(r => r.分數 = score(r));
+    const preMap = new Map(pre.map(r => [r.代碼, r]));
+    const pairs = post.filter(r => preMap.has(r.代碼)).map(r => [preMap.get(r.代碼).分數, r.分數]);
+    const a = pairs.map(p => p[0]), b = pairs.map(p => p[1]);
+    const dups = records.length - pre.length - post.length;
+    summary = [];
+
+    $('tiles').innerHTML = [
+        ['前測份數', pre.length], ['後測份數', post.length], ['成功配對', pairs.length],
+        ['前測平均', pairs.length ? f2(mean(a)) : '—'], ['後測平均', pairs.length ? f2(mean(b)) : '—'],
+    ].map(([k, v]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('') +
+        (dups > 0 ? `<div class="tile"><div class="v">${dups}</div><div class="k">重複填答（已取最後一筆）</div></div>` : '');
+
+    // 前後測
+    let report = '';
+    if (pairs.length >= 2) {
+        const t = pairedT(a, b), w = wilcoxon(a, b);
+        $('tTest').innerHTML = `<tr><th></th><th>人數</th><th>平均</th><th>標準差</th></tr>
+            <tr><td>前測</td><td class="n">${pairs.length}</td><td class="n">${f2(mean(a))}</td><td class="n">${f2(sd(a))}</td></tr>
+            <tr><td>後測</td><td class="n">${pairs.length}</td><td class="n">${f2(mean(b))}</td><td class="n">${f2(sd(b))}</td></tr>
+            <tr><td>差異（後－前）</td><td class="n">${pairs.length}</td><td class="n">${f2(t.md)}</td><td class="n">${f2(t.sdd)}</td></tr>
+            <tr><th>配對 t 檢定</th><td colspan="3">t(${t.df}) = ${f2(t.t)}，p ${fp(t.p).startsWith('<') ? fp(t.p) : '= ' + fp(t.p)}，效果量 d = ${f2(t.dz)}</td></tr>
+            <tr><th>Wilcoxon 符號等級檢定</th><td colspan="3">z = ${f2(w.z)}，p ${fp(w.p).startsWith('<') ? fp(w.p) : '= ' + fp(w.p)}（排除差異為 0 後 n = ${w.n}）</td></tr>`;
+        const sig = t.p < .05;
+        const useW = pairs.length < 30;
+        report = `本研究共回收前測 ${pre.length} 份、後測 ${post.length} 份，成功配對 ${pairs.length} 份。` +
+            `前測平均 ${f2(mean(a))} 分（SD = ${f2(sd(a))}），後測平均 ${f2(mean(b))} 分（SD = ${f2(sd(b))}），滿分 14 分，平均${t.md >= 0 ? '提升' : '下降'} ${f2(Math.abs(t.md))} 分。` +
+            (useW
+                ? `因樣本數少於 30，以 Wilcoxon 符號等級檢定分析，z = ${f2(w.z)}，p ${fp(w.p).startsWith('<') ? fp(w.p) : '= ' + fp(w.p)}，${w.p < .05 ? '前後測差異達顯著水準' : '前後測差異未達顯著水準'}。`
+                : `配對樣本 t 檢定結果 t(${t.df}) = ${f2(t.t)}，p ${fp(t.p).startsWith('<') ? fp(t.p) : '= ' + fp(t.p)}，效果量 d = ${f2(t.dz)}，${sig ? '前後測差異達顯著水準' : '前後測差異未達顯著水準'}。`);
+        summary.push(['前後測', '配對人數', pairs.length], ['前後測', '前測平均', f2(mean(a))], ['前後測', '前測標準差', f2(sd(a))],
+            ['前後測', '後測平均', f2(mean(b))], ['前後測', '後測標準差', f2(sd(b))], ['前後測', '平均差異', f2(t.md)],
+            ['前後測', 't', f2(t.t)], ['前後測', 'df', t.df], ['前後測', 't 檢定 p', fp(t.p)], ['前後測', '效果量 d', f2(t.dz)],
+            ['前後測', 'Wilcoxon z', f2(w.z)], ['前後測', 'Wilcoxon p', fp(w.p)]);
+    } else {
+        $('tTest').innerHTML = '<tr><td class="warn">配對成功的人數不足 2 人，無法進行檢定。請確認前測與後測的代碼一致。</td></tr>';
+    }
+
+    // 各題
+    let best = null;
+    $('items').innerHTML = '<tr><th>題號</th><th>模組</th><th>題目</th><th>前測</th><th>後測</th><th>變化</th><th class="bars"></th></tr>' +
+        QUIZ.map(q => {
+            const p0 = correct(pre, q), p1 = correct(post, q), dv = p1 - p0;
+            if (Number.isFinite(dv) && (!best || dv > best.dv)) best = { q, dv };
+            summary.push(['各題答對率', `${q.id} 前測`, pct(p0)], ['各題答對率', `${q.id} 後測`, pct(p1)]);
+            return `<tr><td>${q.id}</td><td>${esc(q.mod)}</td><td>${esc(q.q)}</td><td class="n">${pct(p0)}</td><td class="n">${pct(p1)}</td>
+                <td class="n">${Number.isFinite(dv) ? (dv >= 0 ? '+' : '') + (dv * 100).toFixed(1) : '—'}</td>
+                <td class="bars"><div class="bar pre" style="width:${(p0 || 0) * 100}%"></div><div class="bar post" style="width:${(p1 || 0) * 100}%"></div></td></tr>`;
+        }).join('');
+
+    // 各模組
+    const mods = [...new Set(QUIZ.map(q => q.mod))];
+    $('mods').innerHTML = '<tr><th>模組</th><th>前測</th><th>後測</th><th>變化</th><th class="bars"></th></tr>' + mods.map(m => {
+        const qs = QUIZ.filter(q => q.mod === m);
+        const p0 = mean(qs.map(q => correct(pre, q))), p1 = mean(qs.map(q => correct(post, q)));
+        summary.push(['各模組答對率', `${m} 前測`, pct(p0)], ['各模組答對率', `${m} 後測`, pct(p1)]);
+        return `<tr><td>${esc(m)}</td><td class="n">${pct(p0)}</td><td class="n">${pct(p1)}</td>
+            <td class="n">${Number.isFinite(p1 - p0) ? ((p1 - p0) >= 0 ? '+' : '') + ((p1 - p0) * 100).toFixed(1) : '—'}</td>
+            <td class="bars"><div class="bar pre" style="width:${(p0 || 0) * 100}%"></div><div class="bar post" style="width:${(p1 || 0) * 100}%"></div></td></tr>`;
+    }).join('');
+    if (best && pre.length && post.length) report += `\n其中進步最多的是第 ${best.q.id.slice(1)} 題（${best.q.mod}），答對率提升 ${(best.dv * 100).toFixed(1)} 個百分點。`;
+
+    // 量表
+    const dims = [...new Set(LIKERT.map(x => x.dim))];
+    const vals = (rows, k) => rows.map(r => +r[k]).filter(x => x >= 1 && x <= 5);
+    const allIds = LIKERT.map(x => x.id);
+    const dimRows = dims.map(dname => {
+        const ids = LIKERT.filter(x => x.dim === dname).map(x => x.id);
+        const per = post.map(r => { const v = ids.map(k => +r[k]).filter(x => x >= 1 && x <= 5); return v.length ? mean(v) : NaN; }).filter(Number.isFinite);
+        const c = cronbach(post, ids);
+        summary.push(['使用回饋', `${dname} 平均`, f2(mean(per))], ['使用回饋', `${dname} 標準差`, f2(sd(per))], ['使用回饋', `${dname} α`, f2(c.alpha)]);
+        return { dname, m: mean(per), s: sd(per), a: c.alpha, n: per.length };
+    });
+    const all = cronbach(post, allIds);
+    $('dims').innerHTML = '<tr><th>構面</th><th>人數</th><th>平均</th><th>標準差</th><th>Cronbach\'s α</th><th class="bars"></th></tr>' +
+        dimRows.map(d => `<tr><td>${d.dname}</td><td class="n">${d.n}</td><td class="n">${f2(d.m)}</td><td class="n">${f2(d.s)}</td><td class="n">${f2(d.a)}</td>
+            <td class="bars"><div class="bar post" style="width:${Number.isFinite(d.m) ? d.m / 5 * 100 : 0}%"></div></td></tr>`).join('') +
+        `<tr><th>整體量表</th><td class="n">${all.n}</td><td></td><td></td><td class="n">${f2(all.alpha)}</td><td></td></tr>`;
+    summary.push(['使用回饋', '整體 α', f2(all.alpha)]);
+    $('likertItems').innerHTML = '<tr><th>代碼</th><th>構面</th><th>題目</th><th>平均</th><th>標準差</th></tr>' +
+        LIKERT.map(x => { const v = vals(post, x.id); return `<tr><td>${x.id}</td><td>${x.dim}</td><td>${esc(x.q)}</td><td class="n">${v.length ? f2(mean(v)) : '—'}</td><td class="n">${f2(sd(v))}</td></tr>`; }).join('');
+    if (dimRows.some(d => Number.isFinite(d.m))) {
+        const top = dimRows.filter(d => Number.isFinite(d.m)).sort((x, y) => y.m - x.m);
+        report += `\n使用回饋採 5 點量表，${top.map(d => `${d.dname} ${f2(d.m)}`).join('、')}，以「${top[0].dname}」最高；整體量表 Cronbach's α = ${f2(all.alpha)}。`;
+    }
+
+    // 複選與背景
+    const count = (rows, key, items) => {
+        const c = Object.fromEntries(items.map(t => [t, 0]));
+        rows.forEach(r => String(r[key] || '').split(';').map(s => s.trim()).filter(Boolean).forEach(t => c[t] = (c[t] || 0) + 1));
+        return Object.entries(c).sort((x, y) => y[1] - x[1]);
+    };
+    const countTable = (entries, n) => '<tr><th>選項</th><th>人數</th><th>比例</th></tr>' +
+        entries.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="n">${v}</td><td class="n">${n ? pct(v / n) : '—'}</td></tr>`).join('');
+    const o1 = count(post, 'O1', MODULES);
+    $('o1').innerHTML = countTable(o1, post.length);
+    $('o2').innerHTML = countTable(count(post, 'O2', DEVICES), post.length);
+    o1.forEach(([k, v]) => summary.push(['最喜歡的模組', k, v]));
+    const bg = [['消防訓練經驗', '曾參加消防訓練'], ['VR經驗', '曾使用 VR']];
+    $('bg').innerHTML = '<tr><th>項目</th><th>是</th><th>否</th></tr>' + bg.map(([k, label]) => {
+        const y = pre.filter(r => r[k] === '是').length, n = pre.filter(r => r[k] === '否').length;
+        return `<tr><td>${label}</td><td class="n">${y}</td><td class="n">${n}</td></tr>`;
+    }).join('');
+    const list = key => post.map(r => String(r[key] || '').trim()).filter(Boolean);
+    $('o3').innerHTML = list('O3').map(t => `<li>${esc(t)}</li>`).join('') || '<li class="msg">（無）</li>';
+    $('o4').innerHTML = list('O4').map(t => `<li>${esc(t)}</li>`).join('') || '<li class="msg">（無）</li>';
+
+    $('reportText').textContent = report || '資料不足，無法產生文字。';
+    window._data = { pre, post };
+}
+
+$('exPre').onclick = () => { const r = window._data?.pre || []; r.length && download(`前測_合併_${r.length}份.csv`, toCSV([...COLS.pre, '分數'], r)); };
+$('exPost').onclick = () => { const r = window._data?.post || []; r.length && download(`後測_合併_${r.length}份.csv`, toCSV([...COLS.post, '分數'], r)); };
+$('exSum').onclick = () => summary.length && download('問卷統計摘要.csv',
+    toCSV(['類別', '項目', '數值'], summary.map(([a, b, c]) => ({ 類別: a, 項目: b, 數值: c }))));
+</script>
+</body>
+</html>
