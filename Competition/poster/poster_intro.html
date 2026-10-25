@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>平台特色海報</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;700;900&display=swap">
+<!-- A1 直式 594 × 841 mm；以 96 dpi 換算為 2245 × 3179 px 排版。內容取自 Competition/platform_intro.html -->
+<style>
+    @page { size: 594mm 841mm; margin: 0; }
+    :root {
+        --bg: #f7f9f6; --ink: #1c2a22; --soft: #55655c; --line: #d6e0d9; --card: #ffffff;
+        --exit: #1e8449; --caution: #f2b705; --l1: #a86a12; --l2: #1e8449; --l3: #c0392b;
+        --display: "LXGW WenKai TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+        --body: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+        width: 2245px; height: 3179px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+        font-family: var(--body); font-size: 30px; line-height: 1.5;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    h1, h2, h3 { font-family: var(--display); margin: 0; line-height: 1.2; }
+
+    /* 標題：安全出口標示牌 */
+    header { background: var(--exit); color: #fff; border-bottom: 18px solid var(--caution); padding: 40px 80px 34px; display: grid; grid-template-columns: 250px 1fr; gap: 50px; align-items: center; position: relative; }
+    .runner { width: 250px; height: 250px; background: #fff; border-radius: 26px; display: grid; place-items: center; }
+    .runner svg { width: 80%; height: 80%; }
+    .field { display: inline-block; background: var(--caution); color: #2a2100; font-weight: 900; font-size: 28px; padding: 4px 24px; border-radius: 999px; }
+    header h1 { font-size: 104px; margin: 14px 0 6px; letter-spacing: 2px; }
+    header .sub { font-size: 40px; font-family: var(--display); font-weight: 700; }
+    header .team { margin-top: 14px; font-size: 29px; display: flex; gap: 40px; flex-wrap: wrap; opacity: .97; }
+    header .team b { color: var(--caution); margin-right: 8px; }
+    header .team .todo { color: #ffd7d2; }
+    .sdg { position: absolute; right: 80px; top: 40px; display: flex; gap: 8px; align-items: center; font-weight: 900; font-size: 26px; }
+    .sdg i { font-style: normal; width: 50px; height: 50px; border-radius: 8px; display: grid; place-items: center; font-size: 25px; color: #fff; }
+
+    main { padding: 34px 80px 0; display: grid; gap: 26px; }
+    section { display: grid; gap: 16px; }
+
+    /* 三個數字 */
+    .idea { grid-template-columns: repeat(3, 1fr); gap: 26px; display: grid; }
+    .idea div { background: var(--card); border: 3px solid var(--line); border-radius: 22px; padding: 16px 24px; display: flex; align-items: baseline; gap: 20px; justify-content: center; }
+    .idea b { font-family: var(--display); font-size: 76px; color: var(--exit); line-height: 1; }
+    .idea span { color: var(--soft); font-size: 30px; }
+
+    /* 三站 */
+    .stop-head { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .stop-no { font-family: var(--display); font-weight: 700; color: #fff; border-radius: 999px; padding: 4px 26px; font-size: 34px; }
+    .stop h2 { font-size: 58px; }
+    .stop-head p { margin: 0; color: var(--soft); font-size: 30px; }
+    .games { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .game { background: var(--card); border: 3px solid var(--line); border-radius: 22px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+    .game img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: top left; display: block; border-bottom: 3px solid var(--line); }
+    .game .txt { padding: 12px 22px 16px; display: grid; gap: 6px; align-content: start; }
+    .game h3 { font-size: 42px; }
+    .do, .learn { display: grid; grid-template-columns: 112px 1fr; gap: 12px; align-items: baseline; margin: 0; font-size: 28px; line-height: 1.4; }
+    .do i, .learn i { font-style: normal; font-size: 23px; font-weight: 700; letter-spacing: .08em; text-align: center; border-radius: 8px; padding: 1px 0; }
+    .do i { background: var(--line); }
+    .learn i { background: var(--caution); color: #2a2100; }
+    .s1 .stop-no { background: var(--l1); } .s2 .stop-no { background: var(--l2); } .s3 .stop-no { background: var(--l3); }
+    .s1 .game { border-top: 10px solid var(--l1); } .s2 .game { border-top: 10px solid var(--l2); } .s3 .game { border-top: 10px solid var(--l3); }
+    .single { grid-template-columns: 1.45fr 1fr; }
+    .single .game { grid-template-rows: none; grid-template-columns: 1.2fr 1fr; }
+    .single .game img { height: 100%; aspect-ratio: auto; border-bottom: 0; border-right: 3px solid var(--line); }
+    .single .game .txt { align-content: center; }
+    .steps { background: var(--card); border: 4px dashed var(--l1); border-radius: 22px; padding: 20px 28px; display: grid; gap: 16px; align-content: center; }
+    .steps div { display: flex; gap: 18px; align-items: center; font-size: 34px; }
+    .steps b { flex: none; width: 60px; height: 60px; border-radius: 50%; background: var(--l1); color: #fff; display: grid; place-items: center; font-family: var(--display); font-size: 32px; }
+    .arrow { text-align: center; color: var(--soft); font-family: var(--display); font-size: 32px; display: flex; align-items: center; justify-content: center; gap: 14px; margin-block: -8px; }
+
+    /* 為什麼好用＋掃描 */
+    .end { display: grid; grid-template-columns: 1fr 640px; gap: 26px; }
+    .perks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .perk { background: var(--card); border: 3px solid var(--line); border-radius: 22px; padding: 18px 24px; display: grid; grid-template-columns: 70px 1fr; gap: 4px 20px; align-items: center; }
+    .perk svg { width: 70px; height: 70px; color: var(--exit); grid-row: span 2; }
+    .perk b { font-size: 36px; font-family: var(--display); }
+    .perk span { color: var(--soft); font-size: 27px; }
+    .go { background: var(--exit); color: #fff; border-radius: 22px; padding: 24px 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; text-align: center; }
+    .go h2 { grid-column: 1 / -1; font-size: 50px; }
+    .qr { background: #fff; color: var(--ink); border-radius: 16px; padding: 16px; }
+    .qr .code { width: 220px; height: 220px; margin: 0 auto 8px; }
+    .qr .code img, .qr .code canvas { width: 220px !important; height: 220px !important; }
+    .qr b { font-size: 30px; display: block; font-family: var(--display); }
+
+    footer { position: absolute; left: 0; right: 0; bottom: 0; background: var(--exit); color: #fff; padding: 20px 80px; font-size: 24px; display: flex; justify-content: space-between; border-top: 10px solid var(--caution); }
+</style>
+</head>
+<body>
+<header>
+    <div class="runner" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none"><circle cx="38" cy="10" r="6" fill="#1e8449"/>
+            <path d="M34 20 L24 34 L32 38 L28 54" stroke="#1e8449" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M34 20 L44 30 L52 26" stroke="#1e8449" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M32 38 L44 44 L46 56" stroke="#1e8449" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M24 34 L14 30" stroke="#1e8449" stroke-width="6" stroke-linecap="round"/></svg>
+    </div>
+    <div>
+        <span class="field">數位科技與人文創新</span>
+        <h1>用玩的，學會怎麼不被火困住</h1>
+        <div class="sub">消防與職業安全教育互動推廣平台：打開手機就能玩的 7 個消防小遊戲</div>
+        <div class="team">
+            <span><b>大仁科技大學</b>消防安全科・環境與職業安全衛生科</span>
+            <span><b>指導老師</b>消防安全科 陳瑞樂</span>
+            <span><b>組員</b><span class="todo">【六位組員姓名】</span></span>
+        </div>
+    </div>
+    <div class="sdg">SDGs<i style="background:#4c9f38">3</i><i style="background:#c5192d">4</i><i style="background:#fd6925">9</i><i style="background:#fd9d24">11</i></div>
+</header>
+
+<main>
+    <section class="idea">
+        <div><b>7 個</b><span>可以動手玩的模擬</span></div>
+        <div><b>0 安裝</b><span>手機、電腦、VR 都能開</span></div>
+        <div><b>3 站</b><span>找危險 → 逃生 → 警報器</span></div>
+    </section>
+
+    <section class="stop s1">
+        <div class="stop-head"><span class="stop-no">第 1 站</span><h2>先學會「看出哪裡危險」</h2><p>像大家來找碴，在圖裡找出會讓人受傷的地方</p></div>
+        <div class="games single">
+            <article class="game"><img src="img/lottery.png" alt="">
+                <div class="txt"><h3>問答轉盤</h3>
+                    <p class="do"><i>做什麼</i>分組轉轉盤，限時圈出圖裡的危險</p>
+                    <p class="learn"><i>學到</i>工地、廚房、工廠哪裡容易出事</p></div></article>
+            <div class="steps">
+                <div><b>1</b>轉盤抽到一個行業</div>
+                <div><b>2</b>倒數計時，圈出危險</div>
+                <div><b>3</b>老師一處一處公布答案</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="arrow"><svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M6 12l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>學會看危險之後，走進一座大球場</div>
+
+    <section class="stop s2">
+        <div class="stop-head"><span class="stop-no">第 2 站</span><h2>失火了，人要怎麼逃出去？</h2><p>以能坐 5 萬人的臺北大巨蛋當場景</p></div>
+        <div class="games">
+            <article class="game"><img src="img/vr.png" alt="">
+                <div class="txt"><h3>VR 逃生體驗</h3>
+                    <p class="do"><i>做什麼</i>在濃煙變低之前找到出口</p>
+                    <p class="learn"><i>學到</i>跟著綠色牌子走，最近的門不一定能走</p></div></article>
+            <article class="game"><img src="img/evac.png" alt="">
+                <div class="txt"><h3>逃生時間計算</h3>
+                    <p class="do"><i>做什麼</i>把一個出口堵住，看誰來不及出去</p>
+                    <p class="learn"><i>學到</i>門太窄、出口太少，就會卡住</p></div></article>
+            <article class="game"><img src="img/crowd.png" alt="">
+                <div class="txt"><h3>5 萬人一起走</h3>
+                    <p class="do"><i>做什麼</i>看小點點擠向出口，地上越紅越擠</p>
+                    <p class="learn"><i>學到</i>大家用衝的反而更慢，分批走比較安全</p></div></article>
+        </div>
+    </section>
+
+    <div class="arrow"><svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M12 4v14M6 12l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>知道怎麼逃之後，再學怎麼「早一點發現火」</div>
+
+    <section class="stop s3">
+        <div class="stop-head"><span class="stop-no">第 3 站</span><h2>聰明的警報器怎麼知道有火？</h2><p>感測器量溫度和煙，電腦判斷要不要響</p></div>
+        <div class="games">
+            <article class="game"><img src="img/aiot.png" alt="">
+                <div class="txt"><h3>警報器實驗室</h3>
+                    <p class="do"><i>做什麼</i>烤焦吐司、油鍋起火，看警報器會不會亂響</p>
+                    <p class="learn"><i>學到</i>看兩種以上的訊號，比較不會誤報</p></div></article>
+            <article class="game"><img src="img/hospital.png" alt="">
+                <div class="txt"><h3>醫院救援</h3>
+                    <p class="do"><i>做什麼</i>病房失火，把躺在床上的病人移到隔壁</p>
+                    <p class="learn"><i>學到</i>病人先往旁邊避難，不是先下樓</p></div></article>
+            <article class="game"><img src="img/warehouse.png" alt="">
+                <div class="txt"><h3>大倉庫監控</h3>
+                    <p class="do"><i>做什麼</i>在熱力地圖上找出哪一格開始發燙</p>
+                    <p class="learn"><i>學到</i>煙會卡在高高的天花板下，要用對偵測器</p></div></article>
+        </div>
+    </section>
+
+    <section class="end">
+        <div class="perks">
+            <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg><b>手機就能玩</b><span>不用下載，點開網址就開始</span></div>
+            <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H4z"/><path d="M8 21h8M12 17v4"/><path d="M8 9h8M8 13h5"/></svg><b>每個都有圖解</b><span>第一次玩也看得懂</span></div>
+            <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg><b>真實案例</b><span>醫院、倉庫火災的真實故事</span></div>
+            <div class="perk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><b>適合國中生</b><span>也是五專消防、環安科的入門課</span></div>
+        </div>
+        <div class="go">
+            <h2>掃一下，現在就去玩</h2>
+            <div class="qr"><div class="code" data-url="https://relerchentajen.github.io/Course_FireSafety/"></div><b>平台首頁</b></div>
+            <div class="qr"><div class="code" data-url="https://relerchentajen.github.io/Course_FireSafety/simulate0.html"></div><b>VR 逃生體驗</b></div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <span>大仁科技大學 115 年度學生實務專題製作競賽</span>
+    <span>模擬為教學示意，不能取代正式的消防訓練</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+document.querySelectorAll('.code').forEach(el => new QRCode(el, { text: el.dataset.url, width: 440, height: 440, correctLevel: QRCode.CorrectLevel.M }));
+</script>
+</body>
+</html>
