@@ -106,7 +106,7 @@ const cover = {
     blank(),
     p([r('組員：楊采蓁（組長）、婁凱軒、林暐傑、邱浤誠、林沅熹', { size: 28 })], { noIndent: true }),
     blank(), blank(), blank(),
-    center([r('中華民國115年　　月　　日', { size: 28 })]),
+    center([r('中華民國115年10月30日', { size: 28 })]),
   ],
 };
 
