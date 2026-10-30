@@ -102,7 +102,7 @@ const cover = {
     blank(),
     p([r('科系：環境與職業安全衛生科', { size: 28 })], { noIndent: true }),
     blank(),
-    p([r('指導老師：陳瑞樂（消防安全科）、葉琮勤', { size: 28 })], { noIndent: true }),
+    p([r('指導老師：消防安全科 陳瑞樂、葉琮勤', { size: 28 })], { noIndent: true }),
     blank(),
     p([r('組員：楊采蓁（組長）、婁凱軒、林暐傑、邱浤誠、林沅熹', { size: 28 })], { noIndent: true }),
     blank(), blank(), blank(),
@@ -117,7 +117,8 @@ const head = {
   children: [
     center([r('消防與職業安全教育互動推廣平台', { size: 28, bold: true })], { after: 120 }),
     center([r('大仁科技大學')]),
-    center([r('陳瑞樂 老師（消防安全科）、葉琮勤 老師')]),
+    center([r('陳瑞樂 老師、葉琮勤 老師')]),
+    center([r('消防安全科')]),
     center([r('楊采蓁、婁凱軒、林暐傑、邱浤誠、林沅熹')]),
     center([r('環境與職業安全衛生科')], { after: 200 }),
   ],
