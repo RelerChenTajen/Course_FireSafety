@@ -13,3 +13,10 @@ Competition/data/survey/raw/
 
 # Word 開啟文件時的暫存鎖定檔
 ~$*
+
+# 簽名掃描檔含師生電話、Email 與簽名，專案為公開，只保留在本機
+Competition/forms/scans/
+Competition/forms/*.pdf
+
+# Word 開啟中的暫存檔
+~$*
