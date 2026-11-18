@@ -5,7 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="platform.css?v=3">
     <title>臺北大巨蛋 - 360度 VR 防災安全導覽</title>
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <!-- 3D 引擎：優先用專案內的檔案（會場沒有網路也能開），讀不到才改從網路下載 -->
+    <script src="lib/aframe-1.6.0.min.js"></script>
+    <script>window.AFRAME || document.write('<script src="https://aframe.io/releases/1.6.0/aframe.min.js"><\/script>');</script>
+    <script>
+        // 開啟前先檢查：瀏覽器能不能畫 3D（WebGL）、3D 引擎有沒有載入。不行就顯示原因，而不是一片黑。
+        window.VR_PROBLEM = (() => {
+            if (!window.AFRAME) return 'engine';
+            try {
+                const c = document.createElement('canvas');
+                if (!(c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl'))) return 'webgl';
+            } catch (e) { return 'webgl'; }
+            return null;
+        })();
+    </script>
     <style>
         body { margin: 0; overflow: hidden; font-family: "Microsoft JhengHei", sans-serif; background: #000; }
         a-scene { position: fixed; inset: 0; }
@@ -901,6 +914,50 @@ function init() {
         <div class="btn-row"><button class="btn" onclick="closeModal()">開始導覽</button><a class="btn secondary" href="simulate0_guide.html" target="_blank" rel="noopener" style="text-decoration:none">📖 看使用說明</a></div>`);
 }
 if (sceneEl.hasLoaded) init(); else sceneEl.addEventListener('loaded', init);
+</script>
+
+<div id="vrProblem" hidden>
+    <div class="vp-card">
+        <h2>⚠️ 這台電腦目前無法顯示 3D 畫面</h2>
+        <p id="vpReason"></p>
+        <ol id="vpSteps"></ol>
+        <p class="vp-note">其他網頁（疏散動線、人群模擬等）不需要 3D，可以正常使用。</p>
+        <div class="vp-btns"><button type="button" onclick="location.reload()">🔄 改好了，重新載入</button><a href="index.html">🏠 回平台首頁</a></div>
+    </div>
+</div>
+<style>
+    #vrProblem { position: fixed; inset: 56px 0 0 0; z-index: 900; background: #10161a; display: grid; place-items: center; padding: 16px; overflow-y: auto; }
+    #vrProblem[hidden] { display: none; }
+    .vp-card { background: #fff; color: #263238; border-radius: 14px; padding: 24px 28px; max-width: 640px; font-family: "Microsoft JhengHei", sans-serif; line-height: 1.7; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+    .vp-card h2 { margin: 0 0 8px; color: #c0392b; font-size: 1.4rem; }
+    .vp-card ol { padding-left: 1.4em; margin: 8px 0; }
+    .vp-card code { background: #eceff1; padding: 1px 6px; border-radius: 4px; }
+    .vp-note { color: #607d8b; font-size: .92rem; }
+    .vp-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .vp-btns button, .vp-btns a { font: bold 1rem "Microsoft JhengHei", sans-serif; padding: 8px 18px; border-radius: 999px; border: 2px solid #1e8449; cursor: pointer; text-decoration: none; }
+    .vp-btns button { background: #1e8449; color: #fff; }
+    .vp-btns a { background: #fff; color: #1e8449; }
+</style>
+<script>
+(function () {
+    const problem = window.VR_PROBLEM;
+    if (!problem) return;
+    const msg = {
+        webgl: ['瀏覽器的 3D 繪圖功能（WebGL）沒有開啟，常見原因是關閉了「硬體加速」，或顯示卡驅動被瀏覽器停用。', [
+            'Chrome：網址列輸入 <code>chrome://settings/system</code>，開啟「使用圖形加速功能（如果可用）」，再按「重新啟動」。',
+            'Edge：網址列輸入 <code>edge://settings/system</code>，開啟「可用時使用圖形加速」，再按「重新啟動」。',
+            '筆電插上電源並關閉「省電模式」；部分筆電省電時會停用獨立顯示卡。',
+            '仍然不行：到 <code>chrome://gpu</code> 看「WebGL」是否為 Hardware accelerated，或更新顯示卡驅動，也可以換另一台電腦或用手機開啟。'
+        ]],
+        engine: ['3D 引擎沒有載入成功。', [
+            '確認 <code>lib/aframe-1.6.0.min.js</code> 和 simulate0.html 一起複製到這台電腦（資料夾結構要相同）。',
+            '或讓電腦連上網路後重新載入，頁面會改從網路下載 3D 引擎。'
+        ]]
+    }[problem];
+    document.getElementById('vpReason').textContent = msg[0];
+    document.getElementById('vpSteps').innerHTML = msg[1].map(t => '<li>' + t + '</li>').join('');
+    document.getElementById('vrProblem').hidden = false;
+})();
 </script>
 </body>
 </html>
